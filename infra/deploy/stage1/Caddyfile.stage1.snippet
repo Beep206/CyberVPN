@@ -31,7 +31,7 @@
 
 	@api path /api/v1/* /.well-known/security.txt
 	reverse_proxy @api cybervpn-backend:8000 {
-		header_up -X-CyberVPN-Task2-Evidence-Ingress
+		header_up -X-CyberVPN-*
 	}
 
 	@telegram_webhook path /webhook/telegram /webhook/telegram/diagnostics
@@ -135,17 +135,28 @@ cyber-vpn.org {
 	redir @non_subscription https://cyber-vpn.net{uri} permanent
 }
 
-task2-evidence.cyber-vpn.org {
+vpn-test-spb.cyber-vpn.org {
 	import stage1_security_headers
 
-	@task2_route_evidence_spb {
-		path /api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook
-		remote_ip 193.233.91.99
+	@spb_runtime_agent {
+		method POST
+		path /internal/v2/runtime-checks
+		query ""
+		remote_ip 172.30.3.0/24
 	}
-	handle @task2_route_evidence_spb {
-		reverse_proxy cybervpn-backend:8000 {
-			header_up -X-CyberVPN-Task2-Evidence-Ingress
-			header_up X-CyberVPN-Task2-Evidence-Ingress spb-source-verified-v1
+	handle @spb_runtime_agent {
+		reverse_proxy cybervpn-vpn-test-agent-spb-target:8080 {
+			header_up -Forwarded
+			header_up -X-Forwarded-For
+			header_up -X-Forwarded-Host
+			header_up -X-Forwarded-Proto
+			header_up -X-Real-IP
+			header_up -X-Original-*
+			header_up -X-CyberVPN-*
+			header_up -X-VPN-Test-Agent-Secret
+			header_up -Authorization
+			header_up -Proxy-Authorization
+			header_up -Cookie
 		}
 	}
 

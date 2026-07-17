@@ -193,9 +193,7 @@
           "enum": [
             "private_networks",
             "direct_processes",
-            "bittorrent_protocol",
-            "torrent_processes",
-            "torrent_sources",
+            "catalog_exceptions",
             "ads_trackers",
             "tor",
             "quic_doq",
@@ -401,18 +399,18 @@
           "title": "Ads Trackers",
           "type": "array"
         },
-        "bittorrent_protocol": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Bittorrent Protocol",
-          "type": "array"
-        },
         "broad_ru": {
           "items": {
             "type": "string"
           },
           "title": "Broad Ru",
+          "type": "array"
+        },
+        "catalog_exceptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Catalog Exceptions",
           "type": "array"
         },
         "direct_processes": {
@@ -463,28 +461,12 @@
           },
           "title": "Tor",
           "type": "array"
-        },
-        "torrent_processes": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Torrent Processes",
-          "type": "array"
-        },
-        "torrent_sources": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Torrent Sources",
-          "type": "array"
         }
       },
       "required": [
         "private_networks",
         "direct_processes",
-        "bittorrent_protocol",
-        "torrent_processes",
-        "torrent_sources",
+        "catalog_exceptions",
         "ads_trackers",
         "tor",
         "quic_doq",

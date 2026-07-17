@@ -26,6 +26,8 @@ Codex должен реализовать новый тариф как отде�
 8. Доказать route selection Xray logs/telemetry, а не только фактом открытия сайта.
 9. Не генерировать live Torrent/TOR traffic в тестах.
 10. В финальном отчёте разделить local/staging/production evidence.
+11. Сверять Node Plugin поведение с official Remnawave docs:
+    `https://docs.rw/learn/node-plugins/`.
 
 ---
 
@@ -38,9 +40,21 @@ Codex должен реализовать новый тариф как отде�
 ```text
 Destination входит в Antifilter/vendor/custom prefix union -> через DE bridge -> Germany egress
 Destination не входит в union                         -> DIRECT из SPB -> Russia egress
-Ads/Torrent/TOR/abuse policy                          -> BLOCK согласно тарифной policy
+Ads/TOR/abuse policy                                  -> BLOCK согласно тарифной policy
+Recognized BitTorrent protocol                        -> official Remnawave torrentBlocker
+Torrent catalogs/sites                                -> обычная Antifilter/IP policy
 Private/management/self destinations                  -> BLOCK или явно утверждённая safe policy
 ```
+
+RuTracker/Rutor, torrent catalogs, tracker websites и похожие HTTP(S)-ресурсы
+не являются отдельной block-категорией. Если их IP входит в approved
+Antifilter/vendor/custom union, они идут через DE bridge; если не входит -
+через final SPB `DIRECT`. Блокируется только распознанный Xray
+`protocol=bittorrent`, и только официальным Remnawave Node Plugin
+`torrentBlocker`, который сам добавляет runtime rule/outbound/webhook/nftables
+enforcement. Ручные duplicate rules для `protocol=bittorrent`,
+`RW_TB_OUTBOUND_BLOCK`, torrent domains, trackers или process names в Task2
+profile запрещены.
 
 Главное отличие от `Premium Smart RU`:
 
@@ -197,6 +211,15 @@ Compiler:
 9. Создаёт Xray-renderable artifact.
 10. Создаёт manifest/checksums/stats.
 11. Публикует только после всех safety checks.
+
+Production routing operator читает только канонический versioned publish store:
+`active.json`, `last-known-good.json` и immutable `versions/<version>`. Перед
+первой Remnawave mutation он повторно проверяет policy/source provenance,
+checksum каждого artifact, `safety.status=accepted`, цепочку
+`active.previousManifestSha256 -> last-known-good.manifestSha256`, стабильность
+pointer snapshot и фактическое назначение ожидаемого `torrentBlocker` всем
+четырём production VPN nodes. Переданный отдельно self-consistent candidate не
+может обойти эту проверку.
 
 ## 4.3. Last-known-good
 
@@ -463,15 +486,18 @@ Bridge должен поддерживать UDP, иначе часть QUIC/voi
 ```text
 1. management/private/self IPs -> BLOCK или approved safe path
 2. bridge inbound isolation rules
-3. bittorrent protocol -> BLOCK
-4. torrent domains/process equivalents where server can inspect -> BLOCK
-5. ads/trackers policy -> BLOCK, если входит в тариф
-6. TOR best-effort policy -> BLOCK
-7. SMTP abuse ports -> BLOCK/plugin policy
-8. compiled de-exceptions IPv4 chunks/DAT -> DE_EXCEPTIONS_BRIDGE
-9. compiled de-exceptions IPv6 chunks/DAT -> DE_EXCEPTIONS_BRIDGE
-10. final inboundTag + network tcp,udp -> DIRECT
+3. ads/trackers policy -> BLOCK, если входит в тариф
+4. TOR best-effort policy -> BLOCK
+5. SMTP abuse ports -> BLOCK/plugin policy
+6. compiled de-exceptions IPv4 chunks/DAT -> DE_EXCEPTIONS_BRIDGE
+7. compiled de-exceptions IPv6 chunks/DAT -> DE_EXCEPTIONS_BRIDGE
+8. final inboundTag + network tcp,udp -> DIRECT
 ```
+
+`torrentBlocker` runtime rule не включается в этот handwritten order: Remnawave
+Node добавляет его автоматически первым rule для `protocol=bittorrent` и
+outbound `RW_TB_OUTBOUND_BLOCK`. Это отдельный filter/enforcement layer, не
+route-steering engine. Torrent catalogs/sites route по пунктам 6-8 выше.
 
 Финальное правило:
 
@@ -777,9 +803,15 @@ egress = SPB/Russia
 
 ```text
 ad domain fixture -> BLOCK
-torrent website/static fixture -> BLOCK
 torproject/onion rule fixture -> BLOCK
 SMTP port synthetic test target -> BLOCK according to policy
+```
+
+Отдельные torrent criteria:
+
+```text
+RuTracker/Rutor/catalog fixture -> ordinary Antifilter/IP route, not BLOCK
+recognized BitTorrent protocol -> no live/swarm test; require redacted torrentBlocker runtime proof
 ```
 
 ## 14.5. Transport matrix
@@ -841,6 +873,10 @@ active runtime remains healthy
 candidate retained for evidence
 ```
 
+Rollback evidence must also show that no manual torrent duplicate rule remains
+in the SPB profile and that torrent catalogs/sites still follow ordinary
+Antifilter/IP routing after restore.
+
 ## 15.5. SPB node down
 
 Тариф недоступен, если не утверждён отдельный SPB backup. Не менять смысл продукта автоматическим подключением к DE customer node. Отразить outage в monitoring и customer status.
@@ -867,6 +903,9 @@ selected_outbound
 matched_rule_tag
 bridge_health
 test_run_id
+torrent_blocker_enabled
+torrent_blocker_runtime_rule_seen
+torrent_blocker_counter_delta
 ```
 
 Не логировать:
@@ -879,6 +918,8 @@ VLESS UUID
 Reality private keys
 Remnawave token
 customer PII
+customer IP unless irreversibly redacted/truncated
+raw torrent_blocker webhook body
 ```
 
 ## 16.2. Metrics
@@ -896,6 +937,8 @@ cybervpn_spb_de_route_smoke{category,expected,actual}
 cybervpn_spb_de_matched_fail_closed_total
 cybervpn_spb_de_profile_reload_total{status}
 cybervpn_spb_de_last_known_good_age_seconds
+cybervpn_torrent_blocker_runtime_rule_present{node}
+cybervpn_torrent_blocker_reports_total{node,redacted_user_bucket}
 ```
 
 ## 16.3. Alerts
@@ -914,6 +957,7 @@ matched route exits SPB
 unmatched route exits DE
 profile reload failure
 last-known-good too old
+torrentBlocker disabled/missing runtime rule
 ```
 
 ---
@@ -1042,6 +1086,43 @@ AC-ROUTE-012: Discord -> DE.
 AC-ROUTE-013: Custom networks -> DE.
 AC-ROUTE-014: Non-listed controlled target -> SPB DIRECT.
 AC-ROUTE-015: Route decision is proven by outbound log and egress, not availability alone.
+AC-ROUTE-016: Torrent catalogs/sites use ordinary Antifilter/IP policy: matched -> DE, unmatched -> SPB DIRECT.
+```
+
+## Blocking/plugin
+
+> Current evidence status, `2026-07-14`: загруженный official runtime contract
+> для `protocol=bittorrent` **PASS**, но dynamic recognition часть
+> `AC-BLOCK-001` остается **PARTIAL/UNVERIFIED**. `AC-BLOCK-002` **PASS**,
+> `AC-BLOCK-003` **PASS** только для downstream enforcement plumbing Task2 SPB.
+> Four-node runtime inspection доказал plugin-owned
+> `protocol=bittorrent` rule, webhook, `RW_TB_OUTBOUND_BLOCK` и prerequisites.
+> Отдельный одноразовый synthetic HTTP probe на SPB безопасно прошёл тот же
+> webhook -> nftables -> redacted report -> exact unblock/restore plumbing:
+> создан ровно один новый report с `actionReport.blocked=true`, Node записал
+> одну success-строку после awaited nftables add, ошибок block handler не было,
+> а plugin/profile hashes и runtime state точно восстановлены. Xray protocol в
+> synthetic report пустой, поэтому этот прогон доказывает enforcement plumbing,
+> а `AC-BLOCK-001` опирается на загруженный официальный protocol rule и его
+> documented semantics, но не выдаётся за dynamic classifier event. Live
+> BitTorrent, magnet, tracker announce, peer, swarm и TOR traffic не создавались.
+> Archived production proof был получен до финального post-review hardening
+> tracked operator. Текущая версия дополнительно требует helper из fixed
+> read-only approved root/manifest с absolute SHA-256 pin, scrubbed subprocess
+> environment, unique run-scoped rule tag, exact available report-field binding, повторный
+> profile drift check прямо перед PATCH и bounded report/unblock recovery после
+> helper failure или concurrent unrelated reports;
+> эти свойства подтверждаются focused tests и не приписываются задним числом
+> SHA-256 сохранённого production proof.
+> Remnawave 2.8.0 report не содержит rule-tag field: run-tag correlation поэтому
+> считается config-inferred из единственного активного plugin/profile tag, а не
+> exact report-payload match. Если vendor начнёт отдавать tag field, operator
+> требует его точного совпадения.
+
+```text
+AC-BLOCK-001: Recognized BitTorrent protocol is blocked only by official Remnawave Node Plugin torrentBlocker.
+AC-BLOCK-002: SPB profile contains no manual duplicate `protocol=bittorrent`, `RW_TB_OUTBOUND_BLOCK`, torrent-domain, tracker-domain or process-name block policy.
+AC-BLOCK-003: torrentBlocker evidence is redacted and proves enabled plugin, prerequisites, runtime rule/outbound/webhook and nftables enforcement without live torrent/swarm traffic.
 ```
 
 ## Failure semantics
@@ -1053,6 +1134,8 @@ AC-FAIL-003: Feed failure does not publish empty rules.
 AC-FAIL-004: Invalid Xray candidate does not replace active config.
 AC-FAIL-005: Suspicious delta requires manual approval.
 AC-FAIL-006: Rollback restores previous route matrix.
+AC-FAIL-007: Matched traffic never falls back to SPB DIRECT when DE bridge is down.
+AC-FAIL-008: IPv4 and IPv6 exception/no-bypass behavior is asserted separately.
 ```
 
 ## Product/provisioning
@@ -1072,7 +1155,7 @@ AC-PLAN-006: Plan remains hidden/admin-only until all release gates pass.
 AC-SEC-001: No secrets/PII in Git, logs or evidence.
 AC-SEC-002: Artifacts are checksummed and atomically published.
 AC-OBS-001: Feed, bridge, route and last-known-good metrics exist.
-AC-OBS-002: Blocker alerts are actionable.
+AC-OBS-002: Blocker/plugin alerts are actionable and redacted.
 AC-DOC-001: Runbook, architecture and rollback docs exist.
 ```
 
@@ -1082,6 +1165,13 @@ AC-DOC-001: Runbook, architecture and rollback docs exist.
 
 Codex может написать `COMPLETE` только если:
 
+> Current server configuration and downstream status: **COMPLETE** для пунктов
+> 1-22 и SPB части `AC-BLOCK-003`. Dynamic recognition часть `AC-BLOCK-001`
+> остается **PARTIAL/UNVERIFIED**: safe synthetic SPB proof проверил enforcement
+> plumbing без запрещённого live BitTorrent/swarm traffic, но не BitTorrent
+> classifier. Physical device-side evidence также остаётся отдельной ручной
+> owner acceptance и в этом server-side отчёте не заявляется.
+
 1. Новый отдельный plan/squad/profile contract реализован.
 2. Collector interface и compiler реализованы.
 3. Все communities поддерживаются.
@@ -1090,16 +1180,19 @@ Codex может написать `COMPLETE` только если:
 6. Self/private/management exclusions покрыты тестами.
 7. Dedicated SPB->DE bridge изолирован и поддерживает TCP/UDP.
 8. SPB RAW и XHTTP работают.
-9. Каждая обязательная category доказанно выбирает DE outbound.
-10. Controlled non-listed targets доказанно выбирают SPB DIRECT.
-11. DE bridge down даёт fail-closed только для matched traffic.
-12. Existing products не сломаны.
-13. Production-compatible Xray validation проходит.
-14. Inline/DAT production choice обоснован benchmark evidence.
-15. Feed update, publish и rollback атомарны.
-16. Metrics/alerts/evidence реализованы.
-17. Secret scan и `git diff --check` проходят.
-18. Staging/canary runtime evidence приложена.
-19. Production rollout не объявляется выполненным без фактической production verification.
+9. RAW и XHTTP имеют одинаковую route semantics для matched, unmatched, UDP, IPv4 и IPv6 cases.
+10. Каждая обязательная category доказанно выбирает DE outbound.
+11. Controlled non-listed targets доказанно выбирают SPB DIRECT.
+12. Torrent catalogs/sites доказанно идут по ordinary Antifilter/IP policy, а не в BLOCK.
+13. Remnawave `torrentBlocker` доказан redacted runtime evidence без live torrent/swarm test.
+14. DE bridge down даёт fail-closed только для matched traffic и не создаёт no-DIRECT leak.
+15. Existing products не сломаны.
+16. Production-compatible Xray validation проходит.
+17. Inline/DAT production choice обоснован benchmark evidence.
+18. Feed update, publish и rollback атомарны.
+19. Metrics/alerts/evidence реализованы без secrets/PII/customer IP.
+20. Secret scan и `git diff --check` проходят.
+21. Staging/canary runtime evidence приложена.
+22. Production rollout не объявляется выполненным без фактической production verification.
 
 При наличии хотя бы одного непроверенного blocker использовать `INCOMPLETE` и перечислить точные недостающие шаги.

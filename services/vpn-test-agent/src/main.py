@@ -10,6 +10,7 @@ import json
 import os
 import re
 import socket
+import ssl
 import tempfile
 from collections import Counter, OrderedDict
 from dataclasses import dataclass
@@ -70,7 +71,16 @@ PREMIUM_SMART_RU_LOCATION_KEYS_BY_SERVER = {
 }
 TASK2_SUITE_ID = "premium_spb_de_exceptions_v1"
 TASK2_ENDPOINT_SERVER = "spb-exceptions.cyber-vpn.org"
+TASK2_ENDPOINT_SERVER_IPV4 = "193.233.91.99"
+TASK2_ALLOWED_ENDPOINT_SERVERS = frozenset({TASK2_ENDPOINT_SERVER, TASK2_ENDPOINT_SERVER_IPV4})
 TASK2_ENDPOINT_PORTS = {"raw": 4443, "xhttp": 8444}
+MAX_TASK2_TCP_PROBE_PAYLOAD_BYTES = 4096
+TASK2_TCP_HANDOFF_ATTEMPTS = 5
+TASK2_TCP_RESPONSE_WINDOW_SECONDS = 1.5
+TASK2_ROUTE_PROBE_CONCURRENCY = 2
+TASK2_UDP_PROBE_PAYLOAD = b"\x00"
+TASK2_UDP_HANDOFF_ATTEMPTS = 5
+TASK2_UDP_RESPONSE_WINDOW_SECONDS = 0.25
 TASK2_REQUIRED_ROUTE_PROBE_PAIRS = frozenset(
     {
         ("raw", "tcp"),
@@ -440,7 +450,7 @@ class Task2TransportProfile(BaseModel):
     @field_validator("server")
     @classmethod
     def _validate_task2_target(cls, value: str) -> str:
-        if value != TASK2_ENDPOINT_SERVER:
+        if value not in TASK2_ALLOWED_ENDPOINT_SERVERS:
             raise ValueError("task2_vpn_target_not_allowed")
         return value
 
@@ -1116,6 +1126,23 @@ async def _socks5_request(
     return await _socks5_reply(reader, timeout_seconds)
 
 
+def _task2_tls_client_hello() -> bytes:
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    context.check_hostname = False
+    incoming = ssl.MemoryBIO()
+    outgoing = ssl.MemoryBIO()
+    tls = context.wrap_bio(incoming, outgoing, server_side=False, server_hostname=None)
+    try:
+        tls.do_handshake()
+    except ssl.SSLWantReadError:
+        pass
+
+    payload = outgoing.read()
+    if not payload or payload[0] != 0x16 or len(payload) > MAX_TASK2_TCP_PROBE_PAYLOAD_BYTES:
+        raise RuntimeProbeError("tls_client_hello_generation_failed")
+    return payload
+
+
 async def _socks5_tcp_connect(socks_port: int, target_ip: str, target_port: int, timeout_seconds: float) -> str:
     try:
         reader, writer = await asyncio.wait_for(
@@ -1137,11 +1164,20 @@ async def _socks5_tcp_connect(socks_port: int, target_ip: str, target_port: int,
             timeout_seconds=timeout_seconds,
         )
         if terminal_class == "socks_request_ok":
+            writer.write(_task2_tls_client_hello())
+            await asyncio.wait_for(writer.drain(), timeout=timeout_seconds)
+            try:
+                await asyncio.wait_for(
+                    reader.read(1),
+                    timeout=min(TASK2_TCP_RESPONSE_WINDOW_SECONDS, timeout_seconds),
+                )
+            except (OSError, TimeoutError):
+                pass
             return "tcp_connect_established"
         return terminal_class
     except TimeoutError:
         return "probe_timeout"
-    except (OSError, RuntimeError, asyncio.IncompleteReadError):
+    except (OSError, RuntimeError, RuntimeProbeError, asyncio.IncompleteReadError):
         return "probe_io_error"
     finally:
         writer.close()
@@ -1149,6 +1185,24 @@ async def _socks5_tcp_connect(socks_port: int, target_ip: str, target_port: int,
             await writer.wait_closed()
         except OSError:
             pass
+
+
+class _UdpProbeProtocol(asyncio.DatagramProtocol):
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+        self.response: asyncio.Future[Exception | None] = loop.create_future()
+        self.closed: asyncio.Future[Exception | None] = loop.create_future()
+
+    def datagram_received(self, _data: bytes, _address: tuple[Any, ...]) -> None:
+        if not self.response.done():
+            self.response.set_result(None)
+
+    def error_received(self, exc: Exception) -> None:
+        if not self.response.done():
+            self.response.set_result(exc)
+
+    def connection_lost(self, exc: Exception | None) -> None:
+        if not self.closed.done():
+            self.closed.set_result(exc)
 
 
 async def _send_socks_udp_packet(
@@ -1160,21 +1214,69 @@ async def _send_socks_udp_packet(
     timeout_seconds: float,
 ) -> str:
     loop = asyncio.get_running_loop()
-    packet = b"\x00\x00\x00" + _socks_target_bytes(target_ip, target_port) + b"\x00"
+    packet = b"\x00\x00\x00" + _socks_target_bytes(target_ip, target_port) + TASK2_UDP_PROBE_PAYLOAD
     try:
-        transport, _ = await asyncio.wait_for(
-            loop.create_datagram_endpoint(lambda: asyncio.DatagramProtocol(), local_addr=("127.0.0.1", 0)),
-            timeout=timeout_seconds,
+        relay_address = ipaddress.ip_address(relay_host)
+        family = socket.AF_INET6 if relay_address.version == 6 else socket.AF_INET
+        endpoint: tuple[Any, ...] = (
+            (relay_address.compressed, relay_port, 0, 0)
+            if relay_address.version == 6
+            else (relay_address.compressed, relay_port)
         )
-    except (OSError, TimeoutError):
-        return "probe_io_error"
+    except ValueError:
+        try:
+            resolved = await asyncio.wait_for(
+                loop.getaddrinfo(relay_host, relay_port, type=socket.SOCK_DGRAM),
+                timeout=timeout_seconds,
+            )
+        except (OSError, TimeoutError):
+            return "probe_io_error"
+        if not resolved:
+            return "probe_io_error"
+        family, _, _, _, endpoint = resolved[0]
+
+    deadline = loop.time() + timeout_seconds
+    protocol = _UdpProbeProtocol(loop)
+    transport: asyncio.DatagramTransport | None = None
+    terminal_class = "udp_datagram_sent"
+
+    def remaining() -> float:
+        return max(0.001, deadline - loop.time())
+
     try:
-        transport.sendto(packet, (relay_host, relay_port))
-    except OSError:
-        return "probe_io_error"
+        created_transport, _ = await asyncio.wait_for(
+            loop.create_datagram_endpoint(
+                lambda: protocol,
+                remote_addr=endpoint,
+                family=family,
+            ),
+            timeout=remaining(),
+        )
+        transport = created_transport
+        transport.sendto(packet)
+        try:
+            response_error = await asyncio.wait_for(
+                protocol.response,
+                timeout=min(TASK2_UDP_RESPONSE_WINDOW_SECONDS, remaining()),
+            )
+            if response_error is not None:
+                terminal_class = "probe_io_error"
+        except TimeoutError:
+            # SOCKS5 UDP relays do not owe the sender an acknowledgement.
+            # Backend webhook correlation proves the selected outbound.
+            pass
+    except (OSError, RuntimeError, TimeoutError):
+        terminal_class = "probe_io_error"
     finally:
-        transport.close()
-    return "udp_datagram_sent"
+        if transport is not None:
+            transport.close()
+            try:
+                close_error = await asyncio.wait_for(protocol.closed, timeout=remaining())
+            except TimeoutError:
+                close_error = TimeoutError()
+            if close_error is not None:
+                terminal_class = "probe_io_error"
+    return terminal_class
 
 
 async def _socks5_udp_associate(socks_port: int, target_ip: str, target_port: int, timeout_seconds: float) -> str:
@@ -1475,13 +1577,22 @@ def _task2_route_attempts_for_terminal(
     expectations: list[Task2RouteExpectation],
     terminal_class: str,
 ) -> list[Task2RouteAttempt]:
+    return _task2_route_attempts_for_terminals(expectations, {}, fallback_terminal=terminal_class)
+
+
+def _task2_route_attempts_for_terminals(
+    expectations: list[Task2RouteExpectation],
+    terminal_classes: dict[str, str],
+    *,
+    fallback_terminal: str,
+) -> list[Task2RouteAttempt]:
     return [
         Task2RouteAttempt(
             expectation_id=expectation.expectation_id,
             route_key=expectation.route_key,
             transport=expectation.transport,
             probe_network=expectation.probe_network,
-            terminal_class=terminal_class,
+            terminal_class=terminal_classes.get(expectation.expectation_id, fallback_terminal),
         )
         for expectation in expectations
     ]
@@ -1491,9 +1602,20 @@ async def _run_task2_profile_attempts(
     profile: Task2TransportProfile,
     expectations: list[Task2RouteExpectation],
 ) -> list[Task2RouteAttempt]:
-    completed_expectation_ids: set[str] = set()
-    attempts: list[Task2RouteAttempt] = []
-    timeout_seconds = _profile_timeout_seconds()
+    terminal_classes: dict[str, str] = {}
+    base_timeout_seconds = _profile_timeout_seconds()
+    tcp_expectations = [expectation for expectation in expectations if expectation.probe_network == "tcp"]
+    udp_expectations = [expectation for expectation in expectations if expectation.probe_network == "udp"]
+    tcp_batches = (
+        (len(tcp_expectations) + TASK2_ROUTE_PROBE_CONCURRENCY - 1) // TASK2_ROUTE_PROBE_CONCURRENCY
+    ) * TASK2_TCP_HANDOFF_ATTEMPTS
+    udp_batches = (
+        (len(udp_expectations) + TASK2_ROUTE_PROBE_CONCURRENCY - 1) // TASK2_ROUTE_PROBE_CONCURRENCY
+    ) * TASK2_UDP_HANDOFF_ATTEMPTS
+    response_window_budget = (
+        tcp_batches * TASK2_TCP_RESPONSE_WINDOW_SECONDS + udp_batches * TASK2_UDP_RESPONSE_WINDOW_SECONDS
+    )
+    timeout_seconds = min(95.0, max(base_timeout_seconds, 20.0 + response_window_budget))
     process: asyncio.subprocess.Process | None = None
     temp_dir: tempfile.TemporaryDirectory[str] | None = None
     try:
@@ -1514,44 +1636,54 @@ async def _run_task2_profile_attempts(
                 return _task2_route_attempts_for_terminal(expectations, "xray_start_failed")
 
             probe_timeout = _proxy_connect_timeout_seconds(timeout_seconds)
-            for expectation in expectations:
-                if expectation.probe_network == "tcp":
-                    terminal_class = await _socks5_tcp_connect(
+            probe_capacity = asyncio.Semaphore(TASK2_ROUTE_PROBE_CONCURRENCY)
+
+            async def probe(expectation: Task2RouteExpectation) -> str:
+                async with probe_capacity:
+                    if expectation.probe_network == "tcp":
+                        return await _socks5_tcp_connect(
+                            socks_port,
+                            expectation.target_ip,
+                            expectation.target_port,
+                            probe_timeout,
+                        )
+                    return await _socks5_udp_associate(
                         socks_port,
                         expectation.target_ip,
                         expectation.target_port,
                         probe_timeout,
                     )
-                else:
-                    terminal_class = await _socks5_udp_associate(
-                        socks_port,
-                        expectation.target_ip,
-                        expectation.target_port,
-                        probe_timeout,
-                    )
-                attempts.append(
-                    Task2RouteAttempt(
-                        expectation_id=expectation.expectation_id,
-                        route_key=expectation.route_key,
-                        transport=expectation.transport,
-                        probe_network=expectation.probe_network,
-                        terminal_class=terminal_class,
-                    )
-                )
-                completed_expectation_ids.add(expectation.expectation_id)
-            return attempts
+
+            for _ in range(TASK2_TCP_HANDOFF_ATTEMPTS):
+                round_terminals = await asyncio.gather(*(probe(expectation) for expectation in tcp_expectations))
+                for expectation, terminal_class in zip(tcp_expectations, round_terminals, strict=True):
+                    previous = terminal_classes.get(expectation.expectation_id)
+                    if previous != "tcp_connect_established":
+                        terminal_classes[expectation.expectation_id] = terminal_class
+
+            for _ in range(TASK2_UDP_HANDOFF_ATTEMPTS):
+                round_terminals = await asyncio.gather(*(probe(expectation) for expectation in udp_expectations))
+                for expectation, terminal_class in zip(udp_expectations, round_terminals, strict=True):
+                    previous = terminal_classes.get(expectation.expectation_id)
+                    if previous != "udp_datagram_sent":
+                        terminal_classes[expectation.expectation_id] = terminal_class
+            return _task2_route_attempts_for_terminals(
+                expectations,
+                terminal_classes,
+                fallback_terminal="probe_io_error",
+            )
     except TimeoutError:
-        timed_out = [
-            expectation for expectation in expectations if expectation.expectation_id not in completed_expectation_ids
-        ]
-        attempts.extend(_task2_route_attempts_for_terminal(timed_out, "timeout"))
-        return attempts
+        return _task2_route_attempts_for_terminals(
+            expectations,
+            terminal_classes,
+            fallback_terminal="timeout",
+        )
     except (OSError, RuntimeError, RuntimeProbeError):
-        failed = [
-            expectation for expectation in expectations if expectation.expectation_id not in completed_expectation_ids
-        ]
-        attempts.extend(_task2_route_attempts_for_terminal(failed, "probe_io_error"))
-        return attempts
+        return _task2_route_attempts_for_terminals(
+            expectations,
+            terminal_classes,
+            fallback_terminal="probe_io_error",
+        )
     finally:
         if process is not None:
             await _cleanup_process(process)

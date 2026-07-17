@@ -230,6 +230,7 @@ begin
 
     if v_manifest->>'schemaVersion' is distinct from '1'
        or v_manifest->>'product' is distinct from 'premium_smart_ru'
+       or v_manifest#>>'{validation,mihomoProtocolOnlyTorrentPolicy}' is distinct from 'true'
        or v_manifest#>>'{artifacts,mihomo.yaml,sha256}' is distinct from v_contract.mihomo_sha256
        or v_manifest#>>'{artifacts,incy-xray.json,sha256}' is distinct from v_contract.incy_sha256
        or v_manifest#>>'{artifacts,legacy-routing-header.json,sha256}'
@@ -245,10 +246,22 @@ begin
         raise exception 'CyberVPN Premium Smart RU Mihomo artifact size mismatch';
     end if;
 
-    if position('MATCH,World / EU' in v_template) = 0
-       or position('name: Torrents' in v_template) = 0
-       or position('name: RU Sites' in v_template) = 0
-       or position('name: World / EU' in v_template) = 0
+    if position('MATCH,🌍 World / EU' in v_template) = 0
+       or position('name: 🇷🇺 RU Sites' in v_template) = 0
+       or position('name: 🌍 World / EU' in v_template) = 0
+       or position('DOMAIN-SUFFIX,rutracker.org' in v_template) = 0
+       or position('RULE-SET,catalog-access-inline,🌍 World / EU' in v_template) = 0
+       or position('RULE-SET,catalog-access-inline,🌍 World / EU' in v_template)
+            > position(',⛔ BLOCK' in v_template)
+       or position('name: Torrents' in v_template) <> 0
+       or position('name: 🧲 Torrents' in v_template) <> 0
+       or position('torrent-websites' in v_template) <> 0
+       or position('torrent-trackers' in v_template) <> 0
+       or position('torrent-clients' in v_template) <> 0
+       or position('DOMAIN-SUFFIX,nnmclub.to,REJECT' in v_template) <> 0
+       or position('DOMAIN-SUFFIX,rutracker.org,REJECT' in v_template) <> 0
+       or position('DOMAIN-SUFFIX,rutor.info,REJECT' in v_template) <> 0
+       or position('DOMAIN-SUFFIX,kinozal.tv,REJECT' in v_template) <> 0
        or position('MATCH,DIRECT' in v_template) <> 0 then
         raise exception 'CyberVPN Premium Smart RU Mihomo artifact contract is invalid';
     end if;
@@ -273,7 +286,19 @@ begin
        or v_legacy_decoded->>'RemoteDNSDomain' is distinct from 'https://cloudflare-dns.com/dns-query'
        or v_legacy_decoded->>'RemoteDNSIP' is distinct from '1.1.1.1'
        or jsonb_typeof(v_legacy_decoded->'BlockSites') is distinct from 'array'
-       or not (v_legacy_decoded->'BlockSites' ? 'domain:rutracker.org')
+       or (v_legacy_decoded->'BlockSites' ?| array[
+            'domain:1337x.to',
+            'domain:eztv.re',
+            'domain:kinozal.tv',
+            'domain:limetorrents.lol',
+            'domain:nnmclub.to',
+            'domain:rutracker.org',
+            'domain:rutor.info',
+            'domain:thepiratebay.org',
+            'domain:torrentdownload.info',
+            'domain:torrentgalaxy.to',
+            'domain:yts.mx'
+       ])
        or not (v_legacy_decoded->'BlockSites' ? 'geosite:category-ads-all')
        or jsonb_typeof(v_legacy_decoded->'DirectIp') is distinct from 'array'
        or not (v_legacy_decoded->'DirectIp' ? '10.0.0.0/8') then
@@ -335,7 +360,7 @@ external_squad_upsert as (
           "supportLink": "https://cyber-vpn.org/support",
           "profileUpdateInterval": 24,
           "isProfileWebpageUrlEnabled": true,
-          "happAnnounce": "CyberVPN Premium Smart RU: DE 25G + RU 25G smart routing. RU-сервисы работают без отключения VPN. Torrent запрещён."
+          "happAnnounce": "CyberVPN Premium Smart RU: DE 25G + RU 25G smart routing. RU-сервисы работают без отключения VPN. BitTorrent-протокол запрещён; сайты-каталоги не блокируются."
         }'::jsonb,
         '{}'::jsonb,
         jsonb_build_object(
@@ -965,6 +990,17 @@ begin
     end if;
     if v_plugin_uuid is null then
         raise exception 'CYBERVPN_PREMIUM_SMART_RU_ABUSE_PROTECTION plugin was not created';
+    end if;
+    if not exists (
+        select 1
+        from node_plugin
+        where uuid = v_plugin_uuid
+          and plugin_config#>>'{torrentBlocker,enabled}' = 'true'
+          and plugin_config#>'{torrentBlocker,ignoreLists,ip}' = '[]'::jsonb
+          and plugin_config#>'{torrentBlocker,ignoreLists,userId}' = '[]'::jsonb
+          and plugin_config#>>'{torrentBlocker,blockDuration}' = '86400'
+    ) then
+        raise exception 'CYBERVPN_PREMIUM_SMART_RU torrentBlocker plugin config is invalid';
     end if;
     if v_template_uuid is null then
         raise exception 'CyberVPN Premium Smart RU MIHOMO template was not created';

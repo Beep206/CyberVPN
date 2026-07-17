@@ -7,11 +7,12 @@ import asyncio
 import hashlib
 import importlib.util
 import json
+import os
 import socket
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -88,6 +89,260 @@ def _base_profile(uuid: str, name: str) -> dict[str, object]:
     }
 
 
+NODE_PLUGIN_UUID = "torrent-blocker-plugin"
+
+
+def _nodes_with_torrent_blocker(module: ModuleType, nodes: list[dict[str, object]]) -> list[dict[str, object]]:
+    by_address = {str(node.get("address")): dict(node) for node in nodes}
+    for address, node_uuid in (
+        (module.SPB_NODE_ADDRESS, "spb-node"),
+        (module.DE_NODE_ADDRESS, "de-node"),
+        (module.NL_NODE_ADDRESS, "nl-node"),
+        (module.MOSCOW_NODE_ADDRESS, "moscow-node"),
+    ):
+        node = by_address.setdefault(
+            address,
+            {"uuid": node_uuid, "address": address, "configProfile": {}},
+        )
+        node["activePluginUuid"] = NODE_PLUGIN_UUID
+        node["isConnected"] = True
+        node["isDisabled"] = False
+        node["isConnecting"] = False
+        node["versions"] = {"node": "2.8.0", "xray": "26.6.27"}
+        node["system"] = {"info": {"platform": "linux", "release": "6.8.0-79-generic"}}
+    return list(by_address.values())
+
+
+def _torrent_blocker_plugins(module: ModuleType) -> dict[str, object]:
+    return {
+        "nodePlugins": [
+            {
+                "uuid": NODE_PLUGIN_UUID,
+                "name": module.EXPECTED_NODE_PLUGIN_NAME,
+                "pluginConfig": {
+                    "torrentBlocker": {
+                        "enabled": True,
+                        "ignoreLists": {"ip": [], "userId": []},
+                        "blockDuration": module.EXPECTED_TORRENT_BLOCKER_DURATION,
+                    }
+                },
+            }
+        ]
+    }
+
+
+def _stub_published_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+    module: ModuleType,
+    manifest_path: Path,
+) -> None:
+    artifact = module._load_antifilter_artifact(manifest_path)
+    evidence = module.PublishedArtifactEvidence(
+        active_version="a" * 64,
+        active_manifest_sha256=artifact.manifest_sha256,
+        lkg_version="b" * 64,
+        lkg_manifest_sha256="c" * 64,
+        policy_sha256="d" * 64,
+        source_manifest_sha256="e" * 64,
+        safety_status="accepted",
+    )
+
+    def load_stub(*args: object, **kwargs: object) -> tuple[object, object]:
+        return artifact, evidence
+
+    monkeypatch.setattr(module, "_load_published_antifilter_artifact", load_stub)
+
+
+def _task2_target_profile(module: ModuleType) -> dict[str, object]:
+    base_config = _base_config()
+    preserved_tag_map = module._preserved_inbound_tag_map(
+        base_config,
+        "spb",
+        exclude_tags=module.SPB_CUSTOMER_INBOUND_TAG_SET | {module.BRIDGE_INBOUND_TAG},
+    )
+    config = module._build_spb_customer_config(
+        base_config,
+        "bridge-secret",
+        module.DE_BRIDGE_UPSTREAM_ADDRESS,
+        [],
+        ipv6_policy_mode="enabled",
+        task2_listen_address="10.0.0.2",
+        preserved_tag_map=preserved_tag_map,
+    )
+    return {
+        "uuid": "spb-active",
+        "name": module.SPB_PROFILE_NAME,
+        "config": config,
+        "inbounds": [
+            {
+                "tag": inbound["tag"],
+                "uuid": f"spb-active-{index}",
+                "port": inbound["port"],
+            }
+            for index, inbound in enumerate(config["inbounds"], start=1)
+        ],
+    }
+
+
+def _contaminated_supplemental_torrent_policy_config() -> dict[str, object]:
+    config = _base_config()
+    outbounds = config["outbounds"]
+    assert isinstance(outbounds, list)
+    outbounds.append({"tag": "innocent-sink", "protocol": "blackhole"})
+    config["routing"] = {
+        "domainStrategy": "IPIfNonMatch",
+        "rules": [
+            {
+                "type": "field",
+                "ruleTag": "legacy-bittorrent-protocol-block",
+                "protocol": ["bittorrent"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "plugin-shaped-manual-bittorrent-block",
+                "protocol": ["bittorrent"],
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "plugin-shaped-manual-catalog-block",
+                "domain": ["domain:rutor.info"],
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "scalar-domain-catalog-block",
+                "domain": "domain:rutracker.org",
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "scalar-full-catalog-block",
+                "domain": " Full:RuTor.Info ",
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "regexp-catalog-block",
+                "domain": [r"regexp:.*rutracker\.org$"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "keyword-catalog-block",
+                "domain": "keyword:rutor",
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "custom-blackhole-catalog-block",
+                "domain": "keyword:rutor",
+                "outboundTag": "innocent-sink",
+            },
+            {
+                "type": "field",
+                "ruleTag": "legacy-qbittorrent-process-block",
+                "process": ["qbittorrent"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "task2-torrent-domain-block",
+                "domain": ["domain:kinozal.tv"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "legacy-mixed-catalog-block",
+                "domain": [
+                    "domain:rutracker.org",
+                    "domain:rutor.info",
+                    "domain:malware.test",
+                ],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "normal-rutracker-website-route",
+                "domain": ["domain:rutracker.org"],
+                "outboundTag": "DIRECT",
+            },
+            {
+                "type": "field",
+                "ruleTag": "normal-scalar-rutracker-website-route",
+                "domain": "full:rutracker.org",
+                "outboundTag": "DIRECT",
+            },
+            {
+                "type": "field",
+                "ruleTag": "keep-unrelated-block-domain",
+                "domain": ["domain:malware.test"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "keep-tor-onion-block",
+                "domain": [r"regexp:\.onion$"],
+                "outboundTag": "BLOCK",
+            },
+        ],
+    }
+    return config
+
+
+def _assert_supplemental_torrent_policy_sanitized(config: dict[str, object]) -> None:
+    inbounds = config["inbounds"]
+    assert isinstance(inbounds, list)
+    for inbound in inbounds:
+        assert isinstance(inbound, dict)
+        sniffing = inbound["sniffing"]
+        assert sniffing["enabled"] is True
+        assert {"http", "tls", "quic"}.issubset(set(sniffing["destOverride"]))
+        assert sniffing["routeOnly"] is True
+
+    routing = config["routing"]
+    assert isinstance(routing, dict)
+    rules = routing["rules"]
+    assert isinstance(rules, list)
+    rules_json = json.dumps(rules, sort_keys=True).casefold()
+    assert "bittorrent" not in rules_json
+    assert "qbittorrent" not in rules_json
+    assert "task2-torrent-domain-block" not in rules_json
+    assert "rw_tb_outbound_block" not in rules_json
+    assert "scalar-domain-catalog-block" not in rules_json
+    assert "scalar-full-catalog-block" not in rules_json
+    assert "regexp-catalog-block" not in rules_json
+    assert "keyword-catalog-block" not in rules_json
+    assert "custom-blackhole-catalog-block" not in rules_json
+
+    blocked_domains = {
+        domain
+        for rule in rules
+        if isinstance(rule, dict) and rule.get("outboundTag") == "BLOCK"
+        for domain in rule.get("domain", [])
+    }
+    assert "domain:rutracker.org" not in blocked_domains
+    assert "domain:rutor.info" not in blocked_domains
+    assert "domain:kinozal.tv" not in blocked_domains
+    assert "domain:malware.test" in blocked_domains
+    assert r"regexp:\.onion$" in blocked_domains
+    assert any(
+        isinstance(rule, dict)
+        and rule.get("ruleTag") == "normal-rutracker-website-route"
+        and rule.get("outboundTag") == "DIRECT"
+        and rule.get("domain") == ["domain:rutracker.org"]
+        for rule in rules
+    )
+    assert any(
+        isinstance(rule, dict)
+        and rule.get("ruleTag") == "normal-scalar-rutracker-website-route"
+        and rule.get("outboundTag") == "DIRECT"
+        and rule.get("domain") == "full:rutracker.org"
+        for rule in rules
+    )
+
+
 def _write_artifact(
     tmp_path: Path,
     module: ModuleType,
@@ -135,6 +390,8 @@ def _args(tmp_path: Path, manifest_path: Path, module: ModuleType) -> argparse.N
     return argparse.Namespace(
         apply=False,
         rollback=False,
+        artifact_store=tmp_path / "published-store",
+        artifact_policy=tmp_path / "production-policy.json",
         artifact_manifest=manifest_path,
         xray_rules_artifact=None,
         max_artifact_age_hours=72,
@@ -157,6 +414,7 @@ def _args(tmp_path: Path, manifest_path: Path, module: ModuleType) -> argparse.N
         task2_route_evidence_enabled="false",
         task2_xray_webhook_secret="",
         task2_synthetic_user="",
+        task2_synthetic_xray_email="",
         task2_route_evidence_webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
         skip_local_socket_preflight=True,
         allow_remnawave_host=["remnawave", "localhost", "127.0.0.1", "::1"],
@@ -249,6 +507,59 @@ def test_artifact_loader_rejects_wrong_product_empty_union_and_path_escape(tmp_p
     enabled_artifact = module._load_antifilter_artifact(enabled_manifest)
     assert enabled_artifact.ipv6_policy_mode == "enabled"
     assert enabled_artifact.union_ipv6_prefix_count == 1
+
+
+def test_published_artifact_binding_uses_only_active_pointer_selection(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    manifest_path = _write_artifact(tmp_path, module)
+    manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    policy = object()
+    published = SimpleNamespace(
+        active_pointer=SimpleNamespace(
+            version="a" * 64,
+            manifest_sha256=manifest_sha256,
+        ),
+        lkg_pointer=SimpleNamespace(
+            version="b" * 64,
+            manifest_sha256="c" * 64,
+        ),
+        version_dir=manifest_path.parent,
+        manifest={"safety": {"status": "accepted", "reasons": []}},
+        policy_sha256="d" * 64,
+        source_manifest_sha256="e" * 64,
+    )
+    monkeypatch.setattr(module, "load_antifilter_policy", lambda path: policy)
+    monkeypatch.setattr(
+        module,
+        "load_published_active_candidate",
+        lambda store, *, policy: published,
+    )
+
+    artifact, evidence = module._load_published_antifilter_artifact(
+        tmp_path / "published-store",
+        tmp_path / "production-policy.json",
+        expected_manifest_path=manifest_path,
+        rules_path=None,
+        max_age_hours=72,
+    )
+
+    assert artifact.manifest_path == manifest_path.resolve()
+    assert evidence.active_manifest_sha256 == manifest_sha256
+    assert evidence.active_version == "a" * 64
+    assert evidence.lkg_version == "b" * 64
+    assert evidence.safety_status == "accepted"
+
+    with pytest.raises(RuntimeError, match="not the published active manifest"):
+        module._load_published_antifilter_artifact(
+            tmp_path / "published-store",
+            tmp_path / "production-policy.json",
+            expected_manifest_path=tmp_path / "unpublished" / "manifest.json",
+            rules_path=None,
+            max_age_hours=72,
+        )
 
 
 def test_builds_bridge_and_spb_profile_with_fail_closed_exception_order() -> None:
@@ -369,7 +680,15 @@ def test_task2_route_evidence_config_is_all_or_none_and_https_only(tmp_path: Pat
     config = module._task2_route_evidence_config(args)
     assert config.enabled is True
     assert config.synthetic_user == "task2_probe"
+    assert config.synthetic_xray_email == ""
     assert config.webhook_url == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL
+
+    args.task2_synthetic_xray_email = "0042"
+    with pytest.raises(RuntimeError, match="positive decimal tId"):
+        module._task2_route_evidence_config(args)
+
+    args.task2_synthetic_xray_email = "42"
+    assert module._task2_route_evidence_config(args).synthetic_xray_email == "42"
 
 
 def test_task2_route_evidence_parser_uses_exact_env_names(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -377,6 +696,7 @@ def test_task2_route_evidence_parser_uses_exact_env_names(monkeypatch: pytest.Mo
     monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED", "true")
     monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", "env-secret")
     monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_USER", "env_task2_probe")
+    monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL", "42")
     monkeypatch.setattr(sys, "argv", ["apply-spb-de-exceptions-server-routing.py"])
 
     args = module._parse_args()
@@ -384,7 +704,15 @@ def test_task2_route_evidence_parser_uses_exact_env_names(monkeypatch: pytest.Mo
     assert args.task2_route_evidence_enabled == "true"
     assert args.task2_xray_webhook_secret == "env-secret"
     assert args.task2_synthetic_user == "env_task2_probe"
+    assert args.task2_synthetic_xray_email == "42"
     assert args.task2_route_evidence_webhook_url == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL
+
+
+def test_task2_synthetic_user_tag_fits_remnawave_2_8_contract() -> None:
+    module = _load_module()
+
+    assert module.TASK2_SYNTHETIC_USER_TAG == "TASK2_ROUTE_TEST"
+    assert len(module.TASK2_SYNTHETIC_USER_TAG) <= 16
 
 
 def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
@@ -392,6 +720,7 @@ def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
     route_evidence = module.Task2RouteEvidenceConfig(
         enabled=True,
         synthetic_user="task2_probe_username",
+        synthetic_xray_email="42",
         webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
         webhook_secret="unit-test-secret",
     )
@@ -429,7 +758,7 @@ def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
     assert synthetic_rules[2]["network"] == "tcp,udp"
 
     for rule in synthetic_rules:
-        assert rule["user"] == ["task2_probe_username"]
+        assert rule["user"] == ["42"]
         assert rule["webhook"] == {
             "url": module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
             "deduplication": module.TASK2_XRAY_WEBHOOK_DEDUPLICATION_SECONDS,
@@ -442,11 +771,12 @@ def test_task2_route_evidence_webhooks_are_synthetic_only_and_ordered() -> None:
     assert all("user" not in rule for rule in ordinary_rules)
 
 
-def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> None:
+def test_task2_route_evidence_user_matcher_uses_exact_remnawave_tid() -> None:
     module = _load_module()
     route_evidence = module.Task2RouteEvidenceConfig(
         enabled=True,
         synthetic_user="task2_probe_username",
+        synthetic_xray_email="42",
         webhook_url=module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL,
         webhook_secret="unit-test-secret",
     )
@@ -454,6 +784,7 @@ def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> N
         "uuid": "550e8400-e29b-41d4-a716-446655440000",
         "shortUuid": "SHORT123",
         "username": "task2_probe_username",
+        "tId": 42,
         "vlessUuid": "550e8400-e29b-41d4-a716-446655440002",
         "tag": module.TASK2_SYNTHETIC_USER_TAG,
     }
@@ -462,6 +793,7 @@ def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> N
         remnawave_user,
         expected_username=route_evidence.synthetic_user,
     )
+    bound = module._bind_task2_synthetic_xray_email(route_evidence, remnawave_user)
     rules = module._task2_route_evidence_rules(
         [
             {
@@ -472,14 +804,78 @@ def test_task2_route_evidence_user_matcher_uses_exact_configured_username() -> N
             }
         ],
         module.SPB_CUSTOMER_INBOUND_TAGS,
-        route_evidence,
+        bound,
     )
 
     assert remnawave_user["username"] != remnawave_user["shortUuid"]
     assert remnawave_user["username"] != remnawave_user["vlessUuid"]
-    assert rules[0]["user"] == ["task2_probe_username"]
+    assert rules[0]["user"] == ["42"]
+    assert rules[0]["user"] != [remnawave_user["username"]]
     assert rules[0]["user"] != [remnawave_user["shortUuid"]]
     assert rules[0]["user"] != [remnawave_user["vlessUuid"]]
+
+    with pytest.raises(RuntimeError, match="does not match"):
+        module._bind_task2_synthetic_xray_email(
+            module.Task2RouteEvidenceConfig(
+                enabled=True,
+                synthetic_user="task2_probe_username",
+                synthetic_xray_email="43",
+            ),
+            remnawave_user,
+        )
+
+
+def test_task2_route_evidence_rejects_missing_remnawave_tid() -> None:
+    module = _load_module()
+    route_evidence = module.Task2RouteEvidenceConfig(
+        enabled=True,
+        synthetic_user="task2_probe_username",
+    )
+
+    with pytest.raises(RuntimeError, match="positive tId"):
+        module._bind_task2_synthetic_xray_email(
+            route_evidence,
+            {
+                "uuid": "550e8400-e29b-41d4-a716-446655440000",
+                "username": "task2_probe_username",
+                "tag": module.TASK2_SYNTHETIC_USER_TAG,
+            },
+        )
+
+
+def test_task1_bridge_listeners_are_rebound_to_node_owned_ipv6_addresses() -> None:
+    module = _load_module()
+    de_base = _base_config()
+    de_base["inbounds"].append(
+        {
+            "tag": module.TASK1_DE_GLOBAL_BRIDGE_INBOUND_TAG,
+            "port": module.TASK1_BRIDGE_PORT,
+            "listen": "0.0.0.0",
+            "protocol": "shadowsocks",
+            "settings": {"clients": [], "network": "tcp,udp"},
+        }
+    )
+
+    de_config = module._build_de_bridge_config(de_base)
+    task1_de_bridge = next(
+        inbound for inbound in de_config["inbounds"] if inbound["tag"] == module.TASK1_DE_GLOBAL_BRIDGE_INBOUND_TAG
+    )
+    assert task1_de_bridge["listen"] == module.DE_BRIDGE_LISTEN_ADDRESS
+
+    moscow_config = {
+        "inbounds": [
+            {
+                "tag": "MSK_SMART_RU_BRIDGE_V2_9443",
+                "port": module.TASK1_BRIDGE_PORT,
+                "listen": "0.0.0.0",
+                "protocol": "shadowsocks",
+                "settings": {"clients": [], "network": "tcp,udp"},
+            }
+        ],
+        "routing": {"rules": []},
+    }
+    sanitized = module._sanitize_supplemental_torrent_policy_config(moscow_config)
+    assert sanitized["inbounds"][0]["listen"] == module.TASK1_MOSCOW_BRIDGE_LISTEN_ADDRESS
 
 
 def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() -> None:
@@ -526,6 +922,13 @@ def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() 
     spb_tags = {item["tag"] for item in spb_config["inbounds"]}
     assert set(spb_mapping.values()).issubset(spb_tags)
     assert module.SPB_CUSTOMER_INBOUND_TAG_SET.issubset(spb_tags)
+    for inbound in spb_config["inbounds"]:
+        if inbound["tag"] not in module.SPB_CUSTOMER_INBOUND_TAG_SET:
+            continue
+        sniffing = inbound["sniffing"]
+        assert sniffing["enabled"] is True
+        assert {"http", "tls", "quic"}.issubset(set(sniffing["destOverride"]))
+        assert sniffing["routeOnly"] is True
     assert spb_config["routing"]["rules"][-1]["inboundTag"] == [
         spb_mapping["VLESS_REALITY_443"],
         spb_mapping["VLESS_XHTTP_REALITY_8443"],
@@ -542,8 +945,6 @@ def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() 
     assert [rule["ruleTag"] for rule in rules] == [
         "task2-management-private-self-block",
         "task2-bridge-inbound-isolation-block",
-        "task2-bittorrent-protocol-block",
-        "task2-torrent-domain-block",
         "task2-ads-trackers-block",
         "task2-tor-best-effort-block",
         "task2-smtp-abuse-port-block",
@@ -552,17 +953,19 @@ def test_preserved_inbounds_are_globally_unique_and_routing_references_follow() 
         "task2-final-spb-direct",
         "existing-smart-ru-customer-route",
     ]
-    assert rules[7] == {
+    assert not any("bittorrent" in json.dumps(rule, sort_keys=True).lower() for rule in rules)
+    assert not any("torrent" in json.dumps(rule, sort_keys=True).lower() for rule in rules)
+    assert rules[5] == {
         "type": "field",
         "inboundTag": ["SPB_EXCEPTIONS_REALITY_443", "SPB_EXCEPTIONS_XHTTP_REALITY_8443"],
         "ruleTag": "task2-ipv6-policy-block",
         "ip": ["::/0"],
         "outboundTag": "BLOCK",
     }
-    assert rules[8]["outboundTag"] == "DE_EXCEPTIONS_BRIDGE"
-    assert rules[8]["network"] == "tcp,udp"
-    assert rules[8]["ip"] == ["8.8.8.0/24"]
-    assert rules[9] == {
+    assert rules[6]["outboundTag"] == "DE_EXCEPTIONS_BRIDGE"
+    assert rules[6]["network"] == "tcp,udp"
+    assert rules[6]["ip"] == ["8.8.8.0/24"]
+    assert rules[7] == {
         "type": "field",
         "ruleTag": "task2-final-spb-direct",
         "inboundTag": ["SPB_EXCEPTIONS_REALITY_443", "SPB_EXCEPTIONS_XHTTP_REALITY_8443"],
@@ -893,12 +1296,365 @@ def test_extend_preserved_squads_adds_rebuilt_clone_inbounds_without_removing_or
     assert snapshots[0]["inbounds"] == ["spb-base-raw", "spb-base-xhttp"]
 
 
+def test_find_base_profile_ref_falls_back_to_active_target() -> None:
+    module = _load_module()
+    profiles = [
+        {"uuid": "spb-active", "name": module.SPB_PROFILE_NAME},
+        {"uuid": "de-base", "name": module.DE_BASE_PROFILE_NAME},
+    ]
+
+    assert module._find_base_profile_ref(
+        profiles,
+        module.SPB_BASE_PROFILE_NAME,
+        module.SPB_PROFILE_NAME,
+    ) == {"uuid": "spb-active", "name": module.SPB_PROFILE_NAME}
+    assert module._find_base_profile_ref(
+        profiles,
+        module.DE_BASE_PROFILE_NAME,
+        module.DE_BRIDGE_PROFILE_NAME,
+    ) == {"uuid": "de-base", "name": module.DE_BASE_PROFILE_NAME}
+
+
+def test_spb_fallback_source_requires_current_valid_task2_target() -> None:
+    module = _load_module()
+    target = _task2_target_profile(module)
+    node = {
+        "configProfile": {
+            "activeConfigProfileUuid": target["uuid"],
+            "activeInbounds": [],
+        }
+    }
+
+    module._validate_spb_source_profile_selection(
+        target,
+        target,
+        target,
+        node,
+        preferred_base_found=False,
+    )
+
+    unrelated = json.loads(json.dumps(target))
+    unrelated["uuid"] = "maintenance-profile"
+    unrelated["name"] = "SPB maintenance"
+    node["configProfile"]["activeConfigProfileUuid"] = unrelated["uuid"]
+    with pytest.raises(RuntimeError, match="currently active Task2 target profile"):
+        module._validate_spb_source_profile_selection(
+            unrelated,
+            target,
+            target,
+            node,
+            preferred_base_found=False,
+        )
+
+
+def test_spb_fallback_source_rejects_incomplete_task2_transport_contract() -> None:
+    module = _load_module()
+    target = _task2_target_profile(module)
+    target["config"]["inbounds"] = [
+        inbound for inbound in target["config"]["inbounds"] if inbound["tag"] != "SPB_EXCEPTIONS_XHTTP_REALITY_8443"
+    ]
+    target["inbounds"] = [
+        inbound for inbound in target["inbounds"] if inbound["tag"] != "SPB_EXCEPTIONS_XHTTP_REALITY_8443"
+    ]
+    node = {
+        "configProfile": {
+            "activeConfigProfileUuid": target["uuid"],
+            "activeInbounds": [],
+        }
+    }
+
+    with pytest.raises(RuntimeError, match="missing dedicated RAW/XHTTP inbounds"):
+        module._validate_spb_source_profile_selection(
+            target,
+            target,
+            target,
+            node,
+            preferred_base_found=False,
+        )
+
+
+def test_manifest_write_is_atomic_private_and_replaces_safe_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = _load_module()
+    manifest_path = tmp_path / "private" / "rollback.json"
+    replace_calls: list[tuple[Path, Path]] = []
+    real_replace = module.os.replace
+
+    def recording_replace(source: Path, target: Path) -> None:
+        replace_calls.append((Path(source), Path(target)))
+        real_replace(source, target)
+
+    monkeypatch.setattr(module.os, "replace", recording_replace)
+    module._write_manifest(manifest_path, {"version": 1, "phase": "planned"})
+    module._write_manifest(manifest_path, {"version": 1, "phase": "applied"})
+
+    assert module._read_manifest(manifest_path)["phase"] == "applied"
+    assert len(replace_calls) == 2
+    assert all(source.parent == manifest_path.parent for source, _ in replace_calls)
+    assert all(target == manifest_path for _, target in replace_calls)
+    assert not list(manifest_path.parent.glob(".rollback.json.*.tmp"))
+    if module.os.name != "nt":
+        assert manifest_path.stat().st_mode & 0o777 == 0o600
+
+
+def test_failure_reason_never_persists_runtime_error_details() -> None:
+    module = _load_module()
+    sensitive = RuntimeError("Bearer secret-token ssPassword=secret https://example.invalid/sub/customer 203.0.113.7")
+
+    assert module._safe_failure_reason(sensitive) == "runtime_validation_failed"
+    assert module._safe_failure_reason(ValueError("not recorded")) is None
+
+
+def test_manifest_write_refuses_unsafe_preexisting_targets(tmp_path: Path) -> None:
+    module = _load_module()
+
+    directory_target = tmp_path / "directory-target.json"
+    directory_target.mkdir()
+    with pytest.raises(RuntimeError, match="regular file"):
+        module._write_manifest(directory_target, {"version": 1})
+
+    original = tmp_path / "original.json"
+    original.write_text("{}", encoding="utf-8")
+    original.chmod(0o600)
+    hardlink = tmp_path / "hardlink.json"
+    module.os.link(original, hardlink)
+    with pytest.raises(RuntimeError, match="hard links"):
+        module._write_manifest(hardlink, {"version": 1})
+
+
+def test_manifest_read_rejects_target_swap_after_validation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _load_module()
+    manifest = tmp_path / "rollback.json"
+    replacement = tmp_path / "replacement.json"
+    module._write_manifest(manifest, {"version": 1, "phase": "planned"})
+    module._write_manifest(replacement, {"version": 1, "phase": "attacker"})
+    real_open = module.os.open
+    swapped = False
+
+    def swapping_open(path: Path, flags: int, mode: int = 0o777) -> int:
+        nonlocal swapped
+        if Path(path) == manifest and not swapped:
+            swapped = True
+            module.os.replace(replacement, manifest)
+        return real_open(path, flags, mode)
+
+    monkeypatch.setattr(module.os, "open", swapping_open)
+
+    with pytest.raises(RuntimeError, match="changed while it was being opened"):
+        module._read_manifest(manifest)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX ownership and mode contract")
+@pytest.mark.parametrize("unsafe_mode", [0o720, 0o770, 0o777])
+def test_manifest_read_refuses_group_or_world_writable_parent(tmp_path: Path, unsafe_mode: int) -> None:
+    module = _load_module()
+    unsafe_parent = tmp_path / "unsafe-read"
+    unsafe_parent.mkdir(mode=0o700)
+    manifest = unsafe_parent / "rollback.json"
+    module._write_manifest(manifest, {"version": 1})
+    unsafe_parent.chmod(unsafe_mode)
+
+    with pytest.raises(RuntimeError, match="must not be group- or world-writable"):
+        module._read_manifest(manifest)
+
+
+def test_manifest_write_refuses_symlink_target(tmp_path: Path) -> None:
+    module = _load_module()
+    target = tmp_path / "target.json"
+    target.write_text("{}", encoding="utf-8")
+    link = tmp_path / "rollback.json"
+    try:
+        link.symlink_to(target)
+    except OSError as exc:
+        pytest.skip(f"symlinks unavailable: {exc}")
+
+    with pytest.raises(RuntimeError, match="regular file"):
+        module._write_manifest(link, {"version": 1})
+    assert target.read_text(encoding="utf-8") == "{}"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX ownership and mode contract")
+@pytest.mark.parametrize("unsafe_mode", [0o720, 0o770, 0o777])
+def test_manifest_write_refuses_permissive_target_and_group_or_world_writable_parent(
+    tmp_path: Path, unsafe_mode: int
+) -> None:
+    module = _load_module()
+    permissive_target = tmp_path / "permissive.json"
+    permissive_target.write_text("{}", encoding="utf-8")
+    permissive_target.chmod(0o644)
+    with pytest.raises(RuntimeError, match="permissions must be 0600"):
+        module._write_manifest(permissive_target, {"version": 1})
+
+    unsafe_parent = tmp_path / "unsafe"
+    unsafe_parent.mkdir(mode=0o700)
+    unsafe_parent.chmod(unsafe_mode)
+    with pytest.raises(RuntimeError, match="must not be group- or world-writable"):
+        module._write_manifest(unsafe_parent / "rollback.json", {"version": 1})
+
+
+def test_task2_node_plugin_preflight_loads_official_detail_response() -> None:
+    module = _load_module()
+    plugin_uuid = "22222222-2222-4222-8222-222222222222"
+    nodes = _nodes_with_torrent_blocker(module, [])
+    for node in nodes:
+        node["activePluginUuid"] = plugin_uuid
+    plugin = _torrent_blocker_plugins(module)["nodePlugins"][0]
+    assert isinstance(plugin, dict)
+    plugin = {**plugin, "uuid": plugin_uuid}
+    calls: list[tuple[str, str]] = []
+
+    class FakeRemnawaveApi:
+        async def request(self, method: str, path: str) -> object:
+            calls.append((method, path))
+            if path == "/node-plugins":
+                return {
+                    "nodePlugins": [
+                        {
+                            "uuid": plugin_uuid,
+                            "name": module.EXPECTED_NODE_PLUGIN_NAME,
+                        }
+                    ]
+                }
+            if path == f"/node-plugins/{plugin_uuid}":
+                return plugin
+            raise AssertionError(f"unexpected request {method} {path}")
+
+    result = asyncio.run(
+        module._task2_torrent_blocker_preflight(
+            FakeRemnawaveApi(),
+            nodes=nodes,
+        )
+    )
+
+    assert result["nodeCount"] == 4
+    assert calls == [
+        ("GET", "/node-plugins"),
+        ("GET", f"/node-plugins/{plugin_uuid}"),
+    ]
+
+
+def test_rollback_does_not_require_plugin_preflight(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    instances = []
+    rollback_manifest = {"version": 3, "phase": "applied"}
+
+    class FakeRemnawaveApi:
+        def __init__(
+            self,
+            base_url: str,
+            token: str,
+            *,
+            trusted_proxy_headers: bool = False,
+        ) -> None:
+            self.calls: list[tuple[str, str]] = []
+            self.closed = False
+            instances.append(self)
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            self.calls.append((method, path))
+            raise AssertionError(f"rollback unexpectedly queried plugin API through {method} {path}")
+
+        async def close(self) -> None:
+            self.closed = True
+
+    async def fake_rollback(api: object, manifest: dict[str, object], manifest_path: Path) -> dict[str, str]:
+        assert api is instances[0]
+        assert manifest == rollback_manifest
+        assert manifest_path == tmp_path / "rollback.json"
+        return {"mode": "rollback", "status": "rolled_back"}
+
+    monkeypatch.setattr(module, "RemnawaveApi", FakeRemnawaveApi)
+    monkeypatch.setattr(module, "_read_manifest", lambda _path: rollback_manifest)
+    monkeypatch.setattr(module, "_rollback", fake_rollback)
+    monkeypatch.setenv("REMNAWAVE_TOKEN", "unit-test-token")
+
+    args = _args(tmp_path, tmp_path / "unused-artifact.json", module)
+    args.rollback = True
+    args.rollback_manifest = tmp_path / "rollback.json"
+
+    result = asyncio.run(module._run(args))
+
+    assert result == {"mode": "rollback", "status": "rolled_back"}
+    assert len(instances) == 1
+    assert instances[0].calls == []
+    assert instances[0].closed is True
+
+
+def test_apply_fails_before_mutation_when_node_plugin_assignment_is_invalid(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    manifest_path = _write_artifact(tmp_path, module)
+    _stub_published_artifact(monkeypatch, module, manifest_path)
+    nodes = _nodes_with_torrent_blocker(
+        module,
+        [
+            {"uuid": "spb-node", "address": module.SPB_NODE_ADDRESS, "configProfile": {}},
+            {"uuid": "de-node", "address": module.DE_NODE_ADDRESS, "configProfile": {}},
+        ],
+    )
+    next(node for node in nodes if node["address"] == module.DE_NODE_ADDRESS)["activePluginUuid"] = "wrong-plugin"
+    calls: list[tuple[str, str]] = []
+
+    class FakeRemnawaveApi:
+        def __init__(
+            self,
+            base_url: str,
+            token: str,
+            *,
+            trusted_proxy_headers: bool = False,
+        ) -> None:
+            self.base_url = base_url
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            calls.append((method, path))
+            if method != "GET" or kwargs:
+                raise AssertionError(f"preflight mutated through {method} {path}")
+            if path == "/config-profiles":
+                return {
+                    "configProfiles": [
+                        {"uuid": "spb-base", "name": module.SPB_BASE_PROFILE_NAME},
+                        {"uuid": "de-base", "name": module.DE_BASE_PROFILE_NAME},
+                    ]
+                }
+            if path == "/config-profiles/spb-base":
+                return _base_profile("spb-base", module.SPB_BASE_PROFILE_NAME)
+            if path == "/config-profiles/de-base":
+                return _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
+            if path == "/nodes":
+                return {"nodes": nodes}
+            if path == "/node-plugins":
+                return _torrent_blocker_plugins(module)
+            raise AssertionError(f"unexpected request {method} {path}")
+
+        async def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(module, "RemnawaveApi", FakeRemnawaveApi)
+    monkeypatch.setenv("REMNAWAVE_TOKEN", "unit-test-token")
+    args = _args(tmp_path, manifest_path, module)
+    args.apply = True
+
+    with pytest.raises(RuntimeError, match="must have active plugin"):
+        asyncio.run(module._run(args))
+
+    assert calls
+    assert all(method == "GET" for method, _path in calls)
+    assert not args.rollback_manifest.exists()
+
+
 def test_dry_run_is_read_only_and_does_not_write_manifest(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     module = _load_module()
     manifest_path = _write_artifact(tmp_path, module)
+    _stub_published_artifact(monkeypatch, module, manifest_path)
     instances = []
 
     class FakeRemnawaveApi:
@@ -933,11 +1689,16 @@ def test_dry_run_is_read_only_and_does_not_write_manifest(
                 return _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
             if path == "/nodes":
                 return {
-                    "nodes": [
-                        {"uuid": "spb-node", "address": module.SPB_NODE_ADDRESS, "configProfile": {}},
-                        {"uuid": "de-node", "address": module.DE_NODE_ADDRESS, "configProfile": {}},
-                    ]
+                    "nodes": _nodes_with_torrent_blocker(
+                        module,
+                        [
+                            {"uuid": "spb-node", "address": module.SPB_NODE_ADDRESS, "configProfile": {}},
+                            {"uuid": "de-node", "address": module.DE_NODE_ADDRESS, "configProfile": {}},
+                        ],
+                    )
                 }
+            if path == "/node-plugins":
+                return _torrent_blocker_plugins(module)
             if path == "/hosts":
                 return {"hosts": []}
             if path == "/internal-squads":
@@ -978,9 +1739,19 @@ def test_dry_run_is_read_only_and_does_not_write_manifest(
     assert result["spbTask2ListenAddress"] == "10.0.0.2"
     assert result["ipv6PolicyMode"] == "disabled"
     assert result["artifactUnionIpv6PrefixCount"] == 0
+    assert result["artifactActiveVersion"] == "a" * 64
+    assert result["artifactLastKnownGoodVersion"] == "b" * 64
+    assert result["artifactPolicySha256"] == "d" * 64
+    assert result["artifactSourceManifestSha256"] == "e" * 64
+    assert result["artifactSafetyStatus"] == "accepted"
+    assert result["nodePluginPreflight"] == {
+        "pluginName": module.EXPECTED_NODE_PLUGIN_NAME,
+        "nodeCount": 4,
+        "blockDuration": module.EXPECTED_TORRENT_BLOCKER_DURATION,
+    }
     assert result["bridgeInboundTag"] == "DE_SPB_EXCEPTIONS_BRIDGE_9444"
     assert result["bridgeOutboundTag"] == "DE_EXCEPTIONS_BRIDGE"
-    assert result["restartOrder"] == ["de", "spb"]
+    assert result["restartOrder"] == ["supplemental", "de", "spb"]
     assert not (tmp_path / "rollback.json").exists()
     assert len(instances) == 1
     assert instances[0].trusted_proxy_headers is False
@@ -993,6 +1764,7 @@ def test_dry_run_route_evidence_redacts_secret_url_and_user_identifiers(
 ) -> None:
     module = _load_module()
     manifest_path = _write_artifact(tmp_path, module)
+    _stub_published_artifact(monkeypatch, module, manifest_path)
 
     class FakeRemnawaveApi:
         def __init__(
@@ -1022,11 +1794,16 @@ def test_dry_run_route_evidence_redacts_secret_url_and_user_identifiers(
                 return _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
             if path == "/nodes":
                 return {
-                    "nodes": [
-                        {"uuid": "spb-node", "address": module.SPB_NODE_ADDRESS, "configProfile": {}},
-                        {"uuid": "de-node", "address": module.DE_NODE_ADDRESS, "configProfile": {}},
-                    ]
+                    "nodes": _nodes_with_torrent_blocker(
+                        module,
+                        [
+                            {"uuid": "spb-node", "address": module.SPB_NODE_ADDRESS, "configProfile": {}},
+                            {"uuid": "de-node", "address": module.DE_NODE_ADDRESS, "configProfile": {}},
+                        ],
+                    )
                 }
+            if path == "/node-plugins":
+                return _torrent_blocker_plugins(module)
             if path == "/hosts":
                 return {"hosts": []}
             if path == "/internal-squads":
@@ -1046,6 +1823,7 @@ def test_dry_run_route_evidence_redacts_secret_url_and_user_identifiers(
                     "uuid": "probe-user-uuid",
                     "shortUuid": "PROBE123",
                     "username": "task2_probe_username",
+                    "tId": 42,
                     "vlessUuid": "550e8400-e29b-41d4-a716-446655440002",
                     "ssPassword": "secret-ss-password",
                     "subscriptionUrl": "https://vpn.example.com/sub/task2_probe_username",
@@ -1077,6 +1855,7 @@ def test_dry_run_route_evidence_redacts_secret_url_and_user_identifiers(
         "task2_probe_username",
         "probe-user-uuid",
         "PROBE123",
+        '"42"',
         "550e8400-e29b-41d4-a716-446655440002",
         "secret-ss-password",
         "https://vpn.example.com/sub/task2_probe_username",
@@ -1090,6 +1869,7 @@ def test_dry_run_rejects_contaminated_bridge_squad_before_mutation(
 ) -> None:
     module = _load_module()
     manifest_path = _write_artifact(tmp_path, module)
+    _stub_published_artifact(monkeypatch, module, manifest_path)
 
     class FakeRemnawaveApi:
         def __init__(
@@ -1118,19 +1898,24 @@ def test_dry_run_rejects_contaminated_bridge_squad_before_mutation(
                 return _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
             if path == "/nodes":
                 return {
-                    "nodes": [
-                        {
-                            "uuid": "spb-node",
-                            "address": module.SPB_NODE_ADDRESS,
-                            "configProfile": {},
-                        },
-                        {
-                            "uuid": "de-node",
-                            "address": module.DE_NODE_ADDRESS,
-                            "configProfile": {},
-                        },
-                    ]
+                    "nodes": _nodes_with_torrent_blocker(
+                        module,
+                        [
+                            {
+                                "uuid": "spb-node",
+                                "address": module.SPB_NODE_ADDRESS,
+                                "configProfile": {},
+                            },
+                            {
+                                "uuid": "de-node",
+                                "address": module.DE_NODE_ADDRESS,
+                                "configProfile": {},
+                            },
+                        ],
+                    )
                 }
+            if path == "/node-plugins":
+                return _torrent_blocker_plugins(module)
             if path == "/hosts":
                 return {"hosts": []}
             if path == "/internal-squads":
@@ -1180,7 +1965,14 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
 ) -> None:
     module = _load_module()
     manifest_path = _write_artifact(tmp_path, module)
-    de_mapping = module._preserved_inbound_tag_map(_base_config(), "de", exclude_tags={module.BRIDGE_INBOUND_TAG})
+    _stub_published_artifact(monkeypatch, module, manifest_path)
+    de_base_profile = _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
+    de_base_profile["config"] = _contaminated_supplemental_torrent_policy_config()
+    moscow_profile = _base_profile("moscow-profile", module.TASK1_MOSCOW_PROFILE_NAME)
+    moscow_profile["config"] = _contaminated_supplemental_torrent_policy_config()
+    de_mapping = module._preserved_inbound_tag_map(
+        de_base_profile["config"], "de", exclude_tags={module.BRIDGE_INBOUND_TAG}
+    )
     spb_mapping = module._preserved_inbound_tag_map(
         _base_config(),
         "spb",
@@ -1193,6 +1985,8 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
         "nodes": [],
         "users": [],
     }
+    supplemental_profile_patches: list[dict[str, object]] = []
+    restart_paths: list[str] = []
 
     class FakeRemnawaveApi:
         def __init__(
@@ -1209,27 +2003,42 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                 {
                     "uuid": "old-spb-host",
                     "remark": "Existing SPB customer RAW",
-                    "inbound": {"configProfileInboundUuid": "spb-base-raw"},
+                    "inbound": {
+                        "configProfileUuid": "spb-base",
+                        "configProfileInboundUuid": "spb-base-raw",
+                    },
                     "excludedInternalSquads": ["customer-squad"],
                 },
                 {
                     "uuid": "old-spb-xhttp-host",
                     "remark": "Existing SPB customer XHTTP",
-                    "inbound": {"configProfileInboundUuid": "spb-base-xhttp"},
+                    "inbound": {
+                        "configProfileUuid": "spb-base",
+                        "configProfileInboundUuid": "spb-base-xhttp",
+                    },
                     "excludedInternalSquads": ["customer-squad"],
                 },
                 {
                     "uuid": "old-de-host",
                     "remark": "Existing DE customer RAW",
-                    "inbound": {"configProfileInboundUuid": "de-base-raw"},
+                    "inbound": {
+                        "configProfileUuid": "de-base",
+                        "configProfileInboundUuid": "de-base-raw",
+                    },
                 },
                 {
                     "uuid": "old-de-xhttp-host",
                     "remark": "Existing DE customer XHTTP",
-                    "inbound": {"configProfileInboundUuid": "de-base-xhttp"},
+                    "inbound": {
+                        "configProfileUuid": "de-base",
+                        "configProfileInboundUuid": "de-base-xhttp",
+                    },
                 },
             ]
-            self.configs: dict[str, dict[str, object]] = {}
+            self.configs: dict[str, dict[str, object]] = {
+                "de-base": de_base_profile,
+                "moscow-profile": moscow_profile,
+            }
 
         async def request(self, method: str, path: str, **kwargs: object) -> object:
             body = kwargs.get("json")
@@ -1238,33 +2047,60 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                     "configProfiles": [
                         {"uuid": "spb-base", "name": module.SPB_BASE_PROFILE_NAME},
                         {"uuid": "de-base", "name": module.DE_BASE_PROFILE_NAME},
+                        {"uuid": "moscow-profile", "name": module.TASK1_MOSCOW_PROFILE_NAME},
                     ]
                 }
             if path == "/config-profiles/spb-base" and method == "GET":
                 return _base_profile("spb-base", module.SPB_BASE_PROFILE_NAME)
             if path == "/config-profiles/de-base" and method == "GET":
-                return _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
+                return self.configs["de-base"]
+            if path == "/config-profiles/moscow-profile" and method == "GET":
+                return self.configs["moscow-profile"]
             if path == "/nodes" and method == "GET":
                 return {
-                    "nodes": [
-                        {
-                            "uuid": "spb-node",
-                            "address": module.SPB_NODE_ADDRESS,
-                            "configProfile": {
-                                "activeConfigProfileUuid": "spb-base",
-                                "activeInbounds": [{"uuid": "spb-base-raw"}, {"uuid": "spb-base-xhttp"}],
+                    "nodes": _nodes_with_torrent_blocker(
+                        module,
+                        [
+                            {
+                                "uuid": "spb-node",
+                                "address": module.SPB_NODE_ADDRESS,
+                                "configProfile": {
+                                    "activeConfigProfileUuid": "spb-base",
+                                    "activeInbounds": [{"uuid": "spb-base-raw"}, {"uuid": "spb-base-xhttp"}],
+                                },
                             },
-                        },
-                        {
-                            "uuid": "de-node",
-                            "address": module.DE_NODE_ADDRESS,
-                            "configProfile": {
-                                "activeConfigProfileUuid": "de-base",
-                                "activeInbounds": [{"uuid": "de-base-raw"}, {"uuid": "de-base-xhttp"}],
+                            {
+                                "uuid": "de-node",
+                                "address": module.DE_NODE_ADDRESS,
+                                "configProfile": {
+                                    "activeConfigProfileUuid": "de-base",
+                                    "activeInbounds": [{"uuid": "de-base-raw"}, {"uuid": "de-base-xhttp"}],
+                                },
                             },
-                        },
-                    ]
+                            {
+                                "uuid": "nl-node",
+                                "address": "138.16.140.44",
+                                "configProfile": {
+                                    "activeConfigProfileUuid": "de-base",
+                                    "activeInbounds": [{"uuid": "de-base-raw"}, {"uuid": "de-base-xhttp"}],
+                                },
+                            },
+                            {
+                                "uuid": "moscow-node",
+                                "address": "178.159.94.225",
+                                "configProfile": {
+                                    "activeConfigProfileUuid": "moscow-profile",
+                                    "activeInbounds": [
+                                        {"uuid": "moscow-profile-raw"},
+                                        {"uuid": "moscow-profile-xhttp"},
+                                    ],
+                                },
+                            },
+                        ],
+                    )
                 }
+            if path == "/node-plugins" and method == "GET":
+                return _torrent_blocker_plugins(module)
             if path == "/hosts" and method == "GET":
                 return {"hosts": self.hosts}
             if path == "/internal-squads" and method == "GET":
@@ -1281,6 +2117,17 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                 return None
             if path == "/users/by-username/task2_probe_username" and method == "GET":
                 return None
+            if path == "/config-profiles" and method == "PATCH":
+                assert isinstance(body, dict)
+                assert body["uuid"] in {"de-base", "moscow-profile"}
+                supplemental_profile_patches.append(body)
+                _assert_supplemental_torrent_policy_sanitized(body["config"])
+                self.configs[body["uuid"]] = {
+                    **self.configs[body["uuid"]],
+                    "name": body["name"],
+                    "config": body["config"],
+                }
+                return {"uuid": body["uuid"]}
             if path == "/config-profiles" and method == "POST":
                 assert isinstance(body, dict)
                 if body["name"] == module.DE_BRIDGE_PROFILE_NAME:
@@ -1317,7 +2164,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                     ]
                     assert synthetic_rules[0]["outboundTag"] == module.BRIDGE_OUTBOUND_TAG
                     assert synthetic_rules[1]["outboundTag"] == "DIRECT"
-                    assert all(rule["user"] == ["task2_probe_username"] for rule in synthetic_rules)
+                    assert all(rule["user"] == ["42"] for rule in synthetic_rules)
                     assert all(
                         rule["webhook"]["url"] == module.TASK2_ROUTE_EVIDENCE_WEBHOOK_URL for rule in synthetic_rules
                     )
@@ -1370,6 +2217,7 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                         "uuid": "task2-probe-user",
                         "shortUuid": "PROBE123",
                         "username": body["username"],
+                        "tId": 42,
                         "vlessUuid": body["vlessUuid"],
                         "activeInternalSquads": body["activeInternalSquads"],
                         "externalSquadUuid": None,
@@ -1406,7 +2254,8 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
                 assert isinstance(body, dict)
                 captured["nodes"].append(body)
                 return body
-            if path in {"/nodes/de-node/actions/restart", "/nodes/spb-node/actions/restart"} and method == "POST":
+            if path.endswith("/actions/restart") and method == "POST":
+                restart_paths.append(path)
                 return {}
             raise AssertionError(f"unexpected request {method} {path}")
 
@@ -1426,10 +2275,30 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
     assert result["status"] == "applied"
     assert result["task2RouteEvidence"] == "enabled"
     assert result["task2SyntheticProbeUser"] == "create"
+    assert result["supplementalTorrentPolicyProfiles"] == [
+        {
+            "name": module.DE_BASE_PROFILE_NAME,
+            "action": "update",
+            "activeNodeCount": 2,
+        },
+        {
+            "name": module.TASK1_MOSCOW_PROFILE_NAME,
+            "action": "update",
+            "activeNodeCount": 1,
+        },
+    ]
+    assert result["restartOrder"] == ["supplemental", "de", "spb"]
     result_json = json.dumps(result, sort_keys=True)
     assert "unit-test-webhook-secret" not in result_json
     assert "task2_probe_username" not in result_json
     assert "task2-probe-user" not in result_json
+    assert [patch["uuid"] for patch in supplemental_profile_patches] == ["de-base", "moscow-profile"]
+    assert restart_paths == [
+        "/nodes/moscow-node/actions/restart",
+        "/nodes/nl-node/actions/restart",
+        "/nodes/de-node/actions/restart",
+        "/nodes/spb-node/actions/restart",
+    ]
     assert captured["users"] == [
         {
             "username": "task2_probe_username",
@@ -1490,6 +2359,70 @@ def test_apply_assigns_customer_squad_only_spb_public_inbounds_and_hosts(
         "spb-task2-xhttp",
     ]
 
+    manifest = json.loads(args.rollback_manifest.read_text(encoding="utf-8"))
+    supplemental_snapshots = manifest["supplementalTorrentPolicyProfiles"]
+    assert [
+        {
+            "uuid": snapshot["uuid"],
+            "name": snapshot["name"],
+            "activeNodeUuids": snapshot["activeNodeUuids"],
+        }
+        for snapshot in supplemental_snapshots
+    ] == [
+        {
+            "uuid": "de-base",
+            "name": module.DE_BASE_PROFILE_NAME,
+            "activeNodeUuids": ["de-node", "nl-node"],
+        },
+        {
+            "uuid": "moscow-profile",
+            "name": module.TASK1_MOSCOW_PROFILE_NAME,
+            "activeNodeUuids": ["moscow-node"],
+        },
+    ]
+    assert "bittorrent" in json.dumps(supplemental_snapshots[0]["config"], sort_keys=True).casefold()
+    assert "qbittorrent" in json.dumps(supplemental_snapshots[1]["config"], sort_keys=True).casefold()
+
+    class FakeRollbackApi:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, object]] = []
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            self.calls.append((method, path, kwargs.get("json")))
+            if (method, path) == ("GET", "/hosts"):
+                return {"hosts": []}
+            if (method, path) == ("GET", "/config-profiles"):
+                return {"configProfiles": []}
+            if (method, path) == ("GET", "/internal-squads"):
+                return {"internalSquads": []}
+            if path == f"/users/by-username/{module.BRIDGE_USERNAME}" and method == "GET":
+                return None
+            return kwargs.get("json") or {}
+
+    rollback_api = FakeRollbackApi()
+    rollback_result = asyncio.run(module._rollback(rollback_api, manifest, args.rollback_manifest))
+    supplemental_restore_patches = [
+        call
+        for call in rollback_api.calls
+        if call[0:2] == ("PATCH", "/config-profiles") and call[2]["uuid"] in {"de-base", "moscow-profile"}
+    ]
+    assert [call[2]["uuid"] for call in supplemental_restore_patches] == ["de-base", "moscow-profile"]
+    _assert_supplemental_torrent_policy_sanitized(supplemental_restore_patches[0][2]["config"])
+    _assert_supplemental_torrent_policy_sanitized(supplemental_restore_patches[1][2]["config"])
+    assert supplemental_restore_patches[0][2]["config"] != supplemental_snapshots[0]["config"]
+    assert supplemental_restore_patches[1][2]["config"] != supplemental_snapshots[1]["config"]
+    rollback_restart_paths = [call[1] for call in rollback_api.calls if call[0] == "POST"]
+    assert "/nodes/nl-node/actions/restart" in rollback_restart_paths
+    assert "/nodes/moscow-node/actions/restart" in rollback_restart_paths
+    assert rollback_result == {"mode": "rollback", "status": "rolled_back"}
+
+    call_count_after_rollback = len(rollback_api.calls)
+    result_again = asyncio.run(
+        module._rollback(rollback_api, {"version": 1, "phase": "rolled_back"}, args.rollback_manifest)
+    )
+    assert result_again == {"mode": "rollback", "status": "already_rolled_back"}
+    assert len(rollback_api.calls) == call_count_after_rollback
+
 
 def test_apply_reapply_uses_named_spb_base_when_active_profile_is_task2_only(
     monkeypatch: pytest.MonkeyPatch,
@@ -1497,6 +2430,7 @@ def test_apply_reapply_uses_named_spb_base_when_active_profile_is_task2_only(
 ) -> None:
     module = _load_module()
     manifest_path = _write_artifact(tmp_path, module)
+    _stub_published_artifact(monkeypatch, module, manifest_path)
     saved_spb_base_name = "Saved SPB Smart RU 443 8443"
     saved_spb_base = _base_profile("saved-spb-base", saved_spb_base_name)
     de_base = _base_profile("de-base", module.DE_BASE_PROFILE_NAME)
@@ -1594,31 +2528,36 @@ def test_apply_reapply_uses_named_spb_base_when_active_profile_is_task2_only(
                 return self.configs[path.rsplit("/", 1)[-1]]
             if path == "/nodes" and method == "GET":
                 return {
-                    "nodes": [
-                        {
-                            "uuid": "spb-node",
-                            "address": module.SPB_NODE_ADDRESS,
-                            "configProfile": {
-                                "activeConfigProfileUuid": "spb-task2-only-profile",
-                                "activeInbounds": [
-                                    {"uuid": "current-spb-task2-raw"},
-                                    {"uuid": "current-spb-task2-xhttp"},
-                                ],
+                    "nodes": _nodes_with_torrent_blocker(
+                        module,
+                        [
+                            {
+                                "uuid": "spb-node",
+                                "address": module.SPB_NODE_ADDRESS,
+                                "configProfile": {
+                                    "activeConfigProfileUuid": "spb-task2-only-profile",
+                                    "activeInbounds": [
+                                        {"uuid": "current-spb-task2-raw"},
+                                        {"uuid": "current-spb-task2-xhttp"},
+                                    ],
+                                },
                             },
-                        },
-                        {
-                            "uuid": "de-node",
-                            "address": module.DE_NODE_ADDRESS,
-                            "configProfile": {
-                                "activeConfigProfileUuid": "de-base",
-                                "activeInbounds": [
-                                    {"uuid": "de-base-raw"},
-                                    {"uuid": "de-base-xhttp"},
-                                ],
+                            {
+                                "uuid": "de-node",
+                                "address": module.DE_NODE_ADDRESS,
+                                "configProfile": {
+                                    "activeConfigProfileUuid": "de-base",
+                                    "activeInbounds": [
+                                        {"uuid": "de-base-raw"},
+                                        {"uuid": "de-base-xhttp"},
+                                    ],
+                                },
                             },
-                        },
-                    ]
+                        ],
+                    )
                 }
+            if path == "/node-plugins" and method == "GET":
+                return _torrent_blocker_plugins(module)
             if path == "/hosts" and method == "GET":
                 return {"hosts": self.hosts}
             if path == "/internal-squads" and method == "GET":
@@ -1654,6 +2593,13 @@ def test_apply_reapply_uses_named_spb_base_when_active_profile_is_task2_only(
                 return {"uuid": "de-bridge-profile"}
             if path == "/config-profiles" and method == "PATCH":
                 assert isinstance(body, dict)
+                if body["uuid"] == "de-base":
+                    self.configs["de-base"] = {
+                        **self.configs["de-base"],
+                        "name": body["name"],
+                        "config": body["config"],
+                    }
+                    return {"uuid": "de-base"}
                 assert body["uuid"] == "spb-task2-only-profile"
                 captured["spb_profile_patch"] = body
                 profile = {
@@ -1880,6 +2826,82 @@ def test_rollback_restores_snapshot_when_first_mutation_response_is_ambiguous(
     result = asyncio.run(module._rollback(api, manifest, manifest_path))
 
     assert ("PATCH", "/config-profiles") in [call[:2] for call in api.calls]
+    assert result == {"mode": "rollback", "status": "rolled_back"}
+    assert json.loads(manifest_path.read_text(encoding="utf-8"))["phase"] == "rolled_back"
+
+
+def test_rollback_sanitizes_restored_profiles_without_reintroducing_manual_torrent_policy(tmp_path: Path) -> None:
+    module = _load_module()
+    dirty_config = _contaminated_supplemental_torrent_policy_config()
+    assert "bittorrent" in json.dumps(dirty_config, sort_keys=True).casefold()
+    assert "qbittorrent" in json.dumps(dirty_config, sort_keys=True).casefold()
+
+    class CaptureRollbackApi:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, object]] = []
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            self.calls.append((method, path, kwargs.get("json")))
+            if (method, path) == ("GET", "/hosts"):
+                return {"hosts": []}
+            if (method, path) == ("GET", "/config-profiles"):
+                return {"configProfiles": []}
+            return kwargs.get("json") or {}
+
+    manifest = {
+        "version": 1,
+        "phase": "applied",
+        "product": module.PRODUCT_CODE,
+        "supplementalTorrentPolicyProfiles": [
+            {
+                "uuid": "de-base",
+                "name": module.DE_BASE_PROFILE_NAME,
+                "config": dirty_config,
+                "activeNodeUuids": ["nl-node"],
+            },
+            {
+                "uuid": "moscow-profile",
+                "name": module.TASK1_MOSCOW_PROFILE_NAME,
+                "config": dirty_config,
+                "activeNodeUuids": ["moscow-node"],
+            },
+        ],
+        "spbProfile": {"uuid": "spb-profile", "name": "SPB", "config": dirty_config},
+        "spbProfileName": module.SPB_PROFILE_NAME,
+        "deBridgeProfile": {
+            "uuid": "de-profile",
+            "name": "DE Bridge",
+            "config": dirty_config,
+        },
+        "deBridgeProfileName": module.DE_BRIDGE_PROFILE_NAME,
+        "spbNode": {"uuid": "spb-node", "configProfile": {"activeConfigProfileUuid": "old-spb"}},
+        "deNode": {"uuid": "de-node", "configProfile": {"activeConfigProfileUuid": "old-de"}},
+        "bridgeUser": {"uuid": "bridge-user", "activeInternalSquads": [], "externalSquadUuid": None},
+        "bridgeUsername": module.BRIDGE_USERNAME,
+        "bridgeSquad": {"uuid": "bridge-squad", "inbounds": []},
+        "bridgeSquadName": module.BRIDGE_SQUAD_NAME,
+        "spbHostRemarks": [],
+    }
+    api = CaptureRollbackApi()
+    manifest_path = tmp_path / "rollback.json"
+
+    result = asyncio.run(module._rollback(api, manifest, manifest_path))
+
+    profile_patches = [
+        call[2] for call in api.calls if call[0:2] == ("PATCH", "/config-profiles") and isinstance(call[2], dict)
+    ]
+    assert [patch["uuid"] for patch in profile_patches] == [
+        "de-base",
+        "moscow-profile",
+        "spb-profile",
+        "de-profile",
+    ]
+    for patch in profile_patches:
+        _assert_supplemental_torrent_policy_sanitized(patch["config"])
+        assert patch["config"] != dirty_config
+    restart_paths = [call[1] for call in api.calls if call[0] == "POST"]
+    assert "/nodes/nl-node/actions/restart" in restart_paths
+    assert "/nodes/moscow-node/actions/restart" in restart_paths
     assert result == {"mode": "rollback", "status": "rolled_back"}
     assert json.loads(manifest_path.read_text(encoding="utf-8"))["phase"] == "rolled_back"
 

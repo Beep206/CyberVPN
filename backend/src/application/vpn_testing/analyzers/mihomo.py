@@ -7,6 +7,14 @@ from collections.abc import Mapping, Sequence
 from time import perf_counter
 from typing import Any
 
+from src.application.vpn_testing.mihomo_rules import (
+    mihomo_block_targets,
+    mihomo_rule_provider_ids,
+    mihomo_rule_subject_and_target,
+    mihomo_text_matches_domains,
+    split_mihomo_rule,
+)
+
 try:  # PyYAML is provided by uvicorn[standard] in the backend runtime image.
     import yaml
 except ImportError:  # pragma: no cover - fallback keeps diagnostics safe in minimal envs
@@ -20,21 +28,49 @@ REQUIRED_GROUPS = (
     "🇷🇺 RU Sites",
     "🇷🇺 Moscow Auto",
     "🇷🇺 SPB Auto",
-    "🧲 Torrents",
 )
 RU_POLICY_NAMES = ("ru-services-inline", "ru-apps", "geosite-ru", "geoip-for-ru")
 EU_POLICY_NAMES = (
     "manual-eu-inline",
     "ru-eu-exceptions",
     "ru-inside",
-    "refilter_domains",
-    "refilter_ipsum",
+    "refilter-domains",
+    "refilter-ipsum",
     "ru-bundle",
     "rknasnblock",
 )
 REJECT_TARGETS = {"REJECT", "REJECT-DROP"}
 MATCH_PREFIX = "MATCH,"
 MATCH_TARGET = "🌍 World / EU"
+STATIC_TORRENT_POLICY_MARKERS = (
+    "bittorrent",
+    "torrent-clients",
+    "torrent-trackers",
+    "torrent-websites",
+    "torrent-domains-inline",
+    "1337x.to",
+    "eztv.re",
+    "kinozal.tv",
+    "limetorrents.lol",
+    "nnmclub.to",
+    "rutracker.org",
+    "rutor.info",
+    "thepiratebay.org",
+    "torrentdownload.info",
+    "torrentgalaxy.to",
+    "yts.mx",
+)
+TORRENT_CATALOG_DOMAINS = STATIC_TORRENT_POLICY_MARKERS[5:]
+TORRENT_GROUP_NAMES = {"🧲 Torrents", "Torrents"}
+BLOCK_GROUP_NAMES = {*REJECT_TARGETS, "⛔ BLOCK", *TORRENT_GROUP_NAMES}
+BLOCK_GROUP_TARGETS = {
+    "block",
+    "block policy",
+    *(name.casefold() for name in BLOCK_GROUP_NAMES),
+}
+CATALOG_ACCESS_PROVIDER = "catalog-access-inline"
+CATALOG_ACCESS_TARGETS = {"world / eu", "🌍 world / eu"}
+REQUIRED_CATALOG_ACCESS_DOMAINS = set(TORRENT_CATALOG_DOMAINS)
 
 
 def _elapsed_ms(started: float) -> int:
@@ -167,6 +203,63 @@ def _rule_provider_text(rule_providers: Mapping[str, Any]) -> str:
     return "\n".join(chunks).lower()
 
 
+def _static_torrent_provider_ids(rule_providers: Mapping[str, Any]) -> list[str]:
+    provider_ids: list[str] = []
+    for name, provider in rule_providers.items():
+        chunks = [str(name)]
+        if isinstance(provider, Mapping):
+            for field in ("url", "path"):
+                value = provider.get(field)
+                if value:
+                    chunks.append(str(value))
+            payload = provider.get("payload")
+            if isinstance(payload, list):
+                chunks.extend(str(item) for item in payload)
+        normalized = "\n".join(chunks).casefold()
+        if "torrent" in normalized or any(
+            mihomo_text_matches_domains(chunk, TORRENT_CATALOG_DOMAINS) for chunk in chunks
+        ):
+            provider_ids.append(str(name))
+    return sorted(provider_ids)
+
+
+def _static_torrent_rules(
+    rules: Sequence[str],
+    rule_providers: Mapping[str, Any] | None = None,
+    *,
+    block_targets: set[str] | None = None,
+) -> list[str]:
+    torrent_provider_ids = {
+        provider_id.casefold() for provider_id in _static_torrent_provider_ids(rule_providers or {})
+    }
+    static_rules: list[str] = []
+    for rule in rules:
+        subject, target = mihomo_rule_subject_and_target(rule)
+        torrent_related = "torrent" in subject or mihomo_text_matches_domains(
+            subject,
+            TORRENT_CATALOG_DOMAINS,
+        )
+        torrent_related = torrent_related or bool(mihomo_rule_provider_ids(subject) & torrent_provider_ids)
+        if torrent_related and target in (block_targets or BLOCK_GROUP_TARGETS):
+            static_rules.append(rule)
+    return static_rules
+
+
+def _provider_domain_hosts(provider: Any) -> set[str]:
+    if not isinstance(provider, Mapping):
+        return set()
+    payload = provider.get("payload")
+    if not isinstance(payload, list):
+        return set()
+    return {
+        parts[1].strip().casefold()
+        for item in payload
+        if isinstance(item, str)
+        for parts in [split_mihomo_rule(item)]
+        if len(parts) >= 2 and parts[0].casefold() in {"domain", "domain-suffix"}
+    }
+
+
 def _rule_index(rules: Sequence[str], marker: str) -> int | None:
     marker_lower = marker.lower()
     for index, rule in enumerate(rules):
@@ -226,6 +319,68 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
             if not missing_groups
             else f"Missing Mihomo groups: {', '.join(missing_groups)}",
             details={"required_groups": list(REQUIRED_GROUPS), "missing_groups": missing_groups},
+        )
+    )
+
+    block_targets = mihomo_block_targets(groups, BLOCK_GROUP_TARGETS)
+    parsed_rules = [mihomo_rule_subject_and_target(rule) for rule in rules]
+    catalog_rule_indexes = [
+        index
+        for index, (subject, target) in enumerate(parsed_rules)
+        if CATALOG_ACCESS_PROVIDER in mihomo_rule_provider_ids(subject) and target in CATALOG_ACCESS_TARGETS
+    ]
+    block_rule_indexes = [index for index, (_subject, target) in enumerate(parsed_rules) if target in block_targets]
+    catalog_provider = next(
+        (
+            provider
+            for name, provider in rule_providers.items()
+            if str(name).strip().casefold() == CATALOG_ACCESS_PROVIDER
+        ),
+        None,
+    )
+    catalog_hosts = _provider_domain_hosts(catalog_provider)
+    dns = config.get("dns")
+    nameserver_policy = dns.get("nameserver-policy") if isinstance(dns, Mapping) else None
+    dns_keys = (
+        [str(key).strip().casefold() for key in nameserver_policy] if isinstance(nameserver_policy, Mapping) else []
+    )
+    catalog_dns_key = f"rule-set:{CATALOG_ACCESS_PROVIDER}"
+    catalog_dns_index = dns_keys.index(catalog_dns_key) if catalog_dns_key in dns_keys else None
+    blocked_dns_indexes = (
+        [
+            index
+            for index, value in enumerate(nameserver_policy.values())
+            if isinstance(value, list) and any(str(item).strip().casefold() == "rcode://name_error" for item in value)
+        ]
+        if isinstance(nameserver_policy, Mapping)
+        else []
+    )
+    catalog_access_ok = (
+        REQUIRED_CATALOG_ACCESS_DOMAINS.issubset(catalog_hosts)
+        and len(catalog_rule_indexes) == 1
+        and bool(block_rule_indexes)
+        and all(catalog_rule_indexes[0] < index for index in block_rule_indexes)
+        and catalog_dns_index is not None
+        and bool(blocked_dns_indexes)
+        and all(catalog_dns_index < index for index in blocked_dns_indexes)
+    )
+    results.append(
+        _result(
+            check_key="mihomo.rule_order.catalog_before_block",
+            check_name="Mihomo catalog access precedes block policies",
+            status="pass" if catalog_access_ok else "fail",
+            safe_summary="Torrent catalog websites route through EU before block policies"
+            if catalog_access_ok
+            else "Catalog access must be an explicit EU and DNS exception before block policies",
+            details={
+                "catalog_provider": CATALOG_ACCESS_PROVIDER,
+                "catalog_hosts": sorted(catalog_hosts),
+                "required_catalog_hosts": sorted(REQUIRED_CATALOG_ACCESS_DOMAINS),
+                "catalog_rule_indexes": catalog_rule_indexes,
+                "block_rule_indexes": block_rule_indexes,
+                "catalog_dns_index": catalog_dns_index,
+                "blocked_dns_indexes": blocked_dns_indexes,
+            },
         )
     )
 
@@ -336,28 +491,36 @@ def analyze_mihomo_template(template_text: str, route_entries: Sequence[Any]) ->
         )
     )
 
-    torrent_group = _group_by_name(groups, "🧲 Torrents")
-    torrent_proxies = _group_proxies(torrent_group)
-    torrent_rules = [rule for rule in rules if "bittorrent" in rule.lower() or "torrent" in rule.lower()]
-    torrent_group_rejects = torrent_proxies == ["REJECT"]
-    torrent_rules_route_to_reject_group = bool(torrent_rules) and all(
-        rule.strip().endswith(",🧲 Torrents") for rule in torrent_rules
+    torrent_group_names = sorted(group_name for group_name in group_names if group_name in TORRENT_GROUP_NAMES)
+    catalog_provider_ids = {provider_id.casefold() for provider_id in _static_torrent_provider_ids(rule_providers)}
+    torrent_rules = _static_torrent_rules(
+        rules,
+        rule_providers,
+        block_targets=block_targets,
     )
-    abuse_ok = torrent_group_rejects and torrent_rules_route_to_reject_group
+    blocked_torrent_provider_ids = sorted(
+        {
+            provider_id
+            for rule in torrent_rules
+            for provider_id in mihomo_rule_provider_ids(mihomo_rule_subject_and_target(rule)[0])
+            if provider_id in catalog_provider_ids
+        }
+    )
+    abuse_ok = not torrent_group_names and not torrent_rules
     results.append(
         _result(
             check_key="mihomo.abuse_sentinel",
             check_name="Mihomo abuse sentinel policy",
             status="pass" if abuse_ok else "fail",
-            safe_summary="Torrent abuse route is explicitly handled"
+            safe_summary="Torrent catalog traffic is not statically blocked by Mihomo"
             if abuse_ok
-            else "Torrent abuse route is missing from static client policy",
+            else "Mihomo must not contain a torrent block group or static torrent process/domain block rules",
             details={
-                "torrent_group_present": "🧲 Torrents" in group_names,
-                "torrent_group_proxies": torrent_proxies,
-                "torrent_group_rejects": torrent_group_rejects,
+                "torrent_group_names": torrent_group_names,
+                "static_torrent_provider_ids": blocked_torrent_provider_ids,
                 "torrent_rule_count": len(torrent_rules),
-                "torrent_rules_route_to_reject_group": torrent_rules_route_to_reject_group,
+                "static_torrent_rules": torrent_rules[:10],
+                "protocol_block_owner": "remnawave_node_plugin_torrentBlocker",
             },
         )
     )

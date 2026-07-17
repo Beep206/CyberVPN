@@ -46,5 +46,6 @@ vault_control_plane_backend_env_extra:
   VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED: "false"
   VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET: ""
   VPN_TESTER_TASK2_SYNTHETIC_USER: ""
+  VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL: ""
 vault_control_plane_worker_env_extra: {}
 vault_control_plane_helix_adapter_env_extra: {}

@@ -13,9 +13,7 @@ SourceFormat = Literal["mrs", "text", "yaml"]
 RULE_STAGES = (
     "private_networks",
     "direct_processes",
-    "bittorrent_protocol",
-    "torrent_processes",
-    "torrent_sources",
+    "catalog_exceptions",
     "ads_trackers",
     "tor",
     "quic_doq",
@@ -29,9 +27,7 @@ RULE_STAGES = (
 RULE_ACTIONS: dict[str, RouteTarget] = {
     "private_networks": "direct",
     "direct_processes": "direct",
-    "bittorrent_protocol": "block",
-    "torrent_processes": "block",
-    "torrent_sources": "block",
+    "catalog_exceptions": "eu",
     "ads_trackers": "block",
     "tor": "block",
     "quic_doq": "block",
@@ -153,9 +149,7 @@ class PolicySource(StrictModel):
 class SourceGroups(StrictModel):
     private_networks: tuple[str, ...]
     direct_processes: tuple[str, ...]
-    bittorrent_protocol: tuple[str, ...]
-    torrent_processes: tuple[str, ...]
-    torrent_sources: tuple[str, ...]
+    catalog_exceptions: tuple[str, ...]
     ads_trackers: tuple[str, ...]
     tor: tuple[str, ...]
     quic_doq: tuple[str, ...]
@@ -264,9 +258,7 @@ class PolicyRule(StrictModel):
     stage: Literal[
         "private_networks",
         "direct_processes",
-        "bittorrent_protocol",
-        "torrent_processes",
-        "torrent_sources",
+        "catalog_exceptions",
         "ads_trackers",
         "tor",
         "quic_doq",

@@ -67,6 +67,8 @@
     {"key": "premium_spb_de_exceptions.plan.exists", "category": "plans", "severity": "error"},
     {"key": "premium_spb_de_exceptions.connection_modes", "category": "plans", "severity": "error"},
     {"key": "premium_spb_de_exceptions.route_registry", "category": "route_registry", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.bittorrent_protocol_plugin_block", "category": "runtime", "severity": "error"},
+    {"key": "premium_spb_de_exceptions.torrent_catalog_websites", "category": "runtime", "severity": "error"},
     {"key": "premium_spb_de_exceptions.default_spb_direct", "category": "route_registry", "severity": "error"},
     {"key": "premium_spb_de_exceptions.exception_categories_de", "category": "route_registry", "severity": "error"},
     {"key": "premium_spb_de_exceptions.bridge_down_fail_closed", "category": "runtime", "severity": "error"},

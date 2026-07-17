@@ -115,7 +115,7 @@ def _transport_metadata(policy: dict[str, Any]) -> dict[str, object]:
         )
     for region, expected_order in (
         ("eu", ("de", "nl")),
-        ("ru", ("spb", "moscow")),
+        ("ru", ("moscow", "spb")),
     ):
         group = transport_policy.get(region)
         if not isinstance(group, dict):
@@ -201,8 +201,11 @@ def _validate_failover_selectors(
 def build_template(
     artifact_dir: Path = POLICY_ARTIFACT_DIR,
     *,
-    automatic_failover: bool = False,
+    automatic_failover: bool = True,
+    canary: bool = False,
 ) -> dict[str, object]:
+    if canary and not automatic_failover:
+        raise RuntimeError("The failover canary requires automatic failover")
     policy = _load_policy_artifact(artifact_dir)
     transport_policy = _transport_metadata(policy)
     eu_transport = transport_policy["eu"]
@@ -244,7 +247,11 @@ def build_template(
     renderer_deviations = (
         [
             {
-                "id": "xray-canary-single-observatory-shared-ru-safe-probe",
+                "id": (
+                    "xray-canary-single-observatory-shared-ru-safe-probe"
+                    if canary
+                    else "xray-stable-single-observatory-shared-ru-safe-probe"
+                ),
                 "reason": "Xray 26.6.27 must use one deterministic observatory feature for all failover balancers",
                 "effect": "All four transports use the shared RU-accessible probe for liveness; destination routing remains policy-driven and is validated separately",
                 "probeUrl": shared_probe_url,
@@ -398,7 +405,9 @@ def build_template(
         assert isinstance(route_policy, dict)
         route_policy = route_policy["routePolicy"]
         assert isinstance(route_policy, dict)
-        route_policy["rendererMode"] = "automatic-failover-canary"
+        route_policy["rendererMode"] = (
+            "automatic-failover-canary" if canary else "automatic-failover"
+        )
         template["observatory"] = {
             "subjectSelector": [
                 eu_primary_tag,
@@ -422,7 +431,7 @@ def main() -> int:
     assert isinstance(routing, dict)
     rules = routing["rules"]
     assert isinstance(rules, list)
-    canary_template = build_template(automatic_failover=True)
+    canary_template = build_template(canary=True)
     CANARY_OUTPUT_PATH.write_bytes(
         (json.dumps(canary_template, ensure_ascii=False, indent=2) + "\n").encode()
     )

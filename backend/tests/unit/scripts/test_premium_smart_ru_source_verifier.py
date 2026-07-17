@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -18,10 +19,12 @@ from scripts.remnawave.policy_compiler.source_verifier import (  # noqa: E402
 )
 
 POLICY_PATH = REPO_ROOT / "scripts" / "remnawave" / "policies" / "premium_smart_ru.yaml"
+MANIFEST_PATH = REPO_ROOT / "scripts" / "remnawave" / "generated" / "premium_smart_ru" / "manifest.json"
 
 
 def test_verifier_accepts_exact_bytes_for_every_remote_source() -> None:
     policy = load_policy(POLICY_PATH)
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     content_by_url: dict[str, bytes] = {}
     raw = policy.model_dump(mode="python")
     for source_id, source in policy.sources.items():
@@ -38,7 +41,8 @@ def test_verifier_accepts_exact_bytes_for_every_remote_source() -> None:
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         verified = verify_policy_sources(policy, client)
 
-    assert len(verified) == 29
+    assert len(policy.sources) == manifest["counts"]["sources"]
+    assert len(verified) == manifest["counts"]["remoteSources"]
     assert [item.source_id for item in verified] == sorted(
         source_id for source_id, source in policy.sources.items() if source.kind == "http"
     )

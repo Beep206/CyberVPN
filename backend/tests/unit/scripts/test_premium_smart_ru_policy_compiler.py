@@ -28,9 +28,7 @@ CLI_PATH = REPO_ROOT / "scripts" / "remnawave" / "policy_compiler" / "cli.py"
 EXPECTED_SOURCE_GROUPS = (
     "private_networks",
     "direct_processes",
-    "bittorrent_protocol",
-    "torrent_processes",
-    "torrent_sources",
+    "catalog_exceptions",
     "ads_trackers",
     "tor",
     "quic_doq",
@@ -42,9 +40,7 @@ EXPECTED_SOURCE_GROUPS = (
 EXPECTED_RULE_STAGES = (
     "private_networks",
     "direct_processes",
-    "bittorrent_protocol",
-    "torrent_processes",
-    "torrent_sources",
+    "catalog_exceptions",
     "ads_trackers",
     "tor",
     "quic_doq",
@@ -57,9 +53,7 @@ EXPECTED_RULE_STAGES = (
 EXPECTED_RULE_IDS = (
     "direct_private",
     "direct_approved_processes",
-    "block_bittorrent_protocol",
-    "block_torrent_processes",
-    "block_torrent_sources",
+    "route_catalog_exceptions",
     "block_ads_trackers",
     "block_tor_best_effort",
     "block_quic_doq",
@@ -134,12 +128,40 @@ def test_canonical_policy_preserves_smart_ru_semantics() -> None:
     assert tuple(policy.source_groups.model_dump(mode="python")) == EXPECTED_SOURCE_GROUPS
     assert [rule.stage for rule in policy.rules] == list(EXPECTED_RULE_STAGES)
     assert [rule.id for rule in policy.rules] == list(EXPECTED_RULE_IDS)
+    assert "bittorrent_protocol" not in policy.source_groups.model_dump(mode="python")
+    assert all(rule.stage != "bittorrent_protocol" for rule in policy.rules)
+    assert all(rule.id != "block_bittorrent_protocol" for rule in policy.rules)
+    catalog_entries = (
+        "DOMAIN-SUFFIX,1337x.to",
+        "DOMAIN-SUFFIX,eztv.re",
+        "DOMAIN-SUFFIX,kinozal.tv",
+        "DOMAIN-SUFFIX,limetorrents.lol",
+        "DOMAIN-SUFFIX,nnmclub.to",
+        "DOMAIN-SUFFIX,rutracker.org",
+        "DOMAIN-SUFFIX,rutor.info",
+        "DOMAIN-SUFFIX,thepiratebay.org",
+        "DOMAIN-SUFFIX,torrentdownload.info",
+        "DOMAIN-SUFFIX,torrentgalaxy.to",
+        "DOMAIN-SUFFIX,yts.mx",
+    )
+    assert policy.source_groups.catalog_exceptions == ("catalog-access-inline",)
+    assert policy.sources["catalog-access-inline"].entries == catalog_entries
+    assert not set(catalog_entries) & set(policy.sources["ru-eu-exceptions"].entries)
+    rule_ids = [rule.id for rule in policy.rules]
+    catalog_index = rule_ids.index("route_catalog_exceptions")
+    assert all(
+        catalog_index < rule_ids.index(block_id)
+        for block_id in (
+            "block_ads_trackers",
+            "block_tor_best_effort",
+            "block_quic_doq",
+            "block_smtp_abuse",
+        )
+    )
     assert [rule.action for rule in policy.rules] == [
         "direct",
         "direct",
-        "block",
-        "block",
-        "block",
+        "eu",
         "block",
         "block",
         "block",
@@ -168,7 +190,7 @@ def test_canonical_policy_preserves_smart_ru_semantics() -> None:
     assert sum(len(transports) for members in transport_matrix.values() for transports in members.values()) == 8
 
     assert (policy.regions.eu.primary, policy.regions.eu.fallback) == ("de", "nl")
-    assert (policy.regions.ru.primary, policy.regions.ru.fallback) == ("spb", "moscow")
+    assert (policy.regions.ru.primary, policy.regions.ru.fallback) == ("moscow", "spb")
     assert policy.transport_groups.eu.health.probe_url == "https://www.gstatic.com/generate_204"
     assert policy.transport_groups.eu.primary_transport == "xhttp"
     assert policy.transport_groups.eu.fallback_transport == "xhttp"
@@ -227,9 +249,9 @@ def test_loader_rejects_duplicated_critical_source_membership(tmp_path: Path) ->
 
 def test_loader_rejects_semantically_duplicate_critical_entries(tmp_path: Path) -> None:
     data = _canonical_data()
-    data["sources"]["ru-eu-exceptions"]["entries"].append("DOMAIN-SUFFIX,1337x.to")
+    data["sources"]["ru-eu-exceptions"]["entries"].append("DOMAIN-SUFFIX,openai.com")
 
-    with pytest.raises(PolicyLoadError, match="duplicated across sources torrent-domains-inline and ru-eu-exceptions"):
+    with pytest.raises(PolicyLoadError, match="duplicated across sources manual-eu-inline and ru-eu-exceptions"):
         load_policy(_write_policy(tmp_path, data))
 
 
@@ -294,13 +316,13 @@ def test_manifest_records_counts_checksums_source_inventory_and_renderer_gaps() 
         "sha256": _sha256(POLICY_PATH.read_bytes()),
     }
     assert manifest["counts"] == {
-        "rules": 13,
-        "sources": 42,
-        "remoteSources": 29,
-        "pinnedRemoteSources": 29,
+        "rules": 11,
+        "sources": 37,
+        "remoteSources": 26,
+        "pinnedRemoteSources": 26,
         "mutableRemoteSources": 0,
-        "criticalSourceReferences": 42,
-        "criticalInlineEntries": 224,
+        "criticalSourceReferences": 37,
+        "criticalInlineEntries": 222,
         "transportVariants": 8,
     }
     assert manifest["artifacts"] == {

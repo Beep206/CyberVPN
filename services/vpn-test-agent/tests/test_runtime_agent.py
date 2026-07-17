@@ -205,6 +205,152 @@ def test_proxy_connect_timeout_allows_slow_regional_reality_handshake_within_pro
     assert agent._proxy_connect_timeout_seconds(5.0) == 5.0
 
 
+@pytest.mark.asyncio
+async def test_socks5_tcp_connect_sends_payload_before_close() -> None:
+    observed: asyncio.Future[tuple[bytes, bytes]] = asyncio.get_running_loop().create_future()
+
+    async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        try:
+            assert await reader.readexactly(3) == b"\x05\x01\x00"
+            writer.write(b"\x05\x00")
+            await writer.drain()
+            request = await reader.readexactly(10)
+            assert request[:4] == b"\x05\x01\x00\x01"
+            writer.write(b"\x05\x00\x00\x01\x7f\x00\x00\x01\x00\x00")
+            await writer.drain()
+            record_header = await reader.readexactly(5)
+            record_length = int.from_bytes(record_header[3:5], "big")
+            payload = record_header + await reader.readexactly(record_length)
+            writer.write(b"\x16")
+            await writer.drain()
+            eof = await reader.read()
+            observed.set_result((payload, eof))
+        except Exception as exc:  # pragma: no cover - forwarded to the test task
+            if not observed.done():
+                observed.set_exception(exc)
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    socks_port = int(server.sockets[0].getsockname()[1])
+    try:
+        terminal = await agent._socks5_tcp_connect(socks_port, "1.1.1.1", 443, 1.0)
+        payload, eof = await asyncio.wait_for(observed, timeout=1.0)
+    finally:
+        server.close()
+        await server.wait_closed()
+
+    assert terminal == "tcp_connect_established"
+    assert payload[0] == 0x16
+    assert payload[1:3] == b"\x03\x01"
+    assert len(payload) <= agent.MAX_TASK2_TCP_PROBE_PAYLOAD_BYTES
+    assert eof == b""
+
+
+@pytest.mark.asyncio
+async def test_socks5_udp_associate_keeps_control_open_until_datagram_handoff() -> None:
+    events: list[str] = []
+    datagram: asyncio.Future[bytes] = asyncio.get_running_loop().create_future()
+    control_closed = asyncio.Event()
+
+    class Relay(asyncio.DatagramProtocol):
+        def connection_made(self, transport: asyncio.BaseTransport) -> None:
+            self.transport = transport
+
+        def datagram_received(self, data: bytes, address: tuple[str, int]) -> None:
+            events.append("datagram_received")
+            if not datagram.done():
+                datagram.set_result(data)
+            self.transport.sendto(b"\x00", address)
+
+    relay_transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
+        Relay,
+        local_addr=("127.0.0.1", 0),
+    )
+    relay_port = int(relay_transport.get_extra_info("sockname")[1])
+
+    async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        try:
+            assert await reader.readexactly(3) == b"\x05\x01\x00"
+            writer.write(b"\x05\x00")
+            await writer.drain()
+            request = await reader.readexactly(10)
+            assert request[:4] == b"\x05\x03\x00\x01"
+            writer.write(b"\x05\x00\x00\x01\x7f\x00\x00\x01" + relay_port.to_bytes(2, "big"))
+            await writer.drain()
+            assert await reader.read() == b""
+            events.append("control_closed")
+            control_closed.set()
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    socks_port = int(server.sockets[0].getsockname()[1])
+    try:
+        terminal = await agent._socks5_udp_associate(socks_port, "8.8.8.8", 53, 1.0)
+        packet = await asyncio.wait_for(datagram, timeout=1.0)
+        await asyncio.wait_for(control_closed.wait(), timeout=1.0)
+    finally:
+        server.close()
+        await server.wait_closed()
+        relay_transport.close()
+
+    assert terminal == "udp_datagram_sent"
+    assert packet.endswith(agent.TASK2_UDP_PROBE_PAYLOAD)
+    assert events == ["datagram_received", "control_closed"]
+
+
+@pytest.mark.asyncio
+async def test_socks5_udp_associate_accepts_silent_relay_after_flushed_handoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(agent, "TASK2_UDP_RESPONSE_WINDOW_SECONDS", 0.01)
+    datagram: asyncio.Future[bytes] = asyncio.get_running_loop().create_future()
+    control_closed = asyncio.Event()
+
+    class SilentRelay(asyncio.DatagramProtocol):
+        def datagram_received(self, data: bytes, _address: tuple[str, int]) -> None:
+            if not datagram.done():
+                datagram.set_result(data)
+
+    relay_transport, _ = await asyncio.get_running_loop().create_datagram_endpoint(
+        SilentRelay,
+        local_addr=("127.0.0.1", 0),
+    )
+    relay_port = int(relay_transport.get_extra_info("sockname")[1])
+
+    async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        try:
+            assert await reader.readexactly(3) == b"\x05\x01\x00"
+            writer.write(b"\x05\x00")
+            await writer.drain()
+            request = await reader.readexactly(10)
+            assert request[:4] == b"\x05\x03\x00\x01"
+            writer.write(b"\x05\x00\x00\x01\x7f\x00\x00\x01" + relay_port.to_bytes(2, "big"))
+            await writer.drain()
+            assert await reader.read() == b""
+            control_closed.set()
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    socks_port = int(server.sockets[0].getsockname()[1])
+    try:
+        terminal = await agent._socks5_udp_associate(socks_port, "8.8.4.4", 53, 1.0)
+        packet = await asyncio.wait_for(datagram, timeout=1.0)
+        await asyncio.wait_for(control_closed.wait(), timeout=1.0)
+    finally:
+        server.close()
+        await server.wait_closed()
+        relay_transport.close()
+
+    assert terminal == "udp_datagram_sent"
+    assert packet.endswith(agent.TASK2_UDP_PROBE_PAYLOAD)
+
+
 def _profiles() -> list[dict[str, Any]]:
     return [_raw_profile(index) for index in range(4)] + [_xhttp_profile(index) for index in range(4)]
 
@@ -1071,8 +1217,14 @@ async def test_task2_signed_v2_runtime_returns_attempt_evidence_without_outbound
             "terminal_class": "udp_datagram_sent",
         },
     ]
-    assert tcp_calls == [(12001, "1.1.1.1", 443), (12002, "9.9.9.9", 443)]
-    assert udp_calls == [(12001, "8.8.8.8", 53), (12002, "1.0.0.1", 53)]
+    assert tcp_calls == (
+        [(12001, "1.1.1.1", 443)] * agent.TASK2_TCP_HANDOFF_ATTEMPTS
+        + [(12002, "9.9.9.9", 443)] * agent.TASK2_TCP_HANDOFF_ATTEMPTS
+    )
+    assert udp_calls == (
+        [(12001, "8.8.8.8", 53)] * agent.TASK2_UDP_HANDOFF_ATTEMPTS
+        + [(12002, "1.0.0.1", 53)] * agent.TASK2_UDP_HANDOFF_ATTEMPTS
+    )
     assert len(processes) == 2
     assert all(process.terminated for process in processes)
     assert all(process.communicated for process in processes)
@@ -1093,6 +1245,46 @@ async def test_task2_signed_v2_runtime_returns_attempt_evidence_without_outbound
         assert route["target_ip"] not in serialized
         assert route["expected_outbound"] not in serialized
         assert route["manifest_sha256"] not in serialized
+
+
+@pytest.mark.parametrize(
+    ("udp_outcomes", "expected_terminal"),
+    [
+        (
+            ["probe_io_error", "udp_datagram_sent", "probe_io_error", "probe_io_error", "probe_io_error"],
+            "udp_datagram_sent",
+        ),
+        (["probe_io_error"] * agent.TASK2_UDP_HANDOFF_ATTEMPTS, "probe_io_error"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_task2_udp_handoff_is_bounded_and_preserves_best_terminal(
+    monkeypatch: pytest.MonkeyPatch,
+    udp_outcomes: list[str],
+    expected_terminal: str,
+) -> None:
+    processes, _, _ = _install_task2_boundaries(monkeypatch)
+    outcomes = iter(udp_outcomes)
+    udp_calls: list[tuple[int, str, int]] = []
+
+    async def socks_udp(socks_port: int, target_ip: str, target_port: int, _timeout_seconds: float) -> str:
+        udp_calls.append((socks_port, target_ip, target_port))
+        return next(outcomes)
+
+    monkeypatch.setattr(agent, "_socks5_udp_associate", socks_udp)
+    profile = agent.Task2TransportProfile.model_validate(_task2_raw_profile())
+    expectations = [
+        agent.Task2RouteExpectation.model_validate(route) for route in _task2_routes() if route["transport"] == "raw"
+    ]
+
+    attempts = await agent._run_task2_profile_attempts(profile, expectations)
+
+    udp_attempt = next(item for item in attempts if item.probe_network == "udp")
+    assert udp_attempt.terminal_class == expected_terminal
+    assert udp_calls == [(12001, "8.8.8.8", 53)] * agent.TASK2_UDP_HANDOFF_ATTEMPTS
+    assert len(processes) == 1
+    assert processes[0].terminated
+    assert processes[0].communicated
 
 
 @pytest.mark.asyncio
@@ -1117,6 +1309,14 @@ async def test_task2_is_rejected_on_legacy_v1_even_when_legacy_rollout_enabled(
 
 
 def test_task2_contract_rejects_wrong_server_ports_counts_and_smart_profiles() -> None:
+    literal_ip = _task2_payload()
+    for profile in literal_ip["transport_profiles"]:
+        profile["server"] = agent.TASK2_ENDPOINT_SERVER_IPV4
+    validated = agent.RuntimeCheckRequest.model_validate(literal_ip)
+    assert {profile.server for profile in validated.transport_profiles} == {
+        agent.TASK2_ENDPOINT_SERVER_IPV4,
+    }
+
     one_profile_payload = _task2_payload(profiles=[_task2_raw_profile()])
     with pytest.raises(ValidationError):
         agent.RuntimeCheckRequest.model_validate(one_profile_payload)

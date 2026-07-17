@@ -100,6 +100,7 @@ def _configure_settings(
     monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", enabled)
     monkeypatch.setattr(settings, "vpn_tester_task2_xray_webhook_secret", SecretStr(WEBHOOK_SECRET))
     monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_user", SYNTHETIC_USER)
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_xray_email", SYNTHETIC_USER)
     monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_expectation_ttl_seconds", 300)
     monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_result_ttl_seconds", 3600)
     monkeypatch.setattr(settings, "vpn_tester_task2_xray_webhook_max_skew_seconds", 60)
@@ -161,9 +162,7 @@ async def _seed_expectation(
 def _headers(secret: str = WEBHOOK_SECRET) -> dict[str, str]:
     return {
         TASK2_XRAY_WEBHOOK_SECRET_HEADER: secret,
-        vpn_tester_module.TASK2_ROUTE_EVIDENCE_INGRESS_HEADER: (
-            vpn_tester_module.TASK2_ROUTE_EVIDENCE_INGRESS_MARKER
-        ),
+        vpn_tester_module.TASK2_ROUTE_EVIDENCE_INGRESS_HEADER: (vpn_tester_module.TASK2_ROUTE_EVIDENCE_INGRESS_MARKER),
         "Content-Type": "application/json",
     }
 

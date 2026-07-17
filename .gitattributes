@@ -9,6 +9,7 @@ frontend/src/i18n/messages/generated/*.json text eol=lf
 admin/src/i18n/messages/generated/*.json text eol=lf
 partner/src/i18n/messages/generated/*.json text eol=lf
 scripts/remnawave/templates/cybervpn-premium-smart-ru-incy-xray*.json text eol=lf
+scripts/remnawave/generated/premium_smart_ru/*.json text eol=lf
 
 # The Remnawave TZ bundle manifest hashes raw bytes, so keep its artifacts LF-stable.
 docs/plans/TZ_Codex_Task1_Premium_Smart_RU_Remnawave_2_8_0.md text eol=lf
@@ -17,6 +18,7 @@ docs/plans/README_CyberVPN_Remnawave_TZ.md text eol=lf
 docs/plans/CyberVPN_Remnawave_2_8_0_TZ_manifest.json text eol=lf
 docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md text eol=lf
 docs/evidence/releases/task1-task2-20260712/final-main-production-audit-20260712.md text eol=lf
+docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/* text eol=lf
 scripts/testing/check-remnawave-tz-evidence.py text eol=lf
 scripts/testing/check-task2-cloudflare-dns.py text eol=lf
 

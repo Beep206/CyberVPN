@@ -20,7 +20,8 @@
 Российские сервисы               -> Москва или Санкт-Петербург, 25 Gbit/s
 Заблокированные из РФ сервисы    -> Германия / Нидерланды
 Реклама и трекеры                -> BLOCK / REJECT
-Torrent                          -> BLOCK / REJECT
+Torrent catalogs/sites           -> ordinary route policy
+Recognized BitTorrent protocol   -> Remnawave torrentBlocker / BLOCK
 TOR                              -> best-effort BLOCK
 Локальная домашняя сеть          -> DIRECT
 ```
@@ -127,7 +128,7 @@ CyberVPN Premium Smart RU
 - DNS-политика;
 - блокировка рекламы и трекеров;
 - правила для YouTube, Discord, Telegram, AI, GitHub;
-- правила для Torrent и TOR;
+- правила для TOR и plugin-owned BitTorrent protocol enforcement;
 - финальный default route через EU.
 
 ---
@@ -165,7 +166,9 @@ Mihomo TUN / DNS hijack / Sniffer
           |
           +--> Реклама / трекер? ---------------> REJECT
           |
-          +--> Torrent? ------------------------> REJECT
+          +--> Recognized BitTorrent protocol? -> torrentBlocker / BLOCK
+          |
+          +--> Torrent catalog/site? ----------> continue ordinary route checks
           |
           +--> TOR? ----------------------------> BLOCK
           |
@@ -886,30 +889,31 @@ UDP 853
 
 ---
 
-# 20. Torrent
+# 20. BitTorrent protocol и torrent-сайты
 
-Torrent должен быть запрещён в несколько слоёв.
+Torrent-каталоги и сайты **не блокируются** как отдельная категория. В
+актуальном hardened-шаблоне 1337x, EZTV, Kinozal, LimeTorrents, NNMClub,
+RuTracker, Rutor, The Pirate Bay, TorrentDownload, TorrentGalaxy и YTS входят
+в отдельный `catalog-access-inline` и направляются в `World / EU` до рекламы,
+трекеров, TOR и других BLOCK rules. Это защищает известные каталоги от
+случайного попадания во внешний ad-list. Остальные HTTP(S)-ресурсы следуют
+обычной продуктовой маршрутизации Premium Smart RU.
+
+Блокируется только распознанный BitTorrent protocol. Владелец этой блокировки -
+официальный Remnawave Node Plugin `torrentBlocker`, описанный в
+`https://docs.rw/learn/node-plugins/`.
 
 ## 20.1. Клиентский слой
 
-В Mihomo:
+Mihomo/Xray templates не должны вручную поддерживать torrent website,
+tracker-domain, process-name или `protocol=bittorrent` block policy.
+Историческая группа `🧲 Torrents` и связанные torrent providers удалены из
+hardened YAML; пользовательского обходного переключателя для plugin-owned
+protocol block нет.
 
-```text
-torrent clients
-tracker domains
-torrent websites
-process names
--> 🧲 Torrents
--> REJECT
-```
-
-Группа `🧲 Torrents` в публичном hardened-профиле должна быть:
-
-```text
-REJECT-only
-```
-
-Пользователь не должен иметь переключатель `DIRECT` или `Proxy` для torrent.
+Пользователь не должен иметь переключатель, который превращает распознанный
+BitTorrent abuse event в разрешённый путь, но ordinary torrent catalog browsing
+маршрутизируется как обычный web traffic.
 
 ## 20.2. Серверный слой
 
@@ -918,6 +922,10 @@ Remnawave Node Plugin:
 ```text
 torrentBlocker.enabled = true
 ```
+
+Remnawave Node сам добавляет first Xray rule для `protocol=bittorrent`,
+outbound `RW_TB_OUTBOUND_BLOCK`, webhook и nftables enforcement. Эти runtime
+изменения нельзя дублировать вручную в CyberVPN templates/renderers.
 
 При обнаружении BitTorrent:
 
@@ -945,7 +953,9 @@ torrent_blocker.report
 опциональное отключение пользователя
 ```
 
-Важно: Torrent Blocker не является абсолютной DPI-системой, поэтому клиентская блокировка и серверный plugin должны работать вместе.
+Важно: Torrent Blocker не является абсолютной DPI-системой. Acceptance должен
+говорить о recognized BitTorrent protocol, plugin-owned enforcement и redacted
+observability, а не о блокировке torrent websites.
 
 ---
 
@@ -1091,7 +1101,6 @@ RU Auto -> Moscow
 👨‍💻 Dev Services
 🎮 Games
 🧪 Speedtest
-🧲 Torrents
 ```
 
 Рекомендуемые default selections:
@@ -1107,7 +1116,6 @@ RU Auto -> Moscow
 👨‍💻 Dev Services  -> 🌍 World / EU
 🎮 Games           -> DIRECT или EU по продуктовой политике
 🧪 Speedtest       -> EU
-🧲 Torrents        -> REJECT
 ```
 
 Пользователю не нужно менять эти настройки для обычной работы.
@@ -1139,7 +1147,8 @@ RU Auto -> Moscow
 | Habr | EU |
 | Meduza | EU |
 | Proton | EU |
-| Torrent | BLOCK |
+| RuTracker/Rutor/torrent catalog | обычная продуктовая маршрутизация |
+| Recognized BitTorrent protocol | BLOCK через Remnawave torrentBlocker |
 | TOR | BLOCK best-effort |
 | Домашний роутер | DIRECT |
 
@@ -1258,9 +1267,10 @@ RU-сервис -> непосредственно Moscow/SPB proxy
 9. Default группа выбирает DE.
 10. RU Sites выбирает RU Auto.
 11. Блокировки работают до routing rules.
-12. Torrent/TOR дополнительно контролируются Node Plugin.
-13. VPN Tester проверяет RAW/TCP и XHTTP отдельно.
-14. Runtime smoke подтверждает реальные exit countries.
+12. TOR дополнительно контролируется policy; recognized BitTorrent protocol контролируется Node Plugin.
+13. Torrent catalogs/sites проверяются как ordinary route destinations, не как BLOCK.
+14. VPN Tester проверяет RAW/TCP и XHTTP отдельно.
+15. Runtime smoke подтверждает реальные exit countries, no-DIRECT-leak и IPv4/IPv6 policy.
 ```
 
 ---
@@ -1319,9 +1329,9 @@ RU-сервис -> непосредственно Moscow/SPB proxy
 - [ ] OISD загружается.
 - [ ] `category-ads-all` загружается.
 - [ ] Windows telemetry rule-set загружается.
-- [ ] Torrent group является REJECT-only.
+- [ ] RuTracker/Rutor/torrent catalog fixture идёт по обычной продуктовой маршрутизации, не в BLOCK.
 - [ ] TOR rules присутствуют.
-- [ ] Remnawave Torrent Blocker включён на всех нодах.
+- [ ] Remnawave Torrent Blocker включён на всех нодах и redacted runtime proof показывает plugin-owned `protocol=bittorrent` enforcement.
 - [ ] SMTP abuse ports заблокированы Node Plugin.
 
 ## 30.7. Клиенты
@@ -1351,7 +1361,10 @@ CyberVPN Premium Smart RU — это один VPN-профиль с автома
 Обычный интернет работает через быстрый сервер в Германии.
 Российские банки, маркетплейсы, Яндекс и Госуслуги автоматически открываются через российские серверы.
 Заблокированные из РФ и международные сервисы идут через Европу.
-Реклама, известные трекеры, Torrent и TOR блокируются по политике CyberVPN.
+Реклама и известные трекеры блокируются по политике CyberVPN, TOR блокируется
+best-effort, а распознанный BitTorrent protocol блокируется официальным
+Remnawave Node Plugin. Torrent-каталоги и сайты открываются по обычной
+маршрутизации продукта.
 
 Пользователю не нужно вручную включать, выключать или переключать VPN.
 ```
@@ -1361,5 +1374,5 @@ CyberVPN Premium Smart RU — это один VPN-профиль с автома
 # 32. Итоговая схема одной строкой
 
 ```text
-Один профиль -> DE по умолчанию -> RU только для RU-сервисов -> EU для блокируемого -> реклама/трекеры/Torrent/TOR в BLOCK -> локальная сеть DIRECT.
+Один профиль -> DE по умолчанию -> RU только для RU-сервисов -> EU для исключений -> torrent-сайты по обычной route policy -> реклама/трекеры/TOR и recognized BitTorrent protocol в BLOCK -> локальная сеть DIRECT.
 ```

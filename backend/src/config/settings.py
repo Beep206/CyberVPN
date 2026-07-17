@@ -1,6 +1,7 @@
 import hmac
 import json
 import logging
+import re
 from typing import Annotated, ClassVar, Literal, Self
 from urllib.parse import urlparse
 
@@ -128,10 +129,23 @@ class Settings(BaseSettings):
     vpn_tester_task2_route_evidence_enabled: bool = False
     vpn_tester_task2_xray_webhook_secret: SecretStr = SecretStr("")
     vpn_tester_task2_synthetic_user: str = "cybervpn-task2-route-evidence"
+    vpn_tester_task2_synthetic_xray_email: str = ""
     vpn_tester_task2_route_evidence_expectation_ttl_seconds: int = 300
     vpn_tester_task2_route_evidence_result_ttl_seconds: int = 86400
     vpn_tester_task2_xray_webhook_max_skew_seconds: int = 60
     vpn_tester_task2_xray_webhook_max_body_bytes: int = 4096
+    vpn_tester_task2_operator_evidence_enabled: bool = False
+    vpn_tester_task2_operator_evidence_public_key_path: str = ""
+    vpn_tester_task2_operator_evidence_key_id: str = ""
+    vpn_tester_task2_operator_evidence_revoked_key_ids: str = ""
+    vpn_tester_task2_operator_evidence_backend_image_id: str = ""
+    vpn_tester_task2_operator_evidence_agent_git_sha: str = ""
+    vpn_tester_task2_operator_evidence_agent_image_ref: str = ""
+    vpn_tester_task2_operator_evidence_agent_image_id: str = ""
+    vpn_tester_task2_operator_evidence_max_skew_seconds: int = 60
+    vpn_tester_task2_operator_evidence_max_validity_seconds: int = 900
+    vpn_tester_task2_operator_evidence_max_fault_seconds: int = 240
+    vpn_tester_task2_operator_evidence_max_body_bytes: int = 65536
     vpn_test_agent_url: str = ""
     vpn_test_agent_secret: SecretStr | None = None
     vpn_test_agent_moscow_url: str = ""
@@ -793,6 +807,18 @@ class Settings(BaseSettings):
             raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_USER must not contain whitespace.")
         return v
 
+    @field_validator("vpn_tester_task2_synthetic_xray_email", mode="before")
+    @classmethod
+    def normalize_vpn_tester_task2_synthetic_xray_email(cls, v: str | int | None) -> str:
+        return str(v or "").strip()
+
+    @field_validator("vpn_tester_task2_synthetic_xray_email", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_synthetic_xray_email(cls, v: str) -> str:
+        if v and (not v.isascii() or not v.isdigit() or v.startswith("0") or len(v) > 19):
+            raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL must be a positive Remnawave tId decimal value.")
+        return v
+
     @field_validator("vpn_tester_task2_route_evidence_expectation_ttl_seconds", mode="after")
     @classmethod
     def validate_vpn_tester_task2_route_evidence_expectation_ttl_seconds(cls, v: int) -> int:
@@ -825,6 +851,86 @@ class Settings(BaseSettings):
             raise ValueError("VPN_TESTER_TASK2_XRAY_WEBHOOK_MAX_BODY_BYTES must be between 512 and 65536 bytes.")
         return v
 
+    @field_validator(
+        "vpn_tester_task2_operator_evidence_public_key_path",
+        "vpn_tester_task2_operator_evidence_key_id",
+        "vpn_tester_task2_operator_evidence_revoked_key_ids",
+        "vpn_tester_task2_operator_evidence_backend_image_id",
+        "vpn_tester_task2_operator_evidence_agent_git_sha",
+        "vpn_tester_task2_operator_evidence_agent_image_ref",
+        "vpn_tester_task2_operator_evidence_agent_image_id",
+        mode="before",
+    )
+    @classmethod
+    def normalize_vpn_tester_task2_operator_evidence_string(cls, v: str | None) -> str:
+        return (v or "").strip()
+
+    @field_validator("vpn_tester_task2_operator_evidence_key_id", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_key_id(cls, v: str) -> str:
+        if v and not re.fullmatch(r"[a-z0-9][a-z0-9_.:-]{7,79}", v):
+            raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_KEY_ID must be a safe lowercase identifier.")
+        return v
+
+    @field_validator("vpn_tester_task2_operator_evidence_revoked_key_ids", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_revoked_key_ids(cls, v: str) -> str:
+        identifiers = [item.strip() for item in v.split(",") if item.strip()]
+        if len(identifiers) > 32 or len(identifiers) != len(set(identifiers)):
+            raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_REVOKED_KEY_IDS must contain at most 32 unique IDs.")
+        if any(not re.fullmatch(r"[a-z0-9][a-z0-9_.:-]{7,79}", item) for item in identifiers):
+            raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_REVOKED_KEY_IDS contains an invalid ID.")
+        return ",".join(identifiers)
+
+    @field_validator("vpn_tester_task2_operator_evidence_agent_git_sha", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_agent_git_sha(cls, v: str) -> str:
+        if v and not re.fullmatch(r"[0-9a-f]{7,64}", v):
+            raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_GIT_SHA must be a lowercase Git SHA.")
+        return v
+
+    @field_validator(
+        "vpn_tester_task2_operator_evidence_backend_image_id",
+        "vpn_tester_task2_operator_evidence_agent_image_ref",
+        "vpn_tester_task2_operator_evidence_agent_image_id",
+        mode="after",
+    )
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_runtime_label(cls, v: str) -> str:
+        if v and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/@+-]{0,199}", v):
+            raise ValueError("Task2 operator runtime identity values must use safe printable identifiers.")
+        return v
+
+    @field_validator("vpn_tester_task2_operator_evidence_max_skew_seconds", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_max_skew_seconds(cls, v: int) -> int:
+        if v < 1 or v > 300:
+            raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_SKEW_SECONDS must be between 1 and 300 seconds.")
+        return v
+
+    @field_validator("vpn_tester_task2_operator_evidence_max_validity_seconds", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_max_validity_seconds(cls, v: int) -> int:
+        if v < 60 or v > 3600:
+            raise ValueError(
+                "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_VALIDITY_SECONDS must be between 60 and 3600 seconds."
+            )
+        return v
+
+    @field_validator("vpn_tester_task2_operator_evidence_max_fault_seconds", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_max_fault_seconds(cls, v: int) -> int:
+        if v < 1 or v > 600:
+            raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_FAULT_SECONDS must be between 1 and 600 seconds.")
+        return v
+
+    @field_validator("vpn_tester_task2_operator_evidence_max_body_bytes", mode="after")
+    @classmethod
+    def validate_vpn_tester_task2_operator_evidence_max_body_bytes(cls, v: int) -> int:
+        if v < 1024 or v > 262144:
+            raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_BODY_BYTES must be between 1024 and 262144 bytes.")
+        return v
+
     @model_validator(mode="after")
     def validate_vpn_tester_task2_route_evidence_secret(self) -> Self:
         if self.environment.lower() != "production" or not self.vpn_tester_task2_route_evidence_enabled:
@@ -845,6 +951,8 @@ class Settings(BaseSettings):
             raise ValueError("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET must not be a placeholder/test value in production.")
         if not self.vpn_tester_task2_synthetic_user:
             raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_USER is required when Task2 route evidence is enabled.")
+        if not self.vpn_tester_task2_synthetic_xray_email:
+            raise ValueError("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL is required when Task2 route evidence is enabled.")
 
         for label, secret in (
             ("BACKEND_INTERNAL_SECRET", self.backend_internal_secret),
@@ -854,6 +962,70 @@ class Settings(BaseSettings):
             other_secret = secret.get_secret_value().strip()
             if other_secret and hmac.compare_digest(webhook_secret, other_secret):
                 raise ValueError(f"VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET must differ from {label}.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_vpn_tester_task2_operator_evidence_config(self) -> Self:
+        if not self.vpn_tester_task2_operator_evidence_enabled:
+            return self
+
+        if self.environment.lower() == "production":
+            if not self.vpn_tester_enabled or not self.vpn_tester_runtime_enabled:
+                raise ValueError(
+                    "VPN_TESTER_ENABLED and VPN_TESTER_RUNTIME_ENABLED are required when "
+                    "Task2 operator evidence is enabled."
+                )
+            if not self.vpn_tester_task2_route_evidence_enabled:
+                raise ValueError(
+                    "VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED is required when Task2 operator evidence is enabled."
+                )
+            if (
+                self.vpn_tester_task2_operator_evidence_public_key_path
+                != "/run/cybervpn/readiness/task2/runtime-evidence-public-key.pem"
+            ):
+                raise ValueError(
+                    "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_PUBLIC_KEY_PATH must be "
+                    "/run/cybervpn/readiness/task2/runtime-evidence-public-key.pem in production."
+                )
+            if not self.vpn_tester_task2_operator_evidence_key_id:
+                raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_KEY_ID is required in production.")
+            runtime_identity_values = {
+                "RUNTIME_GIT_SHA": self.runtime_git_sha,
+                "RUNTIME_CONTAINER_IMAGE": self.runtime_container_image,
+                "RUNTIME_ORIGIN_MARKER": self.runtime_origin_marker,
+                "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_BACKEND_IMAGE_ID": (
+                    self.vpn_tester_task2_operator_evidence_backend_image_id
+                ),
+                "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_GIT_SHA": (
+                    self.vpn_tester_task2_operator_evidence_agent_git_sha
+                ),
+                "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_REF": (
+                    self.vpn_tester_task2_operator_evidence_agent_image_ref
+                ),
+                "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_ID": (
+                    self.vpn_tester_task2_operator_evidence_agent_image_id
+                ),
+            }
+            missing_runtime_identity = [key for key, value in runtime_identity_values.items() if not value.strip()]
+            if missing_runtime_identity:
+                raise ValueError(
+                    "Task2 operator evidence requires bound runtime identity settings: "
+                    + ", ".join(missing_runtime_identity)
+                    + "."
+                )
+            if not re.fullmatch(r"[0-9a-f]{7,64}", self.runtime_git_sha):
+                raise ValueError("RUNTIME_GIT_SHA must be a lowercase Git SHA for Task2 operator evidence.")
+            if not (
+                self.remnawave_spb_de_exceptions_readiness_public_key_path
+                or self.remnawave_spb_de_exceptions_readiness_public_key
+            ):
+                raise ValueError(
+                    "A distinct Remnawave Task2 readiness public key is required when "
+                    "Task2 operator evidence is enabled."
+                )
+            revoked = {item for item in self.vpn_tester_task2_operator_evidence_revoked_key_ids.split(",") if item}
+            if self.vpn_tester_task2_operator_evidence_key_id in revoked:
+                raise ValueError("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_KEY_ID must not be listed as revoked.")
         return self
 
     @field_validator("cookie_domain", mode="before")

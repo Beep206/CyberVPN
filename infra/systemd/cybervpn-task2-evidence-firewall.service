@@ -1,0 +1,31 @@
+[Unit]
+Description=CyberVPN Task2 evidence dedicated-origin firewall
+Wants=network-online.target ufw.service
+After=network-online.target ufw.service
+Before=docker.service
+RequiresMountsFor=/etc/nftables.d
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/sbin/nft -c -f /etc/nftables.d/cybervpn-task2-evidence-ingress.nft
+ExecStartPre=-/usr/sbin/nft delete table inet cybervpn_task2_evidence_ingress
+ExecStart=/usr/sbin/nft -f /etc/nftables.d/cybervpn-task2-evidence-ingress.nft
+ExecStartPost=/usr/sbin/ufw allow proto tcp from 2a01:e5c0:1368::3 to 2a0d:2787:1b:12f5::a port 9445
+ExecStop=-/usr/sbin/ufw --force delete allow proto tcp from 2a01:e5c0:1368::3 to 2a0d:2787:1b:12f5::a port 9445
+ExecStop=-/usr/sbin/nft delete table inet cybervpn_task2_evidence_ingress
+RemainAfterExit=yes
+User=root
+Group=root
+PrivateDevices=true
+PrivateTmp=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/etc/ufw /lib/ufw /run
+NoNewPrivileges=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK
+MemoryMax=64M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

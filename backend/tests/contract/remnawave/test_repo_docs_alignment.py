@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -68,15 +69,49 @@ def test_helix_docs_keep_node_plugins_boundary_explicit() -> None:
     assert "Node Plugins" in decision_log
 
 
+def test_premium_smart_ru_hashed_json_artifacts_are_lf_stable() -> None:
+    attributes = {
+        line.strip()
+        for line in _read(".gitattributes").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+
+    assert "scripts/remnawave/generated/premium_smart_ru/*.json text eol=lf" in attributes
+
+
 def test_current_vpn_architecture_names_the_audited_runtime() -> None:
     architecture = _read("docs/architecture/CYBERVPN_PREMIUM_SMART_RU_CURRENT_PRODUCTION_ARCHITECTURE.md")
-    audit = _read("docs/evidence/releases/task1-task2-20260712/final-main-production-audit-20260712.md")
+    runtime_evidence = _read("docs/evidence/releases/task1-task2-20260713/final-vpn-runtime-evidence.md")
+    manifest = json.loads(_read("scripts/remnawave/generated/premium_smart_ru/manifest.json"))
 
-    current_image = _single_code_table_value(audit, "Current backend image")
-    merge_commit = _single_code_table_value(audit, "Main merge commit")
-    assert re.fullmatch(r"task1-task2-\d{8}-r\d+-main-[0-9a-f]{8}", current_image)
-    assert re.fullmatch(r"[0-9a-f]{40}", merge_commit)
-    assert current_image.endswith(f"-main-{merge_commit[:8]}")
+    image_match = re.search(
+        r"^- Live \d{4}-\d{2}-\d{2} container readback: image "
+        r"`cybervpn/cybervpn-backend:([^`]+)`, image ID `sha256:([0-9a-f]{64})`, healthy,",
+        runtime_evidence,
+        flags=re.MULTILINE,
+    )
+    commit_match = re.search(
+        r"^- Current backend after signed-evidence v\d+ deployment: `([0-9a-f]{40})`$",
+        runtime_evidence,
+        flags=re.MULTILINE,
+    )
+    assert image_match is not None
+    assert commit_match is not None
+
+    current_image = image_match.group(1)
+    backend_commit = commit_match.group(1)
+    assert re.fullmatch(r"task1-task2-\d{8}-r\d+-signed-evidence-v\d+-[0-9a-f]{8}", current_image)
+    assert current_image.endswith(f"-{backend_commit[:8]}")
+
+    source_count_match = re.search(
+        r"Canonical policy/compiler tests описывают (\d+) sources, из них (\d+) HTTP\.",
+        architecture,
+    )
+    assert source_count_match is not None
+    assert int(source_count_match.group(1)) == manifest["counts"]["sources"]
+    assert int(source_count_match.group(2)) == manifest["counts"]["remoteSources"]
+    assert manifest["counts"]["pinnedRemoteSources"] == manifest["counts"]["remoteSources"]
+    assert manifest["counts"]["mutableRemoteSources"] == 0
 
     status_heading = "## 1. Краткий статус"
     assert architecture.count(status_heading) == 1

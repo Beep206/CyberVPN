@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
 import importlib.util
 import json
 import os
@@ -47,6 +48,183 @@ def _base_config() -> dict[str, object]:
     }
 
 
+def _contaminated_torrent_policy_config() -> dict[str, object]:
+    config = _base_config()
+    outbounds = config["outbounds"]
+    assert isinstance(outbounds, list)
+    outbounds.append({"tag": "innocent-sink", "protocol": "blackhole"})
+    config["routing"] = {
+        "domainStrategy": "IPIfNonMatch",
+        "rules": [
+            {
+                "type": "field",
+                "ruleTag": "block_bittorrent_protocol",
+                "protocol": ["bittorrent"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "plugin-shaped-manual-bittorrent-block",
+                "protocol": ["bittorrent"],
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "plugin-shaped-manual-catalog-block",
+                "domain": ["domain:rutor.info"],
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "scalar-domain-catalog-block",
+                "domain": "domain:rutracker.org",
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "scalar-full-catalog-block",
+                "domain": " Full:RuTor.Info ",
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "regexp-catalog-block",
+                "domain": [r"regexp:.*rutracker\.org$"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "keyword-catalog-block",
+                "domain": "keyword:rutor",
+                "outboundTag": "RW_TB_OUTBOUND_BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "custom-blackhole-catalog-block",
+                "domain": "keyword:rutor",
+                "outboundTag": "innocent-sink",
+            },
+            {
+                "type": "field",
+                "ruleTag": "legacy-qbittorrent-process-block",
+                "process": ["qbittorrent.exe"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "task2-torrent-domain-block",
+                "domain": ["domain:kinozal.tv"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "legacy-mixed-catalog-block",
+                "domain": ["domain:rutracker.org", "domain:malware.test"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "normal-rutracker-website-route",
+                "domain": ["domain:rutracker.org"],
+                "outboundTag": "DIRECT",
+            },
+            {
+                "type": "field",
+                "ruleTag": "normal-scalar-rutracker-website-route",
+                "domain": "full:rutracker.org",
+                "outboundTag": "DIRECT",
+            },
+            {
+                "type": "field",
+                "ruleTag": "keep-unrelated-block-domain",
+                "domain": ["domain:malware.test"],
+                "outboundTag": "BLOCK",
+            },
+            {
+                "type": "field",
+                "ruleTag": "keep-tor-onion-block",
+                "domain": [r"regexp:\.onion$"],
+                "outboundTag": "BLOCK",
+            },
+        ],
+    }
+    return config
+
+
+def _assert_protocol_only_torrent_policy_sanitized(config: dict[str, object]) -> None:
+    inbounds = config["inbounds"]
+    assert isinstance(inbounds, list)
+    for inbound in inbounds:
+        assert isinstance(inbound, dict)
+        sniffing = inbound["sniffing"]
+        assert sniffing["enabled"] is True
+        assert {"http", "tls", "quic"}.issubset(set(sniffing["destOverride"]))
+        assert sniffing["routeOnly"] is True
+
+    routing = config["routing"]
+    assert isinstance(routing, dict)
+    rules = routing["rules"]
+    assert isinstance(rules, list)
+    rules_json = json.dumps(rules, sort_keys=True).casefold()
+    assert "bittorrent" not in rules_json
+    assert "qbittorrent" not in rules_json
+    assert "task2-torrent-domain-block" not in rules_json
+    assert "rw_tb_outbound_block" not in rules_json
+    assert "scalar-domain-catalog-block" not in rules_json
+    assert "scalar-full-catalog-block" not in rules_json
+    assert "regexp-catalog-block" not in rules_json
+    assert "keyword-catalog-block" not in rules_json
+    assert "custom-blackhole-catalog-block" not in rules_json
+
+    blocked_domains = {
+        domain
+        for rule in rules
+        if isinstance(rule, dict) and str(rule.get("outboundTag")).casefold() == "block"
+        for domain in rule.get("domain", [])
+    }
+    assert "domain:rutracker.org" not in blocked_domains
+    assert "domain:kinozal.tv" not in blocked_domains
+    assert "domain:malware.test" in blocked_domains
+    assert r"regexp:\.onion$" in blocked_domains
+    assert any(
+        isinstance(rule, dict)
+        and rule.get("ruleTag") == "normal-rutracker-website-route"
+        and rule.get("outboundTag") == "DIRECT"
+        and rule.get("domain") == ["domain:rutracker.org"]
+        for rule in rules
+    )
+    assert any(
+        isinstance(rule, dict)
+        and rule.get("ruleTag") == "normal-scalar-rutracker-website-route"
+        and rule.get("outboundTag") == "DIRECT"
+        and rule.get("domain") == "full:rutracker.org"
+        for rule in rules
+    )
+
+
+def _as_list(value: object) -> list[object]:
+    return value if isinstance(value, list) else [value]
+
+
+def _iter_dicts(value: object) -> object:
+    if isinstance(value, dict):
+        yield value
+        for item in value.values():
+            yield from _iter_dicts(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _iter_dicts(item)
+
+
+def _assert_no_manual_torrent_protocol_or_process(rules: list[object]) -> None:
+    for item in _iter_dicts(rules):
+        assert isinstance(item, dict)
+        protocols = _as_list(item.get("protocol"))
+        processes = _as_list(item.get("process"))
+        assert not any(str(protocol).casefold() == "bittorrent" for protocol in protocols)
+        assert not any("torrent" in str(process).casefold() for process in processes)
+
+
 def _profile_inbounds() -> list[dict[str, str]]:
     return [
         {"tag": "VLESS_REALITY_443", "uuid": "base-raw"},
@@ -60,6 +238,392 @@ def _compiled_artifacts() -> tuple[dict[str, object], str]:
     server = json.loads(outputs[XRAY_SERVER_NAME])
     legacy = json.loads(outputs[LEGACY_HEADER_NAME])
     return server, legacy["value"]
+
+
+EXPECTED_CATALOG_RULE_DOMAINS = [
+    "domain:1337x.to",
+    "domain:eztv.re",
+    "domain:kinozal.tv",
+    "domain:limetorrents.lol",
+    "domain:nnmclub.to",
+    "domain:rutracker.org",
+    "domain:rutor.info",
+    "domain:thepiratebay.org",
+    "domain:torrentdownload.info",
+    "domain:torrentgalaxy.to",
+    "domain:yts.mx",
+]
+
+
+def _task1_node_runtime() -> dict[str, object]:
+    return {
+        "isConnected": True,
+        "isDisabled": False,
+        "isConnecting": False,
+        "versions": {"node": "2.8.0", "xray": "26.6.27"},
+        "system": {"info": {"platform": "linux", "release": "6.8.0-79-generic"}},
+    }
+
+
+def _task1_plugin_nodes(
+    module: ModuleType,
+    active_plugin_uuid: str = "task1-plugin",
+) -> list[dict[str, object]]:
+    return [
+        {
+            **_task1_node_runtime(),
+            "uuid": "de-node",
+            "name": module.DE_NODE_NAME,
+            "address": module.DE_NODE_ADDRESS,
+            "activePluginUuid": active_plugin_uuid,
+        },
+        {
+            **_task1_node_runtime(),
+            "uuid": "nl-node",
+            "name": module.NL_NODE_NAME,
+            "address": module.NL_NODE_ADDRESS,
+            "activePluginUuid": active_plugin_uuid,
+        },
+        {
+            **_task1_node_runtime(),
+            "uuid": "moscow-node",
+            "name": module.MOSCOW_NODE_NAME,
+            "address": module.MOSCOW_NODE_ADDRESS,
+            "activePluginUuid": active_plugin_uuid,
+        },
+        {
+            **_task1_node_runtime(),
+            "uuid": "spb-node",
+            "name": module.SPB_NODE_NAME,
+            "address": module.SPB_NODE_ADDRESS,
+            "activePluginUuid": active_plugin_uuid,
+        },
+    ]
+
+
+def _task1_plugin(
+    module: ModuleType,
+    *,
+    plugin_uuid: str = "task1-plugin",
+    enabled: bool = True,
+    ignore_ips: list[str] | None = None,
+    ignore_user_ids: list[int] | None = None,
+    block_duration: int = 86400,
+) -> dict[str, object]:
+    return {
+        "uuid": plugin_uuid,
+        "name": module.EXPECTED_TASK1_NODE_PLUGIN_NAME,
+        "viewPosition": 202,
+        "pluginConfig": {
+            "ingressFilter": {"enabled": False, "blockedIps": []},
+            "egressFilter": {
+                "enabled": True,
+                "blockedIps": ["ext:tor-exit-nodes", "ext:tor-relays"],
+                "blockedPorts": [25, 465, 587],
+            },
+            "torrentBlocker": {
+                "enabled": enabled,
+                "ignoreLists": {
+                    "ip": [] if ignore_ips is None else ignore_ips,
+                    "userId": [] if ignore_user_ids is None else ignore_user_ids,
+                },
+                "blockDuration": block_duration,
+            },
+            "connectionDrop": {"enabled": False, "whitelistIps": []},
+            "sharedLists": [
+                {"name": "ext:tor-exit-nodes", "type": "ipList", "items": []},
+                {"name": "ext:tor-relays", "type": "ipList", "items": []},
+            ],
+        },
+    }
+
+
+def _validate_task1_plugin_preflight(
+    module: ModuleType,
+    nodes: list[dict[str, object]],
+    plugins: list[dict[str, object]],
+) -> dict[str, object]:
+    return module.validate_torrent_blocker_preflight(
+        nodes,
+        plugins,
+        expected_node_addresses=module.TASK1_PLUGIN_GUARDED_NODE_ADDRESSES,
+        expected_plugin_name=module.EXPECTED_TASK1_NODE_PLUGIN_NAME,
+        block_duration=module.EXPECTED_TASK1_TORRENT_BLOCKER_DURATION,
+    )
+
+
+def _write_policy_artifact_dir(tmp_path: Path, server: dict[str, object]) -> Path:
+    _policy, outputs = build_outputs(POLICY_PATH)
+    manifest = json.loads(outputs["manifest.json"])
+    artifact_dir = tmp_path / "policy-artifacts"
+    artifact_dir.mkdir()
+
+    server_bytes = json.dumps(server, sort_keys=True, separators=(",", ":")).encode()
+    legacy_output = outputs[LEGACY_HEADER_NAME]
+    legacy_bytes = legacy_output if isinstance(legacy_output, bytes) else legacy_output.encode()
+    (artifact_dir / XRAY_SERVER_NAME).write_bytes(server_bytes)
+    (artifact_dir / LEGACY_HEADER_NAME).write_bytes(legacy_bytes)
+    for name, content in (
+        (XRAY_SERVER_NAME, server_bytes),
+        (LEGACY_HEADER_NAME, legacy_bytes),
+    ):
+        manifest["artifacts"][name]["bytes"] = len(content)
+        manifest["artifacts"][name]["sha256"] = hashlib.sha256(content).hexdigest()
+    (artifact_dir / "manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    return artifact_dir
+
+
+def test_policy_artifact_loader_accepts_plugin_owned_torrent_block(tmp_path: Path) -> None:
+    module = _load_module()
+    server, _legacy_header = _compiled_artifacts()
+    artifact_dir = _write_policy_artifact_dir(tmp_path, server)
+
+    loaded_server, _legacy = module._load_policy_artifacts(artifact_dir)
+
+    assert loaded_server["nodePluginPolicy"]["torrentBlocker"] == {
+        "required": True,
+        "protocol": "bittorrent",
+        "injectedRulePosition": "first",
+    }
+    _assert_no_manual_torrent_protocol_or_process(loaded_server["rules"])
+
+
+def test_task1_node_plugin_preflight_accepts_expected_runtime_plugin() -> None:
+    module = _load_module()
+
+    result = _validate_task1_plugin_preflight(
+        module,
+        _task1_plugin_nodes(module),
+        [_task1_plugin(module)],
+    )
+
+    assert result == {
+        "pluginName": module.EXPECTED_TASK1_NODE_PLUGIN_NAME,
+        "nodeCount": 4,
+        "blockDuration": 86400,
+    }
+
+
+def test_task1_node_plugin_preflight_loads_official_detail_response() -> None:
+    module = _load_module()
+    plugin_uuid = "11111111-1111-4111-8111-111111111111"
+    plugin = _task1_plugin(module, plugin_uuid=plugin_uuid)
+    calls: list[tuple[str, str]] = []
+
+    class FakeRemnawaveApi:
+        async def request(self, method: str, path: str) -> object:
+            calls.append((method, path))
+            if path == "/node-plugins":
+                return {
+                    "nodePlugins": [
+                        {
+                            "uuid": plugin_uuid,
+                            "name": module.EXPECTED_TASK1_NODE_PLUGIN_NAME,
+                        }
+                    ]
+                }
+            if path == f"/node-plugins/{plugin_uuid}":
+                return plugin
+            raise AssertionError(f"unexpected request {method} {path}")
+
+    result = asyncio.run(
+        module._task1_torrent_blocker_preflight(
+            FakeRemnawaveApi(),
+            nodes=_task1_plugin_nodes(
+                module,
+                active_plugin_uuid=plugin_uuid,
+            ),
+        )
+    )
+
+    assert result["nodeCount"] == 4
+    assert calls == [
+        ("GET", "/node-plugins"),
+        ("GET", f"/node-plugins/{plugin_uuid}"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("missing_active_plugin_uuid", "activePluginUuid"),
+        ("wrong_plugin", "must have active plugin"),
+        ("disconnected_node", "must be connected"),
+        ("disabled_node", "must not be disabled"),
+        ("connecting_node", "must not be connecting"),
+        ("missing_runtime_versions", "missing runtime versions"),
+        ("old_node_version", "Node version is too old"),
+        ("old_xray_version", "Xray Core version is too old"),
+        ("old_kernel_version", "kernel version is too old"),
+        ("non_linux_node", "must run Linux"),
+        ("disabled_torrent_blocker", "torrentBlocker"),
+        ("nonempty_ignore_list", "torrentBlocker"),
+        ("wrong_block_duration", "torrentBlocker"),
+        ("missing_expected_address", "address preflight"),
+        ("conflicting_active_plugin_alias", "conflicting activePluginUuid"),
+        ("conflicting_plugin_config_alias", "conflicting pluginConfig"),
+        ("missing_plugin_uuid", "uuid"),
+        ("missing_plugin_config", "pluginConfig"),
+        ("missing_torrent_blocker", "torrentBlocker"),
+        ("zero_expected_plugins", "Expected exactly one"),
+        ("duplicate_expected_plugins", "Expected exactly one"),
+    ],
+)
+def test_task1_node_plugin_preflight_fails_closed_on_invalid_runtime_plugin_state(
+    mutation: str,
+    message: str,
+) -> None:
+    module = _load_module()
+    nodes = _task1_plugin_nodes(module)
+    plugin = _task1_plugin(module)
+    plugins = [plugin]
+
+    if mutation == "missing_active_plugin_uuid":
+        nodes[0].pop("activePluginUuid")
+    elif mutation == "wrong_plugin":
+        nodes[0]["activePluginUuid"] = "other-plugin"
+    elif mutation == "disconnected_node":
+        nodes[0]["isConnected"] = False
+    elif mutation == "disabled_node":
+        nodes[0]["isDisabled"] = True
+    elif mutation == "connecting_node":
+        nodes[0]["isConnecting"] = True
+    elif mutation == "missing_runtime_versions":
+        nodes[0].pop("versions")
+    elif mutation in {"old_node_version", "old_xray_version"}:
+        versions = nodes[0]["versions"]
+        assert isinstance(versions, dict)
+        versions["node" if mutation == "old_node_version" else "xray"] = "1.0.0"
+    elif mutation in {"old_kernel_version", "non_linux_node"}:
+        system = nodes[0]["system"]
+        assert isinstance(system, dict)
+        info = system["info"]
+        assert isinstance(info, dict)
+        if mutation == "old_kernel_version":
+            info["release"] = "4.19.0"
+        else:
+            info["platform"] = "win32"
+    elif mutation == "disabled_torrent_blocker":
+        plugin = _task1_plugin(module, enabled=False)
+        plugins = [plugin]
+    elif mutation == "nonempty_ignore_list":
+        plugin = _task1_plugin(module, ignore_ips=["203.0.113.10"])
+        plugins = [plugin]
+    elif mutation == "wrong_block_duration":
+        plugin = _task1_plugin(module, block_duration=3600)
+        plugins = [plugin]
+    elif mutation == "missing_expected_address":
+        nodes = nodes[:-1]
+    elif mutation == "conflicting_active_plugin_alias":
+        nodes[0]["active_plugin_uuid"] = "other-plugin"
+    else:
+        if mutation == "conflicting_plugin_config_alias":
+            plugin["plugin_config"] = {"torrentBlocker": {"enabled": False}}
+        elif mutation == "missing_plugin_uuid":
+            plugin.pop("uuid")
+        elif mutation == "missing_plugin_config":
+            plugin.pop("pluginConfig")
+        elif mutation == "missing_torrent_blocker":
+            plugin_config = plugin["pluginConfig"]
+            assert isinstance(plugin_config, dict)
+            plugin_config.pop("torrentBlocker")
+        elif mutation == "zero_expected_plugins":
+            plugin["name"] = "OTHER_PLUGIN"
+        else:
+            plugins = [plugin, {**plugin, "uuid": "task1-plugin-duplicate"}]
+
+    with pytest.raises(RuntimeError, match=message):
+        _validate_task1_plugin_preflight(module, nodes, plugins)
+
+
+def test_task1_node_plugin_preflight_rejects_non_object_collections() -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError, match="Node collection must be a list"):
+        module.validate_torrent_blocker_preflight(
+            tuple(_task1_plugin_nodes(module)),
+            [_task1_plugin(module)],
+            expected_node_addresses=module.TASK1_PLUGIN_GUARDED_NODE_ADDRESSES,
+            expected_plugin_name=module.EXPECTED_TASK1_NODE_PLUGIN_NAME,
+        )
+
+    with pytest.raises(RuntimeError, match="non-object item"):
+        module.validate_torrent_blocker_preflight(
+            [*_task1_plugin_nodes(module), "not-a-node"],
+            [_task1_plugin(module)],
+            expected_node_addresses=module.TASK1_PLUGIN_GUARDED_NODE_ADDRESSES,
+            expected_plugin_name=module.EXPECTED_TASK1_NODE_PLUGIN_NAME,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("missing_node_plugin_policy", "delegate BitTorrent"),
+        ("manual_protocol_block", "manual torrent enforcement"),
+        ("manual_process_block", "manual torrent enforcement"),
+        ("manual_catalog_domain_block", "manual torrent enforcement"),
+        ("manual_catalog_keyword_block", "manual torrent enforcement"),
+        ("manual_catalog_regexp_block", "manual torrent enforcement"),
+    ],
+)
+def test_policy_artifact_loader_rejects_manual_torrent_enforcement(
+    tmp_path: Path,
+    mutation: str,
+    message: str,
+) -> None:
+    module = _load_module()
+    server, _legacy_header = _compiled_artifacts()
+    server = json.loads(json.dumps(server))
+    if mutation == "missing_node_plugin_policy":
+        server["nodePluginPolicy"]["torrentBlocker"] = {"required": True}
+    elif mutation == "manual_protocol_block":
+        server["rules"].append(
+            {
+                "id": "manual_bittorrent_protocol",
+                "action": "block",
+                "matches": [{"protocol": ["bittorrent"]}],
+            }
+        )
+    elif mutation == "manual_process_block":
+        server["rules"].append(
+            {
+                "id": "manual_torrent_process",
+                "action": "block",
+                "matches": [{"process": ["qbittorrent.exe"]}],
+            }
+        )
+    elif mutation == "manual_catalog_domain_block":
+        server["rules"].append(
+            {
+                "id": "manual_torrent_catalog",
+                "action": "block",
+                "matches": [{"domain": ["domain:rutracker.org"]}],
+            }
+        )
+    elif mutation == "manual_catalog_keyword_block":
+        server["rules"].append(
+            {
+                "id": "manual_torrent_catalog_keyword",
+                "action": "block",
+                "matches": [{"domain": "keyword:rutor"}],
+            }
+        )
+    else:
+        server["rules"].append(
+            {
+                "id": "manual_torrent_catalog_regexp",
+                "action": "BLOCK",
+                "matches": [{"domain": [r"regexp:.*rutracker\.org$"]}],
+            }
+        )
+    artifact_dir = _write_policy_artifact_dir(tmp_path, server)
+
+    with pytest.raises(RuntimeError, match=message):
+        module._load_policy_artifacts(artifact_dir)
 
 
 def test_rejects_replacing_active_task2_de_superset_profile() -> None:
@@ -104,13 +668,26 @@ def test_build_config_isolates_bridge_and_enforces_ordered_policy() -> None:
     base_config = module._build_base_config(_base_config())
     policy_artifact, _legacy_header = _compiled_artifacts()
 
-    config = module._build_config(base_config, "bridge-password", "2001:db8::1", policy_artifact)
+    config = module._build_config(
+        base_config,
+        "bridge-password",
+        "2001:db8::1",
+        policy_artifact,
+        frankfurt_listen="2001:db8::2",
+    )
 
     assert [item["tag"] for item in config["inbounds"]] == [
         "DE_SMART_REALITY_443",
         "DE_SMART_XHTTP_REALITY_8443",
         "DE_SMART_GLOBAL_BRIDGE_9443",
     ]
+    for inbound in config["inbounds"]:
+        sniffing = inbound["sniffing"]
+        assert sniffing["enabled"] is True
+        assert {"http", "tls", "quic"}.issubset(set(sniffing["destOverride"]))
+        assert sniffing["routeOnly"] is True
+    global_bridge_inbound = next(item for item in config["inbounds"] if item["tag"] == "DE_SMART_GLOBAL_BRIDGE_9443")
+    assert global_bridge_inbound["listen"] == "2001:db8::2"
     bridge = next(item for item in config["outbounds"] if item["tag"] == "RU_MSK_BRIDGE")
     assert bridge["settings"]["servers"] == [
         {
@@ -123,13 +700,12 @@ def test_build_config_isolates_bridge_and_enforces_ordered_policy() -> None:
     ]
 
     rules = config["routing"]["rules"]
-    assert len(rules) == 15
+    assert len(rules) == 14
     assert [rule["outboundTag"] for rule in rules] == [
         "DIRECT",
         "DIRECT",
         "DIRECT",
-        "BLOCK",
-        "BLOCK",
+        "DIRECT",
         "BLOCK",
         "BLOCK",
         "BLOCK",
@@ -141,20 +717,24 @@ def test_build_config_isolates_bridge_and_enforces_ordered_policy() -> None:
         "RU_MSK_BRIDGE",
         "DIRECT",
     ]
-    assert "domain:yts.mx" in rules[4]["domain"]
-    assert "geosite:category-ads-all" in rules[5]["domain"]
-    assert "domain:torproject.org" in rules[6]["domain"]
-    assert rules[7]["network"] == "udp"
-    assert rules[7]["port"] == "443,853"
-    assert rules[8] == {
+    _assert_no_manual_torrent_protocol_or_process(rules)
+    assert "geosite:category-ads-all" in rules[4]["domain"]
+    assert "domain:torproject.org" in rules[5]["domain"]
+    assert rules[6]["network"] == "udp"
+    assert rules[6]["port"] == "443,853"
+    assert rules[7] == {
         "network": "tcp",
         "port": "25,465,587",
         "ruleTag": "block_smtp_abuse",
         "inboundTag": ["DE_SMART_REALITY_443", "DE_SMART_XHTTP_REALITY_8443"],
         "outboundTag": "BLOCK",
     }
+    catalog_rule = next(rule for rule in rules if rule["ruleTag"] == "route_catalog_exceptions")
+    assert catalog_rule["domain"] == EXPECTED_CATALOG_RULE_DOMAINS
+    assert rules.index(catalog_rule) < next(index for index, rule in enumerate(rules) if rule["outboundTag"] == "BLOCK")
     eu_rules = [rule for rule in rules if rule["ruleTag"] == "route_eu_exceptions"]
     assert "geosite:youtube" in eu_rules[0]["domain"]
+    assert not any(domain in eu_rules[0]["domain"] for domain in catalog_rule["domain"])
     ru_service_rule = next(rule for rule in rules if rule["ruleTag"] == "route_ru_services")
     assert "domain:ozon.ru" in ru_service_rule["domain"]
     broad_ru_rules = [rule for rule in rules if rule["ruleTag"] == "route_broad_ru"]
@@ -178,6 +758,7 @@ def test_build_moscow_global_config_scopes_customer_routing_and_bridge_falls_dir
         "global-password",
         "2a0b:4140:ba84::2",
         policy_artifact,
+        moscow_listen="2001:db8::3",
     )
 
     assert [item["tag"] for item in config["inbounds"]] == [
@@ -185,6 +766,13 @@ def test_build_moscow_global_config_scopes_customer_routing_and_bridge_falls_dir
         "MSK_SMART_XHTTP_REALITY_8443",
         "MSK_SMART_RU_BRIDGE_V2_9443",
     ]
+    for inbound in config["inbounds"]:
+        sniffing = inbound["sniffing"]
+        assert sniffing["enabled"] is True
+        assert {"http", "tls", "quic"}.issubset(set(sniffing["destOverride"]))
+        assert sniffing["routeOnly"] is True
+    moscow_bridge_inbound = next(item for item in config["inbounds"] if item["tag"] == "MSK_SMART_RU_BRIDGE_V2_9443")
+    assert moscow_bridge_inbound["listen"] == "2001:db8::3"
     assert [item["tag"] for item in config["outbounds"]] == [
         "DIRECT",
         "BLOCK",
@@ -202,13 +790,12 @@ def test_build_moscow_global_config_scopes_customer_routing_and_bridge_falls_dir
     ]
 
     rules = config["routing"]["rules"]
-    assert len(rules) == 15
+    assert len(rules) == 14
     assert [rule["outboundTag"] for rule in rules] == [
         "DIRECT",
         "DIRECT",
         "DIRECT",
-        "BLOCK",
-        "BLOCK",
+        "DE_GLOBAL_BRIDGE",
         "BLOCK",
         "BLOCK",
         "BLOCK",
@@ -221,7 +808,8 @@ def test_build_moscow_global_config_scopes_customer_routing_and_bridge_falls_dir
         "DE_GLOBAL_BRIDGE",
     ]
     assert all(rule["inboundTag"] == ["MSK_SMART_REALITY_443", "MSK_SMART_XHTTP_REALITY_8443"] for rule in rules)
-    assert rules[8] == {
+    _assert_no_manual_torrent_protocol_or_process(rules)
+    assert rules[7] == {
         "network": "tcp",
         "port": "25,465,587",
         "ruleTag": "block_smtp_abuse",
@@ -229,8 +817,12 @@ def test_build_moscow_global_config_scopes_customer_routing_and_bridge_falls_dir
         "outboundTag": "BLOCK",
     }
     assert "MSK_SMART_RU_BRIDGE_V2_9443" not in {tag for rule in rules for tag in rule["inboundTag"]}
+    catalog_rule = next(rule for rule in rules if rule["ruleTag"] == "route_catalog_exceptions")
+    assert catalog_rule["domain"] == EXPECTED_CATALOG_RULE_DOMAINS
+    assert rules.index(catalog_rule) < next(index for index, rule in enumerate(rules) if rule["outboundTag"] == "BLOCK")
     eu_rules = [rule for rule in rules if rule["ruleTag"] == "route_eu_exceptions"]
     assert "geosite:youtube" in eu_rules[0]["domain"]
+    assert not any(domain in eu_rules[0]["domain"] for domain in catalog_rule["domain"])
     ru_service_rule = next(rule for rule in rules if rule["ruleTag"] == "route_ru_services")
     assert "domain:ozon.ru" in ru_service_rule["domain"]
     broad_ru_rules = [rule for rule in rules if rule["ruleTag"] == "route_broad_ru"]
@@ -412,6 +1004,8 @@ def test_dry_run_reports_reverse_bridge_and_does_not_mutate(
             self.calls.append((method, path))
             if method != "GET":
                 raise AssertionError(f"dry-run mutated through {method} {path}")
+            if path == "/node-plugins":
+                return {"nodePlugins": [_task1_plugin(module)]}
             if path == "/config-profiles":
                 return {"configProfiles": [{"name": module.BASE_PROFILE_NAME, "uuid": "base-profile"}]}
             if path == "/config-profiles/base-profile":
@@ -425,14 +1019,28 @@ def test_dry_run_reports_reverse_bridge_and_does_not_mutate(
                 return {
                     "nodes": [
                         {
+                            **_task1_node_runtime(),
                             "uuid": "de-node",
                             "address": module.DE_NODE_ADDRESS,
                             "configProfile": {
                                 "activeConfigProfileUuid": "old-de-profile",
                                 "activeInbounds": [],
                             },
+                            "activePluginUuid": "task1-plugin",
                         },
                         {
+                            **_task1_node_runtime(),
+                            "uuid": "nl-node",
+                            "address": module.NL_NODE_ADDRESS,
+                            "name": module.NL_NODE_NAME,
+                            "configProfile": {
+                                "activeConfigProfileUuid": "old-nl-profile",
+                                "activeInbounds": [],
+                            },
+                            "activePluginUuid": "task1-plugin",
+                        },
+                        {
+                            **_task1_node_runtime(),
                             "uuid": "moscow-node",
                             "address": module.MOSCOW_NODE_ADDRESS,
                             "name": module.MOSCOW_NODE_NAME,
@@ -440,6 +1048,18 @@ def test_dry_run_reports_reverse_bridge_and_does_not_mutate(
                                 "activeConfigProfileUuid": "old-msk-profile",
                                 "activeInbounds": [],
                             },
+                            "activePluginUuid": "task1-plugin",
+                        },
+                        {
+                            **_task1_node_runtime(),
+                            "uuid": "spb-node",
+                            "address": module.SPB_NODE_ADDRESS,
+                            "name": module.SPB_NODE_NAME,
+                            "configProfile": {
+                                "activeConfigProfileUuid": "old-spb-profile",
+                                "activeInbounds": [],
+                            },
+                            "activePluginUuid": "task1-plugin",
                         },
                     ]
                 }
@@ -562,17 +1182,208 @@ def test_dry_run_reports_reverse_bridge_and_does_not_mutate(
         "incyRoutingHeader": "update",
         "frankfurtHostCount": 2,
         "moscowHostCount": 2,
+        "nodePluginPreflight": {
+            "pluginName": module.EXPECTED_TASK1_NODE_PLUGIN_NAME,
+            "nodeCount": 4,
+            "blockDuration": 86400,
+        },
         "deProfileInboundCount": 3,
         "moscowProfileInboundCount": 3,
         "directDomainCount": module._policy_domain_count(_compiled_artifacts()[0], "eu"),
         "ruDomainCount": module._policy_domain_count(_compiled_artifacts()[0], "ru"),
-        "routingRuleCount": 15,
-        "moscowRoutingRuleCount": 15,
+        "routingRuleCount": 14,
+        "moscowRoutingRuleCount": 14,
     }
     assert len(instances) == 1
     assert instances[0].trusted_proxy_headers is False
     assert all(method == "GET" for method, _path in instances[0].calls)
     assert not (tmp_path / "rollback.json").exists()
+
+
+def test_apply_rejects_plugin_preflight_failure_before_any_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    instances = []
+
+    class FakeRemnawaveApi:
+        def __init__(
+            self,
+            base_url: str,
+            token: str,
+            *,
+            trusted_proxy_headers: bool = False,
+        ) -> None:
+            self.calls: list[tuple[str, str]] = []
+            instances.append(self)
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            self.calls.append((method, path))
+            assert kwargs == {}
+            if method != "GET":
+                raise AssertionError(f"plugin preflight failure mutated through {method} {path}")
+            if path == "/nodes":
+                return {"nodes": _task1_plugin_nodes(module, active_plugin_uuid="other-plugin")}
+            if path == "/node-plugins":
+                return {"nodePlugins": [_task1_plugin(module)]}
+            raise AssertionError(f"planning continued after plugin preflight failure through {method} {path}")
+
+        async def close(self) -> None:
+            self.closed = True
+
+    monkeypatch.setattr(module, "RemnawaveApi", FakeRemnawaveApi)
+    monkeypatch.setattr(module, "_load_policy_artifacts", _compiled_artifacts)
+    monkeypatch.setenv("REMNAWAVE_TOKEN", "unit-test-token")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "apply-premium-smart-ru-server-routing.py",
+            "--apply",
+            "--rollback-manifest",
+            str(tmp_path / "rollback.json"),
+        ],
+    )
+
+    args = module._parse_args()
+    with pytest.raises(RuntimeError, match="must have active plugin"):
+        asyncio.run(module._run(args))
+
+    assert len(instances) == 1
+    assert instances[0].calls == [
+        ("GET", "/nodes"),
+        ("GET", "/node-plugins"),
+    ]
+    assert not (tmp_path / "rollback.json").exists()
+
+
+def test_rollback_does_not_require_plugin_preflight(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    instances = []
+    rollback_manifest = {"version": 3, "phase": "applied"}
+
+    class FakeRemnawaveApi:
+        def __init__(
+            self,
+            base_url: str,
+            token: str,
+            *,
+            trusted_proxy_headers: bool = False,
+        ) -> None:
+            self.calls: list[tuple[str, str]] = []
+            self.closed = False
+            instances.append(self)
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            self.calls.append((method, path))
+            raise AssertionError(f"rollback unexpectedly queried plugin API through {method} {path}")
+
+        async def close(self) -> None:
+            self.closed = True
+
+    async def fake_rollback(api: object, manifest: dict[str, object], manifest_path: Path) -> dict[str, str]:
+        assert api is instances[0]
+        assert manifest == rollback_manifest
+        assert manifest_path == tmp_path / "rollback.json"
+        return {"mode": "rollback", "status": "rolled_back"}
+
+    monkeypatch.setattr(module, "RemnawaveApi", FakeRemnawaveApi)
+    monkeypatch.setattr(module, "_read_manifest", lambda _path: rollback_manifest)
+    monkeypatch.setattr(module, "_rollback", fake_rollback)
+    monkeypatch.setenv("REMNAWAVE_TOKEN", "unit-test-token")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "apply-premium-smart-ru-server-routing.py",
+            "--rollback",
+            "--rollback-manifest",
+            str(tmp_path / "rollback.json"),
+        ],
+    )
+
+    args = module._parse_args()
+    result = asyncio.run(module._run(args))
+
+    assert result == {"mode": "rollback", "status": "rolled_back"}
+    assert len(instances) == 1
+    assert instances[0].calls == []
+    assert instances[0].closed is True
+
+
+@pytest.mark.parametrize(
+    "url,allowed_hosts",
+    [
+        ("http://panel.example", ["panel.example"]),
+        ("http://panel.example/api", ["panel.example"]),
+    ],
+)
+def test_remnawave_url_rejects_external_plaintext_http(
+    url: str,
+    allowed_hosts: list[str],
+) -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError, match="must use https"):
+        module._validate_remnawave_url(url, allowed_hosts)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://remnawave:3000",
+        "http://localhost:3000/api",
+        "http://127.0.0.1:3000",
+        "http://[::1]:3000",
+        "https://panel.example/api",
+    ],
+)
+def test_remnawave_url_accepts_internal_http_and_external_https(url: str) -> None:
+    module = _load_module()
+    hostname = url.split("//", 1)[1].split("/", 1)[0].split(":", 1)[0].strip("[]")
+    if "[::1]" in url:
+        hostname = "::1"
+
+    module._validate_remnawave_url(url, [hostname])
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://user:secret@panel.example/api",
+        "https://panel.example/api?token=secret",
+        "https://panel.example/api#secret",
+        "https://panel.example/not-api",
+    ],
+)
+def test_remnawave_url_rejects_credential_and_ambiguous_url_parts(url: str) -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError):
+        module._validate_remnawave_url(url, ["panel.example"])
+
+
+def test_trusted_proxy_headers_are_internal_only() -> None:
+    module = _load_module()
+
+    module._validate_trusted_proxy_headers("http://remnawave:3000", True)
+    module._validate_trusted_proxy_headers("https://panel.example", False)
+    with pytest.raises(RuntimeError, match="local/internal"):
+        module._validate_trusted_proxy_headers("https://panel.example", True)
+
+
+@pytest.mark.parametrize("listen_address", ["0.0.0.0", "::", "bridge.internal"])
+def test_bridge_inbound_rejects_wildcard_and_non_literal_listeners(
+    listen_address: str,
+) -> None:
+    module = _load_module()
+
+    with pytest.raises(RuntimeError, match="Bridge listen address"):
+        module._bridge_inbound("BRIDGE", listen_address)
 
 
 def test_dry_run_count_and_api_transport_are_security_bounded() -> None:
@@ -595,9 +1406,66 @@ def test_dry_run_count_and_api_transport_are_security_bounded() -> None:
     assert incy_routing["GlobalProxy"] == "true"
     assert incy_routing["DomainStrategy"] == "AsIs"
     assert "geosite:category-ads-all" in incy_routing["BlockSites"]
-    assert "domain:yts.mx" in incy_routing["BlockSites"]
+    assert "domain:yts.mx" not in incy_routing["BlockSites"]
+    assert "domain:rutracker.org" not in incy_routing["BlockSites"]
+    assert "domain:rutor.info" not in incy_routing["BlockSites"]
     assert "domain:scorecardresearch.com" in incy_routing["BlockSites"]
     assert "domain:torproject.org" in incy_routing["BlockSites"]
+
+
+def test_remnawave_api_unwraps_official_nodes_and_node_plugins_envelopes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_module()
+    requests: list[tuple[str, str]] = []
+    payloads = [
+        {"response": _task1_plugin_nodes(module)},
+        {
+            "response": {
+                "total": 1,
+                "nodePlugins": [_task1_plugin(module)],
+            }
+        },
+    ]
+
+    class FakeResponse:
+        def __init__(self, payload: object) -> None:
+            self._payload = payload
+            self.content = json.dumps(payload).encode()
+
+        def raise_for_status(self) -> None:
+            return None
+
+        def json(self) -> object:
+            return self._payload
+
+    class FakeAsyncClient:
+        def __init__(self, **kwargs: object) -> None:
+            assert kwargs["base_url"] == "http://remnawave:3000"
+            assert kwargs["headers"] == {"Authorization": "Bearer unit-test-token"}
+            assert kwargs["trust_env"] is False
+
+        async def request(self, method: str, path: str, **kwargs: object) -> FakeResponse:
+            assert kwargs == {}
+            requests.append((method, path))
+            return FakeResponse(payloads.pop(0))
+
+        async def aclose(self) -> None:
+            return None
+
+    monkeypatch.setattr(module.httpx, "AsyncClient", FakeAsyncClient)
+    api = module.RemnawaveApi("http://remnawave:3000/api", "unit-test-token")
+
+    nodes = asyncio.run(api.request("GET", "/nodes"))
+    plugins = asyncio.run(api.request("GET", "/node-plugins"))
+    asyncio.run(api.close())
+
+    assert nodes == _task1_plugin_nodes(module)
+    assert plugins == {"total": 1, "nodePlugins": [_task1_plugin(module)]}
+    assert requests == [
+        ("GET", "/api/nodes"),
+        ("GET", "/api/node-plugins"),
+    ]
 
 
 def test_static_moscow_host_rebind_and_rollback_manifest_evidence() -> None:
@@ -613,7 +1481,7 @@ def test_static_moscow_host_rebind_and_rollback_manifest_evidence() -> None:
     assert "_validate_no_public_bridge_hosts(" in source
     assert 'manifest["failurePhase"] = manifest.get("phase")' in source
     assert 'manifest["failureClass"] = type(apply_error).__name__' in source
-    assert "if isinstance(apply_error, RuntimeError):" in source
+    assert "if safe_reason := _safe_failure_reason(apply_error):" in source
     assert 'json={"forceRestart": True}' in source
     assert '_checkpoint(manifest_path, manifest, "nodes_restarted")' in source
 
@@ -695,6 +1563,58 @@ def test_rollback_restarts_both_restored_nodes_before_marking_rolled_back(tmp_pa
     assert json.loads(manifest_path.read_text(encoding="utf-8"))["phase"] == "rolled_back"
 
 
+def test_rollback_sanitizes_restored_profiles_without_reintroducing_manual_torrent_policy(tmp_path: Path) -> None:
+    module = _load_module()
+    dirty_config = _contaminated_torrent_policy_config()
+    assert "bittorrent" in json.dumps(dirty_config, sort_keys=True).casefold()
+    assert "qbittorrent" in json.dumps(dirty_config, sort_keys=True).casefold()
+
+    class FakeRemnawaveApi:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str, object]] = []
+
+        async def request(self, method: str, path: str, **kwargs: object) -> object:
+            self.calls.append((method, path, kwargs.get("json")))
+            if (method, path) == ("GET", "/config-profiles"):
+                return {"configProfiles": []}
+            return {}
+
+    manifest = {
+        "version": 3,
+        "smartSquad": {"uuid": "smart-squad", "inbounds": ["base-raw"]},
+        "externalSquad": {"uuid": "external-squad", "responseHeaders": {}},
+        "deHosts": [],
+        "moscowHosts": [],
+        "deNode": {"uuid": "de-node", "configProfile": {"activeConfigProfileUuid": "base-profile"}},
+        "moscowNode": {
+            "uuid": "moscow-node",
+            "configProfile": {"activeConfigProfileUuid": "base-profile"},
+        },
+        "baseProfile": {"uuid": "base-profile", "name": "Base", "config": dirty_config},
+        "deProfile": {"uuid": "de-profile", "name": "DE", "config": dirty_config},
+        "deProfileName": "DE",
+        "moscowProfile": {"uuid": "moscow-profile", "name": "Moscow", "config": dirty_config},
+        "moscowProfileName": "Moscow",
+    }
+    api = FakeRemnawaveApi()
+    manifest_path = tmp_path / "rollback.json"
+
+    result = asyncio.run(module._rollback(api, manifest, manifest_path))
+
+    profile_patches = [
+        call[2] for call in api.calls if call[0:2] == ("PATCH", "/config-profiles") and isinstance(call[2], dict)
+    ]
+    assert [patch["uuid"] for patch in profile_patches] == [
+        "base-profile",
+        "de-profile",
+        "moscow-profile",
+    ]
+    for patch in profile_patches:
+        _assert_protocol_only_torrent_policy_sanitized(patch["config"])
+    assert result == {"mode": "rollback", "status": "rolled_back"}
+    assert json.loads(manifest_path.read_text(encoding="utf-8"))["phase"] == "rolled_back"
+
+
 def test_manifest_must_stay_outside_repository(tmp_path: Path) -> None:
     module = _load_module()
 
@@ -754,6 +1674,14 @@ def test_manifest_write_is_atomic_private_and_replaces_safe_checkpoint(
         assert manifest_path.stat().st_mode & 0o777 == 0o600
 
 
+def test_failure_reason_never_persists_runtime_error_details() -> None:
+    module = _load_module()
+    sensitive = RuntimeError("Bearer secret-token ssPassword=secret https://example.invalid/sub/customer 203.0.113.7")
+
+    assert module._safe_failure_reason(sensitive) == "runtime_validation_failed"
+    assert module._safe_failure_reason(ValueError("not recorded")) is None
+
+
 def test_manifest_write_refuses_unsafe_preexisting_targets(tmp_path: Path) -> None:
     module = _load_module()
 
@@ -794,15 +1722,16 @@ def test_manifest_read_rejects_target_swap_after_validation(tmp_path: Path, monk
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX ownership and mode contract")
-def test_manifest_read_refuses_world_writable_parent(tmp_path: Path) -> None:
+@pytest.mark.parametrize("unsafe_mode", [0o720, 0o770, 0o777])
+def test_manifest_read_refuses_group_or_world_writable_parent(tmp_path: Path, unsafe_mode: int) -> None:
     module = _load_module()
     unsafe_parent = tmp_path / "unsafe-read"
     unsafe_parent.mkdir(mode=0o700)
     manifest = unsafe_parent / "rollback.json"
     module._write_manifest(manifest, {"version": 3})
-    unsafe_parent.chmod(0o777)
+    unsafe_parent.chmod(unsafe_mode)
 
-    with pytest.raises(RuntimeError, match="must not be world-writable"):
+    with pytest.raises(RuntimeError, match="must not be group- or world-writable"):
         module._read_manifest(manifest)
 
 
@@ -822,8 +1751,9 @@ def test_manifest_write_refuses_symlink_target(tmp_path: Path) -> None:
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX ownership and mode contract")
-def test_manifest_write_refuses_permissive_target_and_world_writable_parent(
-    tmp_path: Path,
+@pytest.mark.parametrize("unsafe_mode", [0o720, 0o770, 0o777])
+def test_manifest_write_refuses_permissive_target_and_group_or_world_writable_parent(
+    tmp_path: Path, unsafe_mode: int
 ) -> None:
     module = _load_module()
     permissive_target = tmp_path / "permissive.json"
@@ -833,7 +1763,7 @@ def test_manifest_write_refuses_permissive_target_and_world_writable_parent(
         module._write_manifest(permissive_target, {"version": 3})
 
     unsafe_parent = tmp_path / "unsafe"
-    unsafe_parent.mkdir(mode=0o777)
-    unsafe_parent.chmod(0o777)
-    with pytest.raises(RuntimeError, match="must not be world-writable"):
+    unsafe_parent.mkdir(mode=0o700)
+    unsafe_parent.chmod(unsafe_mode)
+    with pytest.raises(RuntimeError, match="must not be group- or world-writable"):
         module._write_manifest(unsafe_parent / "rollback.json", {"version": 3})

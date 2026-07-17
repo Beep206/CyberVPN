@@ -31,6 +31,7 @@ TASK2_ANTIFILTER_CATEGORIES = (
     "discord",
     "custom_networks",
 )
+TASK2_ARTIFACT_CATEGORY_NAMES = {"cloudfront": "amazon_cloudfront"}
 TASK2_UNMATCHED_PROBE_IPV4 = ipaddress.IPv4Address("1.1.1.1")
 MAX_ROUTE_ARTIFACT_BYTES = 8 * 1024 * 1024
 MAX_ROUTE_PREFIXES = 500_000
@@ -220,8 +221,9 @@ def build_task2_route_probe_specs(route_entries: Sequence[Any]) -> list[Task2Rou
 
     category_targets: dict[str, ipaddress.IPv4Address] = {}
     for category in TASK2_ANTIFILTER_CATEGORIES:
+        artifact_category = TASK2_ARTIFACT_CATEGORY_NAMES.get(category, category)
         networks = _parse_ipv4_networks(
-            _read_verified_artifact(version_dir, manifest, f"categories/{category}.ipv4.cidr")
+            _read_verified_artifact(version_dir, manifest, f"categories/{artifact_category}.ipv4.cidr")
         )
         target = _first_safe_address(networks)
         if not any(target in network for network in union_networks):

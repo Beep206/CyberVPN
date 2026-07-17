@@ -11,6 +11,10 @@ from uuid import uuid4
 import pytest
 
 from src.application.vpn_testing import service as service_module
+from src.application.vpn_testing.generated_subscription_checker import (
+    PREMIUM_SMART_RU_MIHOMO_GROUPS,
+    REQUIRED_CATALOG_ACCESS_DOMAINS,
+)
 from src.application.vpn_testing.service import (
     VpnTesterService,
     _sanitize_run_request_context,
@@ -86,17 +90,12 @@ def _route_entry(index: int) -> SimpleNamespace:
 
 
 def _generated_mihomo_yaml() -> str:
-    groups = [
-        "🌍 World / EU",
-        "🇩🇪 DE Auto",
-        "🇳🇱 NL Auto",
-        "⚡ RU Auto",
-        "🇷🇺 RU Sites",
-        "🇷🇺 Moscow Auto",
-        "🇷🇺 SPB Auto",
-        "🧲 Torrents",
-    ]
-    group_yaml = "\n".join(f"  - name: {name!r}\n    type: select\n    proxies: ['smart-node']" for name in groups)
+    group_yaml = "\n".join(
+        f"  - name: {json.dumps(name, ensure_ascii=False)}\n    type: select\n    proxies: "
+        + ("['REJECT', 'REJECT-DROP']" if name == "⛔ BLOCK" else "['smart-node-1']")
+        for name in PREMIUM_SMART_RU_MIHOMO_GROUPS
+    )
+    catalog_yaml = "\n".join(f"      - DOMAIN-SUFFIX,{domain}" for domain in sorted(REQUIRED_CATALOG_ACCESS_DOMAINS))
     proxies: list[str] = []
     for index, endpoint in enumerate(
         (
@@ -133,7 +132,25 @@ proxies:
 {proxy_yaml}
 proxy-groups:
 {group_yaml}
+rule-providers:
+  catalog-access-inline:
+    type: inline
+    behavior: classical
+    payload:
+{catalog_yaml}
+  oisd-big:
+    type: http
+    behavior: domain
+    url: https://rules.example.invalid/oisd-big.mrs
+dns:
+  nameserver-policy:
+    rule-set:catalog-access-inline:
+      - https://8.8.8.8/dns-query#🌍 World / EU
+    rule-set:oisd-big:
+      - rcode://name_error
 rules:
+  - RULE-SET,catalog-access-inline,🌍 World / EU
+  - RULE-SET,oisd-big,⛔ BLOCK
   - MATCH,🌍 World / EU
 """
 
@@ -322,7 +339,45 @@ async def test_task2_contract_uses_spb_de_semantics_without_smart_ru_false_passe
     assert by_key["premium_spb_de_exceptions.connection_modes"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.exception_categories_de"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.default_spb_direct"]["status"] == "pass"
-    assert by_key["premium_spb_de_exceptions.bridge_down_fail_closed"]["status"] == "pass"
+    assert by_key["premium_spb_de_exceptions.bittorrent_protocol_plugin_block"]["status"] == "degraded"
+    assert by_key["premium_spb_de_exceptions.bittorrent_protocol_plugin_block"]["details"] == {
+        "metadata_contract_only": True,
+        "runtime_evidence_claimed": False,
+        "expected_policy": "remnawave-node-plugin:torrentBlocker",
+        "enforcement_owner": "remnawave_node_plugin",
+        "protocol": "bittorrent",
+        "live_traffic_required": False,
+        "required_evidence": ["no_live_torrent_traffic", "remnawave_node_plugin_torrentBlocker_config"],
+    }
+    assert by_key["premium_spb_de_exceptions.torrent_catalog_websites"]["status"] == "degraded"
+    assert by_key["premium_spb_de_exceptions.torrent_catalog_websites"]["details"] == {
+        "metadata_contract_only": True,
+        "runtime_evidence_claimed": False,
+        "expected_domains": ["kinozal.tv", "nnmclub.to", "rutor.info", "rutracker.org"],
+        "classification_catalog_domains": [
+            "kinozal.tv",
+            "nnmclub.to",
+            "rutor.info",
+            "rutracker.org",
+        ],
+        "blocked_catalog_domains": [],
+        "hardcoded_catalog_domains": [],
+        "expected_outbound_by_membership": {
+            "compiled_union": "DE_EXCEPTIONS_BRIDGE",
+            "not_in_compiled_union": "DIRECT",
+        },
+        "expected_egress_by_membership": {
+            "compiled_union": "DE",
+            "not_in_compiled_union": "SPB",
+        },
+        "live_traffic_required": False,
+    }
+    bridge_down = by_key["premium_spb_de_exceptions.bridge_down_fail_closed"]
+    assert bridge_down["status"] == "degraded"
+    assert bridge_down["details"] == {
+        "metadata_contract_only": True,
+        "runtime_evidence_claimed": False,
+    }
     assert by_key["premium_spb_de_exceptions.route_registry"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.readiness_gate"]["status"] == "pass"
     assert by_key["premium_spb_de_exceptions.runtime_evidence"]["status"] == "degraded"
@@ -335,6 +390,14 @@ async def test_task2_contract_uses_spb_de_semantics_without_smart_ru_false_passe
 @pytest.mark.asyncio
 async def test_task2_contract_fails_if_readiness_is_enabled_without_runtime_evidence(monkeypatch) -> None:
     monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", True)
+
+    def reject_readiness(_plan_code: str) -> bool:
+        raise service_module.VpnProductReadinessError(
+            "task2_readiness_attestation_missing",
+            "Task2 readiness attestation is missing",
+        )
+
+    monkeypatch.setattr(service_module, "ensure_spb_de_exceptions_data_plane_ready", reject_readiness)
     suite, routes = _spb_de_exceptions_suite_and_routes()
     service = VpnTesterService(SimpleNamespace())
 
@@ -345,6 +408,31 @@ async def test_task2_contract_fails_if_readiness_is_enabled_without_runtime_evid
     assert by_key["premium_spb_de_exceptions.readiness_gate"]["details"]["data_plane_ready"] is False
     assert "attestation" in by_key["premium_spb_de_exceptions.readiness_gate"]["details"]["readiness_reason"]
     assert by_key["premium_spb_de_exceptions.runtime_evidence"]["status"] == "degraded"
+
+
+@pytest.mark.asyncio
+async def test_task2_contract_does_not_promote_runtime_evidence_from_signed_readiness(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", True)
+    monkeypatch.setattr(service_module, "ensure_spb_de_exceptions_data_plane_ready", lambda _plan_code: True)
+    suite, routes = _spb_de_exceptions_suite_and_routes()
+    service = VpnTesterService(SimpleNamespace())
+
+    results = await service._contract_results(suite, [_spb_de_exceptions_plan()], routes)
+
+    by_key = {item["check_key"]: item for item in results}
+    bridge_down = by_key["premium_spb_de_exceptions.bridge_down_fail_closed"]
+    assert bridge_down["status"] == "degraded"
+    assert bridge_down["details"] == {
+        "metadata_contract_only": True,
+        "runtime_evidence_claimed": False,
+    }
+    readiness = by_key["premium_spb_de_exceptions.readiness_gate"]
+    assert readiness["status"] == "pass"
+    assert readiness["details"]["runtime_evidence_status"] == "not_claimed"
+    assert readiness["details"]["data_plane_ready"] is True
+    runtime_evidence = by_key["premium_spb_de_exceptions.runtime_evidence"]
+    assert runtime_evidence["status"] == "degraded"
+    assert runtime_evidence["details"]["runtime_evidence_status"] == "not_claimed"
 
 
 @pytest.mark.asyncio
@@ -360,6 +448,62 @@ async def test_task2_contract_rejects_matched_transport_without_explicit_no_dire
     by_key = {item["check_key"]: item for item in results}
     assert by_key["premium_spb_de_exceptions.raw_xhttp_matrix"]["status"] == "fail"
     assert by_key["premium_spb_de_exceptions.tcp_udp_matrix"]["status"] == "fail"
+    assert by_key["premium_spb_de_exceptions.route_registry"]["status"] == "fail"
+
+
+@pytest.mark.asyncio
+async def test_task2_contract_rejects_manual_bittorrent_policy_metadata(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", False)
+    suite, routes = _spb_de_exceptions_suite_and_routes()
+    bittorrent_route = next(route for route in routes if route.route_key == "block-bittorrent-protocol")
+    bittorrent_route.metadata_json["expected_policy"] = "abuse-bittorrent-deny"
+    bittorrent_route.metadata_json["enforcement_owner"] = "xray_manual_rule"
+    service = VpnTesterService(SimpleNamespace())
+
+    results = await service._contract_results(suite, [_spb_de_exceptions_plan()], routes)
+
+    by_key = {item["check_key"]: item for item in results}
+    assert by_key["premium_spb_de_exceptions.bittorrent_protocol_plugin_block"]["status"] == "fail"
+    assert by_key["premium_spb_de_exceptions.route_registry"]["status"] == "fail"
+
+
+@pytest.mark.asyncio
+async def test_task2_contract_rejects_hardcoded_torrent_catalog_direct_policy(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", False)
+    suite, routes = _spb_de_exceptions_suite_and_routes()
+    rutracker_route = next(route for route in routes if route.metadata_json.get("domain") == "rutracker.org")
+    rutracker_route.metadata_json["membership"] = "must_not_be_in_compiled_union"
+    rutracker_route.metadata_json["expected_policy"] = "spb-direct-default"
+    rutracker_route.metadata_json["expected_outbound"] = "DIRECT"
+    rutracker_route.metadata_json.pop("expected_outbound_by_membership", None)
+    service = VpnTesterService(SimpleNamespace())
+
+    results = await service._contract_results(suite, [_spb_de_exceptions_plan()], routes)
+
+    by_key = {item["check_key"]: item for item in results}
+    assert by_key["premium_spb_de_exceptions.torrent_catalog_websites"]["status"] == "fail"
+    assert by_key["premium_spb_de_exceptions.torrent_catalog_websites"]["details"]["hardcoded_catalog_domains"] == [
+        "rutracker.org"
+    ]
+    assert by_key["premium_spb_de_exceptions.route_registry"]["status"] == "fail"
+
+
+@pytest.mark.asyncio
+async def test_task2_contract_rejects_blocked_torrent_catalog_website(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "remnawave_spb_de_exceptions_data_plane_ready", False)
+    suite, routes = _spb_de_exceptions_suite_and_routes()
+    rutracker_route = next(route for route in routes if route.metadata_json.get("domain") == "rutracker.org")
+    rutracker_route.metadata_json["expected_outbound_by_membership"]["compiled_union"] = "BLOCK"
+    rutracker_route.metadata_json["expected_outbound"] = "BLOCK"
+    service = VpnTesterService(SimpleNamespace())
+
+    results = await service._contract_results(suite, [_spb_de_exceptions_plan()], routes)
+
+    by_key = {item["check_key"]: item for item in results}
+    assert by_key["premium_spb_de_exceptions.torrent_catalog_websites"]["status"] == "fail"
+    assert by_key["premium_spb_de_exceptions.torrent_catalog_websites"]["details"]["blocked_catalog_domains"] == [
+        "rutracker.org"
+    ]
     assert by_key["premium_spb_de_exceptions.route_registry"]["status"] == "fail"
 
 
@@ -406,7 +550,22 @@ async def test_task2_runtime_dispatches_only_to_task2_client_when_enabled(monkey
     monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
     monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", True)
     monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", True)
-    service = VpnTesterService(SimpleNamespace(), redis_client=SimpleNamespace())
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_user", "task2-route-probe")
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_xray_email", "94")
+    remnawave_client = SimpleNamespace(
+        get=AsyncMock(
+            return_value={
+                "id": 94,
+                "username": "task2-route-probe",
+                "vlessUuid": "00000000-0000-4000-8000-000000000094",
+            }
+        )
+    )
+    service = VpnTesterService(
+        SimpleNamespace(),
+        remnawave_client=remnawave_client,
+        redis_client=SimpleNamespace(),
+    )
     run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
 
     results = await service._runtime_results(run, [], generated_mihomo_artifact={"proxies": []})
@@ -416,7 +575,73 @@ async def test_task2_runtime_dispatches_only_to_task2_client_when_enabled(monkey
     assert results[-1]["check_key"] == "premium_spb_de_exceptions.runtime.completeness"
     assert results[-1]["status"] == "degraded"
     task2_runtime_agent.assert_awaited_once()
+    assert task2_runtime_agent.await_args.kwargs["synthetic_vless_uuid"] == ("00000000-0000-4000-8000-000000000094")
+    remnawave_client.get.assert_awaited_once_with("/users/by-username/task2-route-probe")
     smart_runtime_agent.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_task2_runtime_fails_closed_when_synthetic_xray_identity_mismatches(monkeypatch) -> None:
+    task2_runtime_agent = AsyncMock()
+    monkeypatch.setattr(service_module, "call_task2_runtime_agent", task2_runtime_agent)
+    monkeypatch.setattr(service_module, "task2_runtime_agent_configured", lambda: True)
+    monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_user", "task2-route-probe")
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_xray_email", "94")
+    remnawave_client = SimpleNamespace(
+        get=AsyncMock(
+            return_value={
+                "id": 93,
+                "username": "task2-route-probe",
+                "vlessUuid": "00000000-0000-4000-8000-000000000094",
+            }
+        )
+    )
+    service = VpnTesterService(
+        SimpleNamespace(),
+        remnawave_client=remnawave_client,
+        redis_client=SimpleNamespace(),
+    )
+    run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
+
+    results = await service._runtime_results(run, [], generated_mihomo_artifact={"proxies": []})
+
+    assert results[0]["check_key"] == "premium_spb_de_exceptions.runtime.synthetic_identity"
+    assert results[0]["status"] == "fail"
+    task2_runtime_agent.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_task2_runtime_fails_closed_when_synthetic_identity_lookup_fails(monkeypatch) -> None:
+    task2_runtime_agent = AsyncMock()
+    monkeypatch.setattr(service_module, "call_task2_runtime_agent", task2_runtime_agent)
+    monkeypatch.setattr(service_module, "task2_runtime_agent_configured", lambda: True)
+    monkeypatch.setattr(settings, "vpn_tester_runtime_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_route_evidence_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_synthetic_users_enabled", True)
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_user", "task2-route-probe")
+    monkeypatch.setattr(settings, "vpn_tester_task2_synthetic_xray_email", "94")
+    remnawave_client = SimpleNamespace(get=AsyncMock(side_effect=service_module.HTTPError("provider unavailable")))
+    service = VpnTesterService(
+        SimpleNamespace(),
+        remnawave_client=remnawave_client,
+        redis_client=SimpleNamespace(),
+    )
+    run = SimpleNamespace(id=uuid4(), suite_key="premium_spb_de_exceptions_v1", mode="runtime")
+
+    results = await service._runtime_results(run, [], generated_mihomo_artifact={"proxies": []})
+
+    assert results[0]["check_key"] == "premium_spb_de_exceptions.runtime.synthetic_identity"
+    assert results[0]["status"] == "fail"
+    assert results[0]["details"] == {
+        "error_type": "HTTPError",
+        "runtime_agent_dispatched": False,
+        "runtime_evidence_status": "not_claimed",
+    }
+    assert "provider unavailable" not in str(results[0])
+    task2_runtime_agent.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -520,9 +745,7 @@ def _external_squad_headers(*, routing: str | None = None) -> dict[str, str]:
 def _de_smart_config_profile_config() -> dict[str, object]:
     inbound_tags = list(service_module.PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
     direct_domains = sorted(service_module.PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS)
-    ru_domains = sorted(
-        item for item in service_module.PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS if item != "geosite:category-ru"
-    ) + ["geosite:category-ru"]
+    ru_service_domains = sorted(service_module.PREMIUM_SMART_RU_REQUIRED_RU_SERVICE_DOMAINS)
     return {
         "inbounds": [
             {"tag": "DE_SMART_REALITY_443", "protocol": "vless"},
@@ -551,17 +774,10 @@ def _de_smart_config_profile_config() -> dict[str, object]:
         "routing": {
             "domainStrategy": "IPIfNonMatch",
             "rules": [
-                {"ip": ["geoip:private"], "outboundTag": "BLOCK"},
-                {"domain": ["geosite:private"], "outboundTag": "BLOCK"},
-                {"protocol": ["bittorrent"], "outboundTag": "BLOCK"},
-                {"network": "udp", "port": "443", "outboundTag": "BLOCK"},
+                {"domain": ["geosite:private"], "inboundTag": inbound_tags, "outboundTag": "DIRECT"},
+                {"ip": ["geoip:private"], "inboundTag": inbound_tags, "outboundTag": "DIRECT"},
                 {
-                    "domain": list(service_module.PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS),
-                    "inboundTag": inbound_tags,
-                    "outboundTag": "BLOCK",
-                },
-                {
-                    "domain": direct_domains,
+                    "domain": ["geosite:category-remote-control"],
                     "inboundTag": inbound_tags,
                     "outboundTag": "DIRECT",
                 },
@@ -575,13 +791,22 @@ def _de_smart_config_profile_config() -> dict[str, object]:
                     "inboundTag": inbound_tags,
                     "outboundTag": "BLOCK",
                 },
+                {"network": "udp", "port": "443,853", "inboundTag": inbound_tags, "outboundTag": "BLOCK"},
+                {"network": "tcp", "port": "25,465,587", "inboundTag": inbound_tags, "outboundTag": "BLOCK"},
                 {
-                    "domain": ru_domains,
+                    "domain": direct_domains,
+                    "inboundTag": inbound_tags,
+                    "outboundTag": "DIRECT",
+                },
+                {"ip": ["geoip:cloudflare"], "inboundTag": inbound_tags, "outboundTag": "DIRECT"},
+                {
+                    "domain": ru_service_domains,
                     "inboundTag": inbound_tags,
                     "outboundTag": "RU_MSK_BRIDGE",
                 },
+                {"domain": ["geosite:category-ru"], "inboundTag": inbound_tags, "outboundTag": "RU_MSK_BRIDGE"},
                 {"ip": ["geoip:ru"], "inboundTag": inbound_tags, "outboundTag": "RU_MSK_BRIDGE"},
-                {"inboundTag": inbound_tags, "outboundTag": "DIRECT"},
+                {"network": "tcp,udp", "inboundTag": inbound_tags, "outboundTag": "DIRECT"},
             ],
         },
     }
@@ -589,9 +814,8 @@ def _de_smart_config_profile_config() -> dict[str, object]:
 
 def _moscow_smart_global_config_profile_config() -> dict[str, object]:
     inbound_tags = list(service_module.PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-    ru_domains = sorted(
-        item for item in service_module.PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS if item != "geosite:category-ru"
-    ) + ["geosite:category-ru"]
+    direct_domains = sorted(service_module.PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS)
+    ru_service_domains = sorted(service_module.PREMIUM_SMART_RU_REQUIRED_RU_SERVICE_DOMAINS)
 
     def scoped(rule: dict[str, object]) -> dict[str, object]:
         return {**rule, "inboundTag": inbound_tags}
@@ -624,16 +848,9 @@ def _moscow_smart_global_config_profile_config() -> dict[str, object]:
         "routing": {
             "domainStrategy": "IPIfNonMatch",
             "rules": [
-                scoped({"ip": ["geoip:private"], "outboundTag": "BLOCK"}),
-                scoped({"domain": ["geosite:private"], "outboundTag": "BLOCK"}),
-                scoped({"protocol": ["bittorrent"], "outboundTag": "BLOCK"}),
-                scoped({"network": "udp", "port": "443", "outboundTag": "BLOCK"}),
-                scoped(
-                    {
-                        "domain": list(service_module.PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS),
-                        "outboundTag": "BLOCK",
-                    }
-                ),
+                scoped({"domain": ["geosite:private"], "outboundTag": "DIRECT"}),
+                scoped({"ip": ["geoip:private"], "outboundTag": "DIRECT"}),
+                scoped({"domain": ["geosite:category-remote-control"], "outboundTag": "DIRECT"}),
                 scoped({"domain": ["geosite:category-ads-all"], "outboundTag": "BLOCK"}),
                 scoped(
                     {
@@ -641,9 +858,14 @@ def _moscow_smart_global_config_profile_config() -> dict[str, object]:
                         "outboundTag": "BLOCK",
                     }
                 ),
-                scoped({"domain": ru_domains, "outboundTag": "DIRECT"}),
+                scoped({"network": "udp", "port": "443,853", "outboundTag": "BLOCK"}),
+                scoped({"network": "tcp", "port": "25,465,587", "outboundTag": "BLOCK"}),
+                scoped({"domain": direct_domains, "outboundTag": "DE_GLOBAL_BRIDGE"}),
+                scoped({"ip": ["geoip:cloudflare"], "outboundTag": "DE_GLOBAL_BRIDGE"}),
+                scoped({"domain": ru_service_domains, "outboundTag": "DIRECT"}),
+                scoped({"domain": ["geosite:category-ru"], "outboundTag": "DIRECT"}),
                 scoped({"ip": ["geoip:ru"], "outboundTag": "DIRECT"}),
-                scoped({"outboundTag": "DE_GLOBAL_BRIDGE"}),
+                scoped({"network": "tcp,udp", "outboundTag": "DE_GLOBAL_BRIDGE"}),
             ],
         },
     }
@@ -888,18 +1110,22 @@ async def test_remnawave_transport_results_require_exact_safe_matrix() -> None:
         "bridge_password_present": True,
         "routing": {
             "domain_strategy_ip_if_non_match": True,
-            "rule_count": 11,
+            "rule_count": 13,
             "rule_count_exact": True,
             "outbound_order_valid": True,
             "bridge_inbound_excluded_from_customer_rules": True,
-            "private_ip_block_rule_valid": True,
-            "private_domain_block_rule_valid": True,
-            "bittorrent_block_rule_valid": True,
-            "udp_443_block_rule_valid": True,
-            "torrent_domain_block_rule_valid": True,
-            "direct_exceptions_rule_valid": True,
-            "ads_block_rule_after_direct_valid": True,
+            "manual_bittorrent_protocol_rule_absent": True,
+            "manual_torrent_process_rule_absent": True,
+            "torrent_catalog_block_rule_absent": True,
+            "private_domain_direct_rule_valid": True,
+            "private_ip_direct_rule_valid": True,
+            "direct_processes_rule_valid": True,
+            "ads_block_rule_valid": True,
             "tor_block_rule_valid": True,
+            "udp_443_853_block_rule_valid": True,
+            "smtp_abuse_block_rule_valid": True,
+            "direct_exceptions_rule_valid": True,
+            "direct_exception_ip_rule_valid": True,
             "ru_domain_bridge_rule_valid": True,
             "ru_geoip_bridge_rule_valid": True,
             "final_direct_rule_valid": True,
@@ -926,18 +1152,23 @@ async def test_remnawave_transport_results_require_exact_safe_matrix() -> None:
         "bridge_password_present": True,
         "routing": {
             "domain_strategy_ip_if_non_match": True,
-            "rule_count": 10,
+            "rule_count": 13,
             "rule_count_exact": True,
             "outbound_order_valid": True,
             "all_rules_customer_scoped": True,
             "bridge_inbound_excluded_from_customer_rules": True,
-            "private_ip_block_rule_valid": True,
-            "private_domain_block_rule_valid": True,
-            "bittorrent_block_rule_valid": True,
-            "udp_443_block_rule_valid": True,
-            "torrent_domain_block_rule_valid": True,
+            "manual_bittorrent_protocol_rule_absent": True,
+            "manual_torrent_process_rule_absent": True,
+            "torrent_catalog_block_rule_absent": True,
+            "private_domain_direct_rule_valid": True,
+            "private_ip_direct_rule_valid": True,
+            "direct_processes_rule_valid": True,
             "ads_block_rule_valid": True,
             "tor_block_rule_valid": True,
+            "udp_443_853_block_rule_valid": True,
+            "smtp_abuse_block_rule_valid": True,
+            "eu_domain_bridge_rule_valid": True,
+            "eu_ip_bridge_rule_valid": True,
             "ru_domain_direct_rule_valid": True,
             "ru_geoip_direct_rule_valid": True,
             "final_global_bridge_rule_valid": True,
@@ -959,7 +1190,7 @@ async def test_remnawave_transport_results_require_exact_safe_matrix() -> None:
         "dns_ip_valid": True,
         "domain_strategy_valid": True,
         "fake_dns_disabled": True,
-        "block_sites_count": 7,
+        "block_sites_count": 13,
         "block_sites_exact": True,
         "block_ip_empty": True,
         "plan_header_valid": True,
@@ -1076,7 +1307,7 @@ async def test_remnawave_transport_results_fail_when_de_profile_inbound_tag_is_m
 async def test_remnawave_transport_results_fail_when_de_profile_rule_order_is_broken() -> None:
     payloads = _remnawave_transport_payloads()
     rules = _de_profile_rules(payloads)
-    rules[5], rules[6] = rules[6], rules[5]
+    rules[7], rules[9] = rules[9], rules[7]
     remnawave_client = SimpleNamespace(get=AsyncMock(side_effect=lambda path: payloads[path]))
 
     results = await VpnTesterService(
@@ -1086,10 +1317,50 @@ async def test_remnawave_transport_results_fail_when_de_profile_rule_order_is_br
     profile_result = by_key["remnawave.config_profiles.de_smart_ru_server_routing"]
 
     assert profile_result["status"] == "fail"
-    assert profile_result["details"]["routing"]["rule_count"] == 11
+    assert profile_result["details"]["routing"]["rule_count"] == 13
     assert profile_result["details"]["routing"]["outbound_order_valid"] is False
     assert profile_result["details"]["routing"]["direct_exceptions_rule_valid"] is False
     assert by_key["remnawave.external_squads.premium_smart_ru_headers"]["status"] == "pass"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("domain_value", "outbound"),
+    [
+        (["domain:rutor.info"], "RW_TB_OUTBOUND_BLOCK"),
+        (" Full:RuTracker.ORG ", "RW_TB_OUTBOUND_BLOCK"),
+        (["full:rutor.info"], "BLOCK"),
+        ("rutracker.org", "BLOCK"),
+        ("keyword:rutor", "BLOCK"),
+        ([r"regexp:.*rutracker\.org$"], "RW_TB_OUTBOUND_BLOCK"),
+        ("keyword:rutor", "innocent-sink"),
+    ],
+)
+async def test_remnawave_transport_results_reject_catalog_block_on_block_outbound(
+    domain_value: str | list[str], outbound: str
+) -> None:
+    payloads = _remnawave_transport_payloads()
+    if outbound == "innocent-sink":
+        _de_profile_detail(payloads)["config"]["outbounds"].append({"tag": "innocent-sink", "protocol": "blackhole"})
+    _de_profile_rules(payloads).append(
+        {
+            "type": "field",
+            "ruleTag": "manual-rutor-block",
+            "domain": domain_value,
+            "outboundTag": outbound,
+        }
+    )
+    remnawave_client = SimpleNamespace(get=AsyncMock(side_effect=lambda path: payloads[path]))
+
+    results = await VpnTesterService(
+        SimpleNamespace(), remnawave_client=remnawave_client
+    )._remnawave_transport_results()
+    profile_result = {item["check_key"]: item for item in results}[
+        "remnawave.config_profiles.de_smart_ru_server_routing"
+    ]
+
+    assert profile_result["status"] == "fail"
+    assert profile_result["details"]["routing"]["torrent_catalog_block_rule_absent"] is False
 
 
 @pytest.mark.asyncio
@@ -1127,9 +1398,9 @@ async def test_remnawave_transport_results_fail_when_de_profile_block_rule_is_mi
     profile_result = by_key["remnawave.config_profiles.de_smart_ru_server_routing"]
 
     assert profile_result["status"] == "fail"
-    assert profile_result["details"]["routing"]["rule_count"] == 10
+    assert profile_result["details"]["routing"]["rule_count"] == 12
     assert profile_result["details"]["routing"]["rule_count_exact"] is False
-    assert profile_result["details"]["routing"]["ads_block_rule_after_direct_valid"] is False
+    assert profile_result["details"]["routing"]["smtp_abuse_block_rule_valid"] is False
 
 
 @pytest.mark.asyncio
@@ -1199,7 +1470,7 @@ async def test_remnawave_transport_results_fail_when_moscow_profile_bridge_outbo
 async def test_remnawave_transport_results_fail_when_moscow_profile_rule_order_is_broken() -> None:
     payloads = _remnawave_transport_payloads()
     rules = _moscow_profile_rules(payloads)
-    rules[4], rules[7] = rules[7], rules[4]
+    rules[3], rules[7] = rules[7], rules[3]
     remnawave_client = SimpleNamespace(get=AsyncMock(side_effect=lambda path: payloads[path]))
 
     results = await VpnTesterService(
@@ -1209,9 +1480,9 @@ async def test_remnawave_transport_results_fail_when_moscow_profile_rule_order_i
     profile_result = by_key["remnawave.config_profiles.moscow_smart_global_routing"]
 
     assert profile_result["status"] == "fail"
-    assert profile_result["details"]["routing"]["rule_count"] == 10
+    assert profile_result["details"]["routing"]["rule_count"] == 13
     assert profile_result["details"]["routing"]["outbound_order_valid"] is False
-    assert profile_result["details"]["routing"]["torrent_domain_block_rule_valid"] is False
+    assert profile_result["details"]["routing"]["ads_block_rule_valid"] is False
     assert by_key["remnawave.config_profiles.de_smart_ru_server_routing"]["status"] == "pass"
 
 
@@ -1236,7 +1507,7 @@ async def test_remnawave_transport_results_fail_when_moscow_bridge_inbound_leaks
     assert profile_result["status"] == "fail"
     assert profile_result["details"]["routing"]["all_rules_customer_scoped"] is False
     assert profile_result["details"]["routing"]["bridge_inbound_excluded_from_customer_rules"] is False
-    assert profile_result["details"]["routing"]["private_ip_block_rule_valid"] is False
+    assert profile_result["details"]["routing"]["private_domain_direct_rule_valid"] is False
 
 
 @pytest.mark.asyncio
@@ -1298,7 +1569,7 @@ async def test_remnawave_transport_results_fail_when_external_squad_domain_strat
 async def test_remnawave_transport_results_fail_when_external_squad_block_sites_are_incomplete() -> None:
     payloads = _remnawave_transport_payloads()
     block_sites = list(service_module.PREMIUM_SMART_RU_EXTERNAL_ROUTING_BLOCK_SITES)
-    block_sites.remove("domain:rutracker.org")
+    block_sites.remove("domain:torproject.org")
     _external_squad(payloads)["responseHeaders"]["routing"] = _base64_json(
         _external_routing_payload(block_sites=block_sites)
     )
@@ -1310,7 +1581,7 @@ async def test_remnawave_transport_results_fail_when_external_squad_block_sites_
     squad_result = {item["check_key"]: item for item in results}["remnawave.external_squads.premium_smart_ru_headers"]
 
     assert squad_result["status"] == "fail"
-    assert squad_result["details"]["block_sites_count"] == 6
+    assert squad_result["details"]["block_sites_count"] == 12
     assert squad_result["details"]["block_sites_exact"] is False
 
 
@@ -1747,3 +2018,8 @@ async def test_runtime_run_combines_contract_and_live_transport_results() -> Non
     )
     assert repository.replace_run_results.await_args.kwargs["results"] == [contract_result, runtime_result]
     assert repository.replace_run_results.await_args.kwargs["status"] == "pass"
+    execution_attempt_id = repository.mark_run_running.await_args.kwargs["execution_attempt_id"]
+    assert len(execution_attempt_id) == 32
+    assert int(execution_attempt_id, 16) >= 0
+    assert repository.replace_run_results.await_args.kwargs["summary"]["execution_attempt_id"] == execution_attempt_id
+    assert "preserve_evidence_types" not in repository.replace_run_results.await_args.kwargs

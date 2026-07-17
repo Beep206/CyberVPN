@@ -17,6 +17,18 @@ def test_normalize_public_subscription_url_rewrites_known_net_host(monkeypatch):
     assert result == "https://cyber-vpn.org/api/sub/6ho28HMU1j8b8M5V"
 
 
+def test_normalize_public_subscription_url_rewrites_legacy_org_host(monkeypatch):
+    monkeypatch.setattr(
+        settings,
+        "remnawave_subscription_public_base_url",
+        "https://api.cyber-vpn.net/api/sub",
+    )
+
+    result = normalize_public_subscription_url("https://cyber-vpn.org/api/sub/legacy-token")
+
+    assert result == "https://api.cyber-vpn.net/api/sub/legacy-token"
+
+
 def test_normalize_public_subscription_url_preserves_query_and_fragment(monkeypatch):
     monkeypatch.setattr(
         settings,

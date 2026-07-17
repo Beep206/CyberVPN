@@ -64,6 +64,7 @@ infra/systemd/README.md
 
 - `https://docs.rw/learn/xray-json-advanced/`
 - `https://docs.rw/learn-en/routing-rules/`
+- `https://docs.rw/learn/node-plugins/`
 - `https://github.com/remnawave/backend`
 - `https://github.com/remnawave/node`
 - `https://xtls.github.io/en/config/routing.html`
@@ -95,7 +96,8 @@ infra/systemd/README.md
 Российские сервисы                  -> Москва или Санкт-Петербург
 Ресурсы blocked/unstable из РФ      -> Германия/Нидерланды
 Реклама и известные трекеры         -> BLOCK/REJECT
-Torrent                             -> BLOCK/REJECT + server abuse layer
+Torrent catalogs/sites              -> обычная route policy
+Recognized BitTorrent protocol      -> Remnawave torrentBlocker + server abuse layer
 TOR                                 -> best-effort BLOCK
 Локальные/частные сети              -> DIRECT на client-side full config
 ```
@@ -166,9 +168,7 @@ ru-bundle / ru-inside / refilter / rkn-related exceptions
 
 ```text
 private/direct exceptions where applicable
-bittorrent protocol
-known torrent processes
-known torrent domains/trackers
+recognized BitTorrent protocol via Remnawave Node Plugin torrentBlocker
 ads/trackers
 TOR domains/processes
 QUIC/DoQ policy, если она утверждена продуктом
@@ -176,6 +176,17 @@ EU exceptions
 RU services
 final default -> EU
 ```
+
+Torrent-каталоги и tracker websites **не** являются block-классом. Канонические
+1337x, EZTV, Kinozal, LimeTorrents, NNMClub, RuTracker, Rutor, The Pirate Bay,
+TorrentDownload, TorrentGalaxy и YTS маршрутизируются отдельным ранним
+`catalog-access-inline` в `World / EU`/DE до рекламы и всех BLOCK rules;
+остальные сайты следуют обычной продуктовой политике. Блокируется только
+распознанный Xray `protocol=bittorrent`, и владельцем этой блокировки является официальный
+Remnawave Node Plugin `torrentBlocker`. По документации Remnawave Node Plugins
+плагин сам добавляет runtime Xray rule `protocol=bittorrent` в начало
+`routing.rules`, outbound `RW_TB_OUTBOUND_BLOCK`, webhook и nftables
+enforcement; вручную дублировать эти правила в templates/renderers запрещено.
 
 Нельзя обещать абсолютную блокировку YouTube in-stream ads, всех TOR bridges или всех encrypted/WebTorrent сценариев. В документации и UI использовать корректную формулировку `best effort` там, где она технически необходима.
 
@@ -213,7 +224,10 @@ XRAY_BASE64 compatibility path
 Node Plugin lists
 ```
 
-Известный пример — разные наборы torrent domains.
+Известный исторический пример — разные наборы torrent domain/process rules.
+После уточнения 2026-07-14 такие правила считаются superseded для продуктового
+контракта: torrent sites/catalogs не блокируются, а BitTorrent protocol
+обрабатывается только через `torrentBlocker`.
 
 ## 4.4. Неправильная health-модель RU
 
@@ -320,9 +334,13 @@ routes:
 blocks:
   ads: true
   trackers: true
-  torrent: true
+  recognized_bittorrent_protocol: remnawave_node_torrentBlocker
   tor: best_effort
   smtp_abuse_ports: [25, 465, 587]
+node_plugins:
+  torrentBlocker:
+    enabled: true
+    source_of_truth: https://docs.rw/learn/node-plugins/
 regions:
   eu:
     primary: de
@@ -334,7 +352,7 @@ sources:
   eu_exceptions: []
   ru_services: []
   ads: []
-  torrent: []
+  torrent_catalogs: product_routing_only
   tor: []
 ```
 
@@ -463,17 +481,20 @@ block
 ```text
 1. private/local networks -> direct
 2. approved service processes that must bypass -> direct
-3. bittorrent protocol -> block
-4. torrent processes -> block
-5. torrent domains/trackers -> block
-6. ads/trackers -> block
-7. TOR domains/processes -> block
-8. approved QUIC/DoQ policy
-9. EU exceptions -> eu route
-10. explicit RU services -> ru route
-11. broad RU geosite/geoip -> ru route
-12. final network tcp,udp -> eu route
+3. ads/trackers -> block
+4. TOR domains/processes -> block
+5. approved QUIC/DoQ policy
+6. EU exceptions -> eu route
+7. explicit RU services -> ru route
+8. broad RU geosite/geoip -> ru route
+9. final network tcp,udp -> eu route
 ```
+
+`protocol=bittorrent -> RW_TB_OUTBOUND_BLOCK` не является ручным template rule:
+его добавляет Remnawave Node `torrentBlocker` в runtime. Torrent catalogs,
+tracker websites, RuTracker/Rutor и аналогичные домены проходят через порядок
+выше как обычные destinations; acceptance должен доказывать route decision, а
+не блокировку этих сайтов.
 
 Финальное правило обязано иметь эффективный matcher, например:
 
@@ -566,7 +587,10 @@ Server-side profiles нужны для Base64/legacy clients и как defense-i
 - Moscow/SPB compatibility profiles: логика соответствует документированному продукту;
 - lists генерируются тем же policy compiler;
 - private destinations имеют явно утверждённую policy;
-- torrent/ads/TOR lists синхронизированы;
+- ads/TOR lists синхронизированы; obsolete torrent domain/process block lists не
+  рендерятся как продуктовая политика;
+- `torrentBlocker` включается и проверяется как Node Plugin policy, без ручного
+  Xray duplicate rule;
 - bridge credentials не попадают в customer subscription;
 - bridge ingress firewall разрешает только peer node IPs;
 - TCP и UDP bridge paths тестируются;
@@ -580,7 +604,7 @@ Server-side profiles нужны для Base64/legacy clients и как defense-i
 
 1. Снять Git metadata и перечислить dirty files.
 2. Сравнить source templates с production generated response.
-3. Найти все копии RU/EU/torrent/ads/TOR lists.
+3. Найти все копии RU/EU/ads/TOR lists и obsolete torrent domain/process block lists.
 4. Построить machine-readable drift report.
 5. Добавить regression tests, которые сначала воспроизводят текущие расхождения.
 
@@ -621,7 +645,7 @@ python .\scripts\remnawave\policy_compiler\cli.py check `
 ## Этап E — server compatibility
 
 1. Перегенерировать server profiles.
-2. Синхронизировать torrent/ads/TOR.
+2. Синхронизировать ads/TOR и удалить/пометить superseded torrent domain/process duplication.
 3. Проверить bridges и firewall.
 4. Не менять production до прохождения staging/canary.
 
@@ -655,7 +679,8 @@ python .\scripts\remnawave\policy_compiler\cli.py check `
 - deterministic ordering;
 - pinned source checksums;
 - generated manifest;
-- same torrent set in all renderers;
+- no torrent domain/process block set is rendered as product policy;
+- `torrentBlocker` plugin intent is represented separately from client/server route lists;
 - EU exceptions strictly before broad RU;
 - final catch-all exists;
 - no secrets in outputs.
@@ -702,7 +727,7 @@ JSON parse
 schema/semantic lint
 Xray test/run with production-compatible core
 2 inbounds or documented client runtime shape
-10 outbounds
+12 outbounds
 expected tags
 expected balancers/selectors
 no empty routing rules
@@ -725,11 +750,17 @@ no unresolved injected references
 | Яндекс | safe public page | RU |
 | EU exception | selected stable domain | DE |
 | ad | synthetic/known ad domain | BLOCK |
-| torrent | static torrent-domain fixture only | BLOCK |
+| torrent catalog/site | RuTracker/Rutor/static catalog fixture without swarm traffic | normal product route, not BLOCK |
+| recognized BitTorrent protocol | no live/swarm traffic; verify plugin config/runtime report contract only | `torrentBlocker` pending runtime proof |
 | TOR | torproject/static domain fixture only | BLOCK |
 | LAN | local test HTTP server | DIRECT |
 
-Запрещено генерировать реальный BitTorrent traffic или подключаться к TOR network.
+Запрещено генерировать реальный BitTorrent traffic, подключаться к swarm или
+подключаться к TOR network. Для BitTorrent достаточно redacted runtime proof,
+что Remnawave Node Plugin включён, имеет необходимые prerequisites
+(`NET_ADMIN`, nftables, kernel, sniffing/destOverride), сам добавляет
+`protocol=bittorrent -> RW_TB_OUTBOUND_BLOCK` и пишет безопасный
+`torrent_blocker.report`/nftables evidence без customer IP/PII.
 
 Доказательство маршрута должно включать:
 
@@ -759,6 +790,10 @@ SPB XHTTP
 ```
 
 Рабочий XHTTP не маскирует сломанный RAW и наоборот.
+Для каждой проверяемой category RAW и XHTTP должны иметь одинаковую route
+семантику: default/EU -> DE, RU -> RU, torrent catalog -> ordinary route,
+recognized BitTorrent -> Node Plugin block, LAN -> DIRECT только там, где
+это явно разрешено policy.
 
 ## 12.7. Failover tests
 
@@ -774,6 +809,12 @@ both RU down -> explicit degraded behavior
 probe endpoint unavailable -> no false regional reroute
 Remnawave restarted/reloaded -> response remains correct
 ```
+
+Failover не должен создавать silent `DIRECT` leak. Если региональный failover
+недоступен, трафик либо идёт по явно утверждённому fallback, либо получает
+explicit degraded/fail-closed state; block/plugin decisions не превращаются в
+`DIRECT`. IPv4 и IPv6 outcomes фиксируются отдельно: при отсутствии доказанной
+IPv6 policy требуется disable/fallback-block без silent bypass.
 
 ## 12.8. Device tests
 
@@ -888,6 +929,17 @@ docs/evidence/releases/YYYY-MM-DD-premium-smart-ru-unified-routing.md
 
 Продвижение разрешено только если:
 
+> Current evidence status, `2026-07-14`: строки `PASS` ниже задают обязательный
+> результат gate и не являются отчетом о текущем прохождении. Catalog routing,
+> отсутствие manual duplicate policy и four-node plugin deployment/preflight
+> доказаны. На SPB дополнительно безопасно доказана цепочка
+> webhook -> nftables -> redacted report -> exact unblock/restore с одноразовым
+> synthetic HTTP probe, без BitTorrent/TOR/swarm traffic. Поле Xray protocol в
+> этом synthetic report пустое, поэтому proof не выдаётся за проверку
+> BitTorrent classifier. `torrentBlocker redacted plugin evidence` остается
+> **PARTIAL** для Task1: аналогичный enforcement event не повторён на DE, NL и
+> Moscow, которые также входят в целевые nodes `AC-BLOCK-005`.
+
 ```text
 policy compiler check PASS
 unit tests PASS
@@ -897,6 +949,8 @@ Xray/Mihomo static validation PASS
 8 transport checks PASS
 route matrix PASS
 failover matrix PASS
+IPv4/IPv6 no-bypass matrix PASS
+torrentBlocker redacted plugin evidence PARTIAL (SPB event only; DE/NL/Moscow pending)
 secret scan PASS
 rollback rehearsal PASS
 ```
@@ -909,9 +963,10 @@ Rollback должен быть атомарным:
 2. Сохранить failed evidence.
 3. Вернуть Response Rules/template/hosts одним согласованным набором.
 4. Restore server profiles при изменении compatibility layer.
-5. Reload/restart Remnawave согласно проверенной процедуре.
-6. Повторить response matrix.
-7. Проверить, что customer subscription снова пригодна к импорту.
+5. Restore/verify Node Plugin config без ручных duplicate torrent rules.
+6. Reload/restart Remnawave/Node согласно проверенной процедуре.
+7. Повторить response, route, IPv4/IPv6 no-bypass и RAW/XHTTP matrices.
+8. Проверить, что customer subscription снова пригодна к импорту.
 
 Запрещён частичный `DELETE` связанных template/virtual host/injection host objects без транзакции и reference check.
 
@@ -942,16 +997,17 @@ AC-ROUTE-004: YouTube/OpenAI/GitHub/Discord идут через EU.
 AC-ROUTE-005: LAN/private client destinations идут DIRECT согласно policy.
 AC-ROUTE-006: Final Xray rule имеет network tcp,udp matcher.
 AC-ROUTE-007: Route decision подтверждён логом, а не только доступностью сайта.
+AC-ROUTE-008: Torrent catalogs/sites, включая RuTracker/Rutor, не блокируются и идут по обычной route policy.
 ```
 
 ## Blocking
 
 ```text
 AC-BLOCK-001: Ads/tracker fixtures блокируются.
-AC-BLOCK-002: Torrent domain/process/protocol policy синхронизирована.
-AC-BLOCK-003: Torrent group REJECT-only для Mihomo.
+AC-BLOCK-002: Recognized BitTorrent protocol блокируется только официальным Remnawave Node Plugin torrentBlocker.
+AC-BLOCK-003: Templates/renderers не содержат ручного duplicate `protocol=bittorrent`, torrent domain/tracker или process block policy.
 AC-BLOCK-004: TOR block маркирован best-effort и тестируется безопасными fixtures.
-AC-BLOCK-005: Node Torrent Blocker и SMTP restrictions проверены на целевых nodes.
+AC-BLOCK-005: Node Torrent Blocker, его prerequisites, `RW_TB_OUTBOUND_BLOCK`, webhook/report и nftables counters проверены redacted evidence на целевых nodes.
 AC-BLOCK-006: Пустые TOR shared lists дают DEGRADED, а не ложный PASS.
 ```
 
@@ -959,12 +1015,14 @@ AC-BLOCK-006: Пустые TOR shared lists дают DEGRADED, а не ложн�
 
 ```text
 AC-TRANS-001..008: Каждый из 8 RAW/XHTTP transports проверен отдельно.
+AC-TRANS-009: RAW и XHTTP имеют route parity для default/RU/EU exception/torrent catalog/IPv4/IPv6 outcomes.
 AC-FAIL-001: DE unavailable -> NL согласно контракту.
 AC-FAIL-002: Moscow unavailable -> SPB.
 AC-FAIL-003: SPB unavailable -> Moscow.
 AC-FAIL-004: Both RU unavailable создаёт explicit degraded state.
 AC-FAIL-005: Non-RU health endpoint не делает RU path false-unhealthy.
 AC-FAIL-006: NL XHTTP имеет реальную роль или явно не считается automatic fallback.
+AC-FAIL-007: Failover не создаёт silent DIRECT leak для block/plugin, EU/default или RU decisions.
 ```
 
 ## Reproducibility/security
@@ -976,6 +1034,7 @@ AC-SOT-003: Source revisions/checksums pinned.
 AC-SEC-001: Bridge/customer squads изолированы.
 AC-SEC-002: Evidence/logs не содержат secrets/PII.
 AC-SEC-003: Rollback проверен.
+AC-OBS-001: Route/plugin observability использует только redacted identifiers, hashes, counters and timestamps.
 AC-DOC-001: Production architecture обновлена после rollout.
 ```
 
@@ -985,20 +1044,28 @@ AC-DOC-001: Production architecture обновлена после rollout.
 
 Codex имеет право завершить задачу только когда:
 
+> Current status: **INCOMPLETE**. SPB safe synthetic event закрывает
+> report/nftables plumbing только для одной целевой ноды и не доказывает
+> BitTorrent classification; `AC-BLOCK-005` требует redacted evidence на всех
+> целевых nodes. Physical INCY/HAPP device-side evidence также не заявляется.
+> Нормативные требования ниже сохранены без ослабления.
+
 1. Реальная причина текущего неправильного поведения задокументирована и подтверждена тестом.
 2. Product-scoped subscription delivery реализована.
 3. Canonical policy source внедрён.
 4. Mihomo, XRAY_JSON, legacy header и server compatibility больше не расходятся по критическим спискам.
 5. INCY, Mihomo и заявленный HAPP path протестированы отдельно.
 6. Все восемь transports проверены отдельно.
-7. Default DE, RU services, EU exceptions, block и LAN matrix проходят.
+7. Default DE, RU services, EU exceptions, torrent catalog ordinary routing, block и LAN matrix проходят.
 8. DE/NL и Moscow/SPB failover доказаны.
 9. False-unhealthy RU regression закрыт.
 10. Production-compatible Xray version использована в validation.
-11. Staging/canary evidence создана.
-12. Rollback готов и проверен.
-13. Нет секретов в Git/logs/evidence.
-14. Изменения закоммичены focused commits и `git diff --check` проходит.
-15. Финальный отчёт содержит точные команды, результаты и список того, что не проверено.
+11. Remnawave Node Plugin `torrentBlocker` доказан redacted runtime evidence без live torrent/swarm test.
+12. IPv4/IPv6 no-bypass и RAW/XHTTP parity доказаны.
+13. Staging/canary evidence создана.
+14. Rollback готов и проверен.
+15. Нет секретов в Git/logs/evidence.
+16. Изменения закоммичены focused commits и `git diff --check` проходит.
+17. Финальный отчёт содержит точные команды, результаты и список того, что не проверено.
 
 Финальная строка `COMPLETE` разрешена только при выполнении всех blocker criteria. Иначе использовать `INCOMPLETE` с конкретным перечнем оставшихся проверок.

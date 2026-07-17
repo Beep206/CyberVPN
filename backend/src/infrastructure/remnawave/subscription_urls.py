@@ -9,12 +9,13 @@ from src.config.settings import settings
 _KNOWN_SUBSCRIPTION_HOSTS = {
     "api.cyber-vpn.net",
     "cyber-vpn.net",
+    "cyber-vpn.org",
 }
 _SUBSCRIPTION_PATH_PREFIX = "/api/sub"
 
 
 def normalize_public_subscription_url(url: str | None) -> str | None:
-    """Rewrite CyberVPN subscription URLs to the approved public .org surface."""
+    """Rewrite CyberVPN subscription URLs to the configured public surface."""
 
     if not url:
         return url

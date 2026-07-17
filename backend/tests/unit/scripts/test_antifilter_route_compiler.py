@@ -7,6 +7,7 @@ import json
 import random
 import shutil
 import sys
+from dataclasses import FrozenInstanceError
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
@@ -23,6 +24,8 @@ TASK2_OPERATOR = REPO_ROOT / "scripts/remnawave/apply-spb-de-exceptions-server-r
 sys.path.insert(0, str(ANTIFILTER_PARENT))
 
 import antifilter.compiler as compiler_module  # noqa: E402
+import antifilter.publish as publish_module  # noqa: E402
+from antifilter import load_published_active_candidate as exported_load_published_active_candidate  # noqa: E402
 from antifilter.compiler import _collapse, _network_difference, compile_routes  # noqa: E402
 from antifilter.models import (  # noqa: E402
     CATEGORY_COMMUNITIES,
@@ -35,7 +38,10 @@ from antifilter.models import (  # noqa: E402
     sha256_bytes,
 )
 from antifilter.publish import (  # noqa: E402
+    PublishedActiveCandidate,
+    PublishedPointer,
     approve_candidate,
+    load_published_active_candidate,
     promote_active,
     publish_candidate,
     record_failure,
@@ -68,6 +74,8 @@ def _write_json(path: Path, value: object) -> None:
 def _source(tmp_path: Path, name: str = "source") -> Path:
     root = tmp_path / name
     shutil.copytree(FIXTURE_ROOT, root)
+    for route_file in root.glob("*.cidr"):
+        route_file.write_bytes(route_file.read_text(encoding="ascii").replace("\r\n", "\n").encode("ascii"))
     return root / "source.json"
 
 
@@ -568,6 +576,327 @@ def test_publish_accepts_compiled_prefix_splitting_after_management_exclusion(
     assert manifest["categories"]["rkn"]["prefixCountCompiled"] > manifest["categories"]["rkn"]["prefixCountRaw"]
     pointer = _publish(output, tmp_path / "split-store", policy_path)
     assert pointer["version"] == manifest["version"]
+
+
+def test_load_published_active_candidate_returns_frozen_bootstrap_result(tmp_path: Path) -> None:
+    candidate, manifest = _compile(tmp_path)
+    store = tmp_path / "published-store"
+    pointer = _publish(candidate, store)
+    policy = load_policy(EXAMPLE_POLICY)
+    before_load = {
+        path.relative_to(store): (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in store.rglob("*")
+        if path.is_file()
+    }
+
+    result = exported_load_published_active_candidate(store, policy=policy)
+    after_load = {
+        path.relative_to(store): (path.read_bytes(), path.stat().st_mtime_ns)
+        for path in store.rglob("*")
+        if path.is_file()
+    }
+
+    assert exported_load_published_active_candidate is load_published_active_candidate
+    assert after_load == before_load
+    assert isinstance(result, PublishedActiveCandidate)
+    assert result.active_pointer == PublishedPointer(
+        version=pointer["version"],
+        manifest_sha256=pointer["manifestSha256"],
+    )
+    assert result.lkg_pointer == result.active_pointer
+    assert result.version_dir == store.absolute() / "versions" / pointer["version"]
+    assert result.manifest["version"] == manifest["version"]
+    assert result.manifest["source"]["manifestSha256"] == manifest["source"]["manifestSha256"]
+    assert result.manifest_raw == (result.version_dir / "manifest.json").read_bytes()
+    assert result.policy_sha256 == sha256_bytes(policy.canonical_bytes)
+    assert result.source_manifest_sha256 == manifest["source"]["manifestSha256"]
+    with pytest.raises(FrozenInstanceError):
+        result.policy_sha256 = "forged"
+    with pytest.raises(TypeError):
+        result.manifest["version"] = "forged"
+    with pytest.raises(TypeError):
+        result.manifest["safety"]["status"] = "approval_required"
+
+
+def test_load_published_active_candidate_rejects_missing_non_directory_symlink_and_unpublished_store(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    policy = load_policy(EXAMPLE_POLICY)
+    missing_store = tmp_path / "missing-store"
+    with pytest.raises(PublishError, match="store root is missing"):
+        load_published_active_candidate(missing_store, policy=policy)
+    assert not missing_store.exists()
+
+    file_store = tmp_path / "file-store"
+    file_store.write_text("not a directory\n", encoding="ascii")
+    with pytest.raises(PublishError, match="store root must be a directory"):
+        load_published_active_candidate(file_store, policy=policy)
+
+    candidate, _ = _compile(tmp_path, name="unpublished-candidate")
+    with pytest.raises(PublishError, match="active pointer is required"):
+        load_published_active_candidate(candidate, policy=policy)
+
+    lkg_missing_store = tmp_path / "lkg-missing-store"
+    published_candidate, _ = _compile(
+        tmp_path,
+        source=_source(tmp_path, "lkg-missing-source"),
+        name="lkg-missing-candidate",
+    )
+    _publish(published_candidate, lkg_missing_store)
+    (lkg_missing_store / "last-known-good.json").unlink()
+    with pytest.raises(PublishError, match="last-known-good pointer is required"):
+        load_published_active_candidate(lkg_missing_store, policy=policy)
+
+    symlink_store = tmp_path / "symlink-store"
+    symlink_store.mkdir()
+    symlink_store_absolute = symlink_store.absolute()
+    original_is_symlink = Path.is_symlink
+
+    def simulated_store_symlink(path: Path) -> bool:
+        return path == symlink_store_absolute or original_is_symlink(path)
+
+    monkeypatch.setattr(Path, "is_symlink", simulated_store_symlink)
+    with pytest.raises(PublishError, match="store root must not be a symlink"):
+        load_published_active_candidate(symlink_store, policy=policy)
+
+
+def test_load_published_active_candidate_rejects_forged_pointer_hash(tmp_path: Path) -> None:
+    candidate, _ = _compile(tmp_path)
+    store = tmp_path / "forged-pointer-store"
+    pointer = _publish(candidate, store)
+    forged_pointer = dict(pointer)
+    forged_pointer["manifestSha256"] = "0" * 64
+    _write_json(store / "active.json", forged_pointer)
+
+    with pytest.raises(PublishError, match="active pointer manifest checksum mismatch"):
+        load_published_active_candidate(store, policy=load_policy(EXAMPLE_POLICY))
+
+
+def test_load_published_active_candidate_rejects_symlink_pointer(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    candidate, _ = _compile(tmp_path)
+    store = tmp_path / "symlink-pointer-store"
+    _publish(candidate, store)
+    active_pointer = (store / "active.json").absolute()
+    original_is_symlink = Path.is_symlink
+
+    def simulated_pointer_symlink(path: Path) -> bool:
+        return path == active_pointer or original_is_symlink(path)
+
+    monkeypatch.setattr(Path, "is_symlink", simulated_pointer_symlink)
+    with pytest.raises(PublishError, match="active pointer must not be a symlink"):
+        load_published_active_candidate(store, policy=load_policy(EXAMPLE_POLICY))
+
+
+def test_load_published_active_candidate_rejects_versions_reparse_point(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    candidate, _ = _compile(tmp_path)
+    store = tmp_path / "versions-reparse-store"
+    _publish(candidate, store)
+    versions_dir = (store / "versions").absolute()
+    original_is_reparse_point = publish_module._is_reparse_point
+
+    def simulated_reparse_point(path: Path) -> bool:
+        return path == versions_dir or original_is_reparse_point(path)
+
+    monkeypatch.setattr(publish_module, "_is_reparse_point", simulated_reparse_point)
+    with pytest.raises(
+        PublishError,
+        match="versions directory must not be a symlink or reparse point",
+    ):
+        load_published_active_candidate(store, policy=load_policy(EXAMPLE_POLICY))
+
+
+def test_load_published_active_candidate_rejects_hand_built_self_consistent_store(
+    tmp_path: Path,
+) -> None:
+    candidate, _ = _compile(tmp_path)
+    store = tmp_path / "hand-built-store"
+    pointer = _publish(candidate, store)
+    version_dir = store / "versions" / pointer["version"]
+    manifest = _json(version_dir / "manifest.json")
+    _write_json(version_dir / "manifest.json", manifest)
+    hand_built_manifest_sha256 = sha256_bytes((version_dir / "manifest.json").read_bytes())
+    pointer = dict(pointer)
+    pointer["manifestSha256"] = hand_built_manifest_sha256
+    _write_json(store / "active.json", pointer)
+    _write_json(store / "last-known-good.json", pointer)
+
+    with pytest.raises(PublishError, match="manifest must use canonical publisher encoding"):
+        load_published_active_candidate(store, policy=load_policy(EXAMPLE_POLICY))
+
+
+def test_load_published_active_candidate_rejects_approval_required_active(tmp_path: Path) -> None:
+    thresholds = _json(EXAMPLE_POLICY)["thresholds"]
+    assert isinstance(thresholds, dict)
+    thresholds["maxAddedPercent"] = 0.1
+    thresholds["maxRemovedPercent"] = 0.1
+    policy = _policy(tmp_path, "approval-required-resolver-policy", thresholds=thresholds)
+    first_source = _source(tmp_path, "approval-required-first-source")
+    first = tmp_path / "approval-required-first"
+    compile_routes(first_source, load_policy(policy), first, now=NOW)
+    store = tmp_path / "approval-required-store"
+    _publish(first, store, policy)
+
+    second_source = _source(tmp_path, "approval-required-second-source")
+    _replace_route_file(
+        second_source,
+        "65444:65444",
+        "76.76.4.0/24\n",
+        source_version="approval-required-v2",
+    )
+    second = tmp_path / "approval-required-second"
+    second_manifest = compile_routes(second_source, load_policy(policy), second, now=NOW, previous_dir=first)
+    assert second_manifest["safety"]["status"] == "approval_required"
+    approval = tmp_path / "approvals" / "approval-required-second.json"
+    approve_candidate(
+        second,
+        approval,
+        approved_by="route-reviewer",
+        ticket="CHANGE-99",
+        approved_at=NOW,
+    )
+    _publish(second, store, policy, approval_path=approval)
+
+    with pytest.raises(PublishError, match="must be accepted with no safety reasons"):
+        load_published_active_candidate(store, policy=load_policy(policy))
+
+
+def test_load_published_active_candidate_rejects_pointer_change_during_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    thresholds = _json(EXAMPLE_POLICY)["thresholds"]
+    assert isinstance(thresholds, dict)
+    thresholds["maxAddedPercent"] = 0.1
+    thresholds["maxRemovedPercent"] = 0.1
+    policy = _policy(tmp_path, "pointer-race-policy", thresholds=thresholds)
+    first_source = _source(tmp_path, "pointer-race-first-source")
+    first = tmp_path / "pointer-race-first"
+    compile_routes(first_source, load_policy(policy), first, now=NOW)
+    store = tmp_path / "pointer-race-store"
+    first_pointer = _publish(first, store, policy)
+
+    second_source = _source(tmp_path, "pointer-race-second-source")
+    _replace_route_file(
+        second_source,
+        "65444:65444",
+        "76.76.4.0/24\n",
+        source_version="pointer-race-v2",
+    )
+    second = tmp_path / "pointer-race-second"
+    compile_routes(second_source, load_policy(policy), second, now=NOW, previous_dir=first)
+    approval = tmp_path / "approvals" / "pointer-race-second.json"
+    approve_candidate(
+        second,
+        approval,
+        approved_by="route-reviewer",
+        ticket="CHANGE-100",
+        approved_at=NOW,
+    )
+    second_pointer = _publish(second, store, policy, approval_path=approval)
+    second_pointer_raw = (store / "active.json").read_bytes()
+    assert second_pointer != first_pointer
+    assert rollback_to_lkg(store) == first_pointer
+
+    original_load_published_pointer = publish_module._load_published_pointer
+    mutated = False
+
+    def mutating_load_published_pointer(
+        root: Path,
+        name: str,
+        *,
+        policy: Any,
+    ):
+        nonlocal mutated
+        result = original_load_published_pointer(root, name, policy=policy)
+        if name == "active" and not mutated:
+            (store / "active.json").write_bytes(second_pointer_raw)
+            mutated = True
+        return result
+
+    monkeypatch.setattr(
+        publish_module,
+        "_load_published_pointer",
+        mutating_load_published_pointer,
+    )
+    with pytest.raises(PublishError, match="published pointers changed during load"):
+        load_published_active_candidate(store, policy=load_policy(policy))
+
+
+def test_load_published_active_candidate_revalidates_last_known_good(tmp_path: Path) -> None:
+    thresholds = _json(EXAMPLE_POLICY)["thresholds"]
+    assert isinstance(thresholds, dict)
+    thresholds["maxAddedPercent"] = 1000.0
+    thresholds["maxRemovedPercent"] = 1000.0
+    policy = _policy(tmp_path, "invalid-lkg-policy", thresholds=thresholds)
+    store = tmp_path / "invalid-lkg-store"
+
+    first_source = _source(tmp_path, "invalid-lkg-first-source")
+    first = tmp_path / "invalid-lkg-first"
+    compile_routes(first_source, load_policy(policy), first, now=NOW)
+    first_pointer = _publish(first, store, policy)
+
+    second_source = _source(tmp_path, "invalid-lkg-second-source")
+    _replace_route_file(
+        second_source,
+        "65444:65444",
+        "76.76.4.0/24\n",
+        source_version="invalid-lkg-v2",
+    )
+    second = tmp_path / "invalid-lkg-second"
+    compile_routes(second_source, load_policy(policy), second, now=NOW, previous_dir=first)
+    _publish(second, store, policy)
+    (store / "versions" / first_pointer["version"] / "union/ipv4.cidr").write_text(
+        "8.8.4.0/24\n",
+        encoding="ascii",
+    )
+
+    with pytest.raises(PublishError, match="candidate artifact checksum mismatch"):
+        load_published_active_candidate(store, policy=load_policy(policy))
+
+
+def test_load_published_active_candidate_rejects_previous_lkg_mismatch(tmp_path: Path) -> None:
+    thresholds = _json(EXAMPLE_POLICY)["thresholds"]
+    assert isinstance(thresholds, dict)
+    thresholds["maxAddedPercent"] = 1000.0
+    thresholds["maxRemovedPercent"] = 1000.0
+    policy = _policy(tmp_path, "previous-lkg-policy", thresholds=thresholds)
+    store = tmp_path / "previous-lkg-store"
+
+    first_source = _source(tmp_path, "previous-lkg-first-source")
+    first = tmp_path / "previous-lkg-first"
+    compile_routes(first_source, load_policy(policy), first, now=NOW)
+    first_pointer = _publish(first, store, policy)
+
+    second_source = _source(tmp_path, "previous-lkg-second-source")
+    _replace_route_file(
+        second_source,
+        "65444:65444",
+        "76.76.4.0/24\n",
+        source_version="previous-lkg-v2",
+    )
+    second = tmp_path / "previous-lkg-second"
+    compile_routes(second_source, load_policy(policy), second, now=NOW, previous_dir=first)
+    _publish(second, store, policy)
+
+    third_source = _source(tmp_path, "previous-lkg-third-source")
+    _replace_route_file(
+        third_source,
+        "65444:65444",
+        "76.76.6.0/24\n",
+        source_version="previous-lkg-v3",
+    )
+    third = tmp_path / "previous-lkg-third"
+    third_manifest = compile_routes(third_source, load_policy(policy), third, now=NOW, previous_dir=second)
+    third_pointer = _publish(third, store, policy)
+
+    assert _json(store / "last-known-good.json") == first_pointer
+    assert third_manifest["previousManifestSha256"] != first_pointer["manifestSha256"]
+    assert _json(store / "active.json") == third_pointer
+    with pytest.raises(PublishError, match="active previous manifest is not last-known-good"):
+        load_published_active_candidate(store, policy=load_policy(policy))
 
 
 def test_ipv6_enabled_is_separate_and_disabled_state_cannot_silently_accept_routes(tmp_path: Path) -> None:

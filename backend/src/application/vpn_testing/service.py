@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
+import hmac
 import json
+import re
+import secrets
 from collections import Counter
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from importlib.resources import files
 from time import perf_counter
 from typing import Any, cast
+from urllib.parse import quote
 from uuid import UUID
 
 from httpx import HTTPError
@@ -36,10 +41,22 @@ from src.application.vpn_testing.task2_runtime_agent_client import (
     call_task2_runtime_agent,
     task2_runtime_agent_configured,
 )
+from src.application.vpn_testing.task2_runtime_fault_evidence import (
+    TASK2_RUNTIME_FAULT_EVIDENCE_ARTIFACT_TYPE,
+    Task2RuntimeFaultEvidenceConflict,
+    Task2RuntimeFaultEvidenceRejected,
+    promote_task2_runtime_fault_results,
+    task2_runtime_fault_artifact_key,
+    task2_runtime_identity_digest,
+    verify_task2_runtime_fault_evidence,
+)
 from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
-from src.infrastructure.database.models.vpn_tester_model import VpnTestRunModel
+from src.infrastructure.database.models.vpn_tester_model import (
+    VpnTestEvidenceArtifactModel,
+    VpnTestRunModel,
+)
 from src.infrastructure.database.repositories.vpn_tester_repo import VpnTesterRepository
 from src.infrastructure.monitoring.metrics import (
     vpn_tester_balancer_recommendations_total,
@@ -179,12 +196,30 @@ PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG = "RU_MSK_BRIDGE"
 PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG = "DE_GLOBAL_BRIDGE"
 PREMIUM_SMART_RU_BRIDGE_PORT = 9443
 PREMIUM_SMART_RU_BRIDGE_METHOD = "chacha20-ietf-poly1305"
-PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS = (
-    "domain:nnmclub.to",
-    "domain:rutracker.org",
-    "domain:rutor.info",
-    "domain:kinozal.tv",
+PREMIUM_SMART_RU_TORRENT_CATALOG_DOMAINS = frozenset(
+    {
+        "domain:nnmclub.to",
+        "domain:rutracker.org",
+        "domain:rutor.info",
+        "domain:kinozal.tv",
+    }
 )
+PREMIUM_SMART_RU_KNOWN_TORRENT_CATALOG_DOMAINS = frozenset(
+    {
+        "domain:1337x.to",
+        "domain:eztv.re",
+        "domain:kinozal.tv",
+        "domain:limetorrents.lol",
+        "domain:nnmclub.to",
+        "domain:rutracker.org",
+        "domain:rutor.info",
+        "domain:thepiratebay.org",
+        "domain:torrentdownload.info",
+        "domain:torrentgalaxy.to",
+        "domain:yts.mx",
+    }
+)
+PREMIUM_SMART_RU_TORRENT_BLOCK_OUTBOUND_TAGS = frozenset({"block", "rw_tb_outbound_block"})
 PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS = frozenset(
     {
         "domain:youtube.com",
@@ -202,6 +237,7 @@ PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS = frozenset(
         "domain:github.com",
         "domain:githubusercontent.com",
         "domain:githubassets.com",
+        *PREMIUM_SMART_RU_TORRENT_CATALOG_DOMAINS,
     }
 )
 PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS = frozenset(
@@ -218,6 +254,9 @@ PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS = frozenset(
         "geosite:category-ru",
     }
 )
+PREMIUM_SMART_RU_REQUIRED_RU_SERVICE_DOMAINS = frozenset(
+    item for item in PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS if item != "geosite:category-ru"
+)
 PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS = frozenset(
     {
         "domain:torproject.org",
@@ -227,12 +266,18 @@ PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS = frozenset(
 )
 PREMIUM_SMART_RU_EXTERNAL_ROUTING_BLOCK_SITES = (
     "geosite:category-ads-all",
-    "domain:nnmclub.to",
-    "domain:rutracker.org",
-    "domain:rutor.info",
-    "domain:kinozal.tv",
+    "domain:app-measurement.com",
+    "domain:doubleclick.net",
+    "domain:googleadservices.com",
+    "domain:googlesyndication.com",
+    "domain:googletagmanager.com",
+    "domain:googletagservices.com",
+    "domain:scorecardresearch.com",
+    r"regexp:\.onion$",
     "domain:torproject.org",
     "domain:torproject.net",
+    "keyword:torproject",
+    "keyword:tor2web",
 )
 PREMIUM_SMART_RU_RELEASE_GATE_SUITE = "premium_smart_ru_v1"
 PREMIUM_SMART_RU_RELEASE_GATE_VERSION = "v1"
@@ -440,6 +485,48 @@ def _summary(results: list[dict[str, Any]], *, suite_key: str, mode: str) -> dic
     }
 
 
+def _task2_runtime_identity_snapshot(results: list[dict[str, Any]]) -> tuple[dict[str, Any], str | None]:
+    agent_id = ""
+    for result in results:
+        if result.get("check_key") != "premium_spb_de_exceptions.selected_outbound.matrix":
+            continue
+        details = result.get("details")
+        if isinstance(details, Mapping):
+            agent_id = str(details.get("agent_id") or "").strip()
+        break
+
+    backend_identity = {
+        "label": "cybervpn-backend",
+        "git_sha": settings.runtime_git_sha.strip(),
+        "image_ref": settings.runtime_container_image.strip(),
+        "image_id": settings.vpn_tester_task2_operator_evidence_backend_image_id.strip(),
+        "instance": settings.runtime_origin_marker.strip(),
+    }
+    agent_identity = {
+        "label": "cybervpn-vpn-test-agent",
+        "git_sha": settings.vpn_tester_task2_operator_evidence_agent_git_sha.strip(),
+        "image_ref": settings.vpn_tester_task2_operator_evidence_agent_image_ref.strip(),
+        "image_id": settings.vpn_tester_task2_operator_evidence_agent_image_id.strip(),
+        "instance": agent_id,
+    }
+    try:
+        backend_sha256 = task2_runtime_identity_digest(backend_identity)
+        agent_sha256 = task2_runtime_identity_digest(agent_identity)
+    except ValueError:
+        return {
+            "bound": False,
+            "backend_sha256": "",
+            "agent_sha256": "",
+            "credentials_redacted": True,
+        }, agent_id or None
+    return {
+        "bound": True,
+        "backend_sha256": backend_sha256,
+        "agent_sha256": agent_sha256,
+        "credentials_redacted": True,
+    }, agent_id
+
+
 def _idempotency_bucket(now: datetime, window: str) -> str:
     normalized = (window or "minute").strip().lower()
     if normalized in {"none", "disabled", "off"}:
@@ -519,6 +606,25 @@ class VpnTesterService:
 
     async def _generated_mihomo_artifact(self, request_context: Mapping[str, Any] | None) -> Any:
         return _context_generated_mihomo_artifact(request_context)
+
+    async def _task2_synthetic_vless_uuid(self) -> str | None:
+        if self._remnawave_client is None:
+            return None
+        username = settings.vpn_tester_task2_synthetic_user.strip()
+        expected_xray_email = settings.vpn_tester_task2_synthetic_xray_email.strip()
+        if not username or not expected_xray_email:
+            return None
+        payload = await self._remnawave_client.get(f"/users/by-username/{quote(username, safe='')}")
+        user = payload.get("user", payload) if isinstance(payload, Mapping) else None
+        if not isinstance(user, Mapping):
+            return None
+        user_xray_email = str(user.get("tId", user.get("id", ""))).strip()
+        if user_xray_email != expected_xray_email:
+            return None
+        try:
+            return str(UUID(str(user.get("vlessUuid") or "")))
+        except ValueError:
+            return None
 
     async def ensure_seeded(self) -> None:
         for suite in load_default_suites():
@@ -682,7 +788,8 @@ class VpnTesterService:
         if run.status == "cancelled":
             return run
         started = perf_counter()
-        await self._repository.mark_run_running(run)
+        execution_attempt_id = secrets.token_hex(16)
+        await self._repository.mark_run_running(run, execution_attempt_id=execution_attempt_id)
         suite = await self._repository.get_suite(run.suite_key, run.suite_version)
         suite_spec = dict(suite.spec if suite is not None else {})
         registry_key = str(suite_spec.get("required_route_registry") or "")
@@ -720,6 +827,11 @@ class VpnTesterService:
 
         summary = _summary(results, suite_key=run.suite_key, mode=run.mode)
         summary["route_registry_version"] = registry_key or run.route_registry_version
+        summary["execution_attempt_id"] = execution_attempt_id
+        if run.suite_key == "premium_spb_de_exceptions_v1" and run.mode == "runtime":
+            identity_snapshot, agent_id = _task2_runtime_identity_snapshot(results)
+            summary["task2_runtime_identity"] = identity_snapshot
+            run.agent_id = agent_id
         evidence = self._evidence(run, suite_spec=suite_spec, results=results, plans=plans)
         status = str(summary["status"])
         completed = await self._repository.replace_run_results(
@@ -751,6 +863,82 @@ class VpnTesterService:
             )
             vpn_tester_balancer_recommendations_total.labels(status="open").inc()
         return completed
+
+    async def ingest_task2_runtime_fault_evidence(
+        self,
+        run_id: UUID,
+        raw_body: bytes,
+    ) -> tuple[VpnTestRunModel, VpnTestEvidenceArtifactModel, bool] | None:
+        run = await self._repository.get_run_for_update(run_id)
+        if run is None:
+            return None
+
+        summary = dict(run.summary or {})
+        execution_attempt_id = str(summary.get("execution_attempt_id") or "")
+        artifact_key = task2_runtime_fault_artifact_key(execution_attempt_id)
+        suite = await self._repository.get_suite(run.suite_key, run.suite_version)
+        suite_spec = dict(suite.spec if suite is not None else {})
+        registry_key = str(suite_spec.get("required_route_registry") or run.route_registry_version or "")
+        route_entries = await self._repository.get_route_registry(run.suite_key, registry_key or None)
+        verified = await asyncio.to_thread(
+            verify_task2_runtime_fault_evidence,
+            raw_body,
+            run=run,
+            route_entries=route_entries,
+            settings_obj=settings,
+        )
+
+        existing = await self._repository.get_evidence_artifact(run.id, artifact_key)
+        if existing is not None:
+            if hmac.compare_digest(existing.sha256, verified.envelope_sha256):
+                return run, existing, False
+            raise Task2RuntimeFaultEvidenceConflict()
+
+        await self._repository.lock_signed_evidence_identity(
+            nonce=verified.nonce,
+            evidence_id=verified.evidence_id,
+        )
+        replayed = await self._repository.find_evidence_by_signed_identity(
+            artifact_type=TASK2_RUNTIME_FAULT_EVIDENCE_ARTIFACT_TYPE,
+            nonce=verified.nonce,
+            evidence_id=verified.evidence_id,
+        )
+        if replayed:
+            raise Task2RuntimeFaultEvidenceRejected("signed_evidence_identity_replayed")
+
+        results = promote_task2_runtime_fault_results(run, verified)
+        completed_summary = _summary(results, suite_key=run.suite_key, mode=run.mode)
+        completed_summary["route_registry_version"] = registry_key
+        completed_summary["execution_attempt_id"] = execution_attempt_id
+        completed_summary["task2_runtime_identity"] = summary["task2_runtime_identity"]
+        completed_summary["task2_runtime_fault_evidence"] = {
+            "status": "signed_pass",
+            "artifact_key": artifact_key,
+            "evidence_id": verified.evidence_id,
+            "payload_sha256": verified.payload_sha256,
+            "canonical_sha256": verified.envelope_sha256,
+            "credentials_redacted": True,
+        }
+        plans = await self._repository.list_active_plans()
+        evidence = self._evidence(
+            run,
+            suite_spec=suite_spec,
+            results=results,
+            plans=plans,
+        )
+        status_value = str(completed_summary["status"])
+        await self._repository.replace_run_results(
+            run,
+            results=results,
+            evidence=evidence,
+            summary=completed_summary,
+            status=status_value,
+        )
+        artifact_payload = verified.artifact()
+        artifact_payload["expires_at"] = _utc_now() + timedelta(days=max(1, settings.vpn_tester_retention_days))
+        artifact = await self._repository.add_evidence_artifact(run, artifact_payload)
+        refreshed = await self._repository.get_run(run.id)
+        return refreshed or run, artifact, True
 
     async def execute_next_queued_run(self) -> VpnTestRunModel | None:
         run = await self.claim_queued_run()
@@ -848,8 +1036,9 @@ class VpnTesterService:
                 "generated_at": _utc_now(),
             }
         vpn_tester_release_gate_blocking.set(1 if blocking else 0)
+        latest_status = latest.status if latest is not None else "blocked"
         return {
-            "status": "blocked" if blocking else latest.status,
+            "status": "blocked" if blocking else latest_status,
             "blocking": blocking,
             "latest_run_id": latest.id if latest else None,
             "reason": "latest_vpn_tester_run_missing_required_evidence"
@@ -1091,7 +1280,8 @@ class VpnTesterService:
                 )
             )
 
-        suite_metadata = suite_spec.get("metadata") if isinstance(suite_spec.get("metadata"), Mapping) else {}
+        raw_suite_metadata = suite_spec.get("metadata")
+        suite_metadata: Mapping[str, Any] = raw_suite_metadata if isinstance(raw_suite_metadata, Mapping) else {}
         expected_categories = {
             str(item.get("key") or "")
             for item in suite_metadata.get("antifilter_categories", [])
@@ -1198,6 +1388,16 @@ class VpnTesterService:
             ),
             None,
         )
+        declared_runtime_not_claimed = str(suite_metadata.get("runtime_evidence_status") or "") == "not_claimed"
+        readiness_setting_enabled = bool(settings.remnawave_spb_de_exceptions_data_plane_ready)
+        readiness_enabled = False
+        readiness_reason = "kill_switch_disabled"
+        if readiness_setting_enabled:
+            try:
+                readiness_enabled = ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
+                readiness_reason = "signed_attestation_verified"
+            except VpnProductReadinessError as exc:
+                readiness_reason = exc.reason
         bridge_failure_ok = bool(
             matched_failure
             and matched_failure.get("expected_failure") == "connection_fails"
@@ -1211,11 +1411,14 @@ class VpnTesterService:
                 check_key="premium_spb_de_exceptions.bridge_down_fail_closed",
                 check_name="Task2 DE bridge failure semantics",
                 category="runtime",
-                status="pass" if bridge_failure_ok else "fail",
-                safe_summary="Registry requires matched traffic to fail closed while unmatched traffic stays SPB DIRECT"
+                status="degraded" if bridge_failure_ok else "fail",
+                safe_summary="Registry declares fail-closed behavior; live bridge-down evidence is not claimed"
                 if bridge_failure_ok
                 else "Task2 bridge-down registry semantics are incomplete",
-                details={"metadata_contract_only": True, "runtime_evidence_claimed": False},
+                details={
+                    "metadata_contract_only": True,
+                    "runtime_evidence_claimed": False,
+                },
             )
         )
 
@@ -1264,12 +1467,151 @@ class VpnTesterService:
             )
         )
 
+        bittorrent_protocol_metadata = next(
+            (
+                metadata
+                for entry, metadata in route_metadata
+                if str(getattr(entry, "route_key", "")) == "block-bittorrent-protocol"
+            ),
+            {},
+        )
+        bittorrent_required_evidence = bittorrent_protocol_metadata.get("required_evidence")
+        bittorrent_required_evidence_set = (
+            {str(item) for item in bittorrent_required_evidence}
+            if isinstance(bittorrent_required_evidence, list)
+            else set()
+        )
+        bittorrent_protocol_plugin_ok = (
+            bittorrent_protocol_metadata.get("expected_policy") == "remnawave-node-plugin:torrentBlocker"
+            and bittorrent_protocol_metadata.get("enforcement_owner") == "remnawave_node_plugin"
+            and bittorrent_protocol_metadata.get("protocol") == "bittorrent"
+            and bittorrent_protocol_metadata.get("live_traffic_required") is False
+            and {
+                "remnawave_node_plugin_torrentBlocker_config",
+                "no_live_torrent_traffic",
+            }.issubset(bittorrent_required_evidence_set)
+            and bittorrent_protocol_metadata.get("expected_outbound") == "BLOCK"
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.bittorrent_protocol_plugin_block",
+                check_name="Task2 BitTorrent protocol block owner",
+                category="route_registry",
+                status="degraded" if bittorrent_protocol_plugin_ok else "fail",
+                safe_summary="BitTorrent protocol owner is declared; runtime plugin evidence is still required"
+                if bittorrent_protocol_plugin_ok
+                else "Task2 BitTorrent block must be plugin-owned and must not require live torrent traffic",
+                details={
+                    "metadata_contract_only": True,
+                    "runtime_evidence_claimed": False,
+                    "expected_policy": bittorrent_protocol_metadata.get("expected_policy"),
+                    "enforcement_owner": bittorrent_protocol_metadata.get("enforcement_owner"),
+                    "protocol": bittorrent_protocol_metadata.get("protocol"),
+                    "live_traffic_required": bittorrent_protocol_metadata.get("live_traffic_required"),
+                    "required_evidence": sorted(bittorrent_required_evidence_set),
+                },
+            )
+        )
+
+        expected_catalog_domains = {
+            "kinozal.tv",
+            "nnmclub.to",
+            "rutracker.org",
+            "rutor.info",
+        }
+        expected_catalog_outbounds = {
+            "compiled_union": "DE_EXCEPTIONS_BRIDGE",
+            "not_in_compiled_union": "DIRECT",
+        }
+        expected_catalog_egress = {
+            "compiled_union": "DE",
+            "not_in_compiled_union": "SPB",
+        }
+        expected_catalog_evidence = {
+            "dns_resolution_classification",
+            "compiled_feed_membership_or_non_membership",
+            "xray_selected_outbound_log",
+            "no_block_outbound",
+            "no_live_torrent_traffic",
+        }
+        classification_catalog_domains: set[str] = set()
+        hardcoded_catalog_domains: list[str] = []
+        blocked_catalog_domains: list[str] = []
+        for entry, metadata in route_metadata:
+            domain = str(metadata.get("domain") or "")
+            if domain not in expected_catalog_domains:
+                continue
+
+            outbound_by_membership = metadata.get("expected_outbound_by_membership")
+            outbound_by_membership = outbound_by_membership if isinstance(outbound_by_membership, Mapping) else {}
+            egress_by_membership = metadata.get("expected_egress_by_membership")
+            egress_by_membership = egress_by_membership if isinstance(egress_by_membership, Mapping) else {}
+            required_evidence = metadata.get("required_evidence")
+            required_evidence_set = (
+                {str(item) for item in required_evidence} if isinstance(required_evidence, list) else set()
+            )
+            expected_modes = {str(item) for item in getattr(entry, "expected_modes", [])}
+            blocks_catalog = metadata.get("expected_outbound") == "BLOCK" or "BLOCK" in {
+                str(value) for value in outbound_by_membership.values()
+            }
+            if blocks_catalog:
+                blocked_catalog_domains.append(domain)
+            if (
+                metadata.get("membership") != "classification_dependent"
+                or metadata.get("expected_outbound") == "DIRECT"
+            ):
+                hardcoded_catalog_domains.append(domain)
+            if (
+                metadata.get("traffic_class") == "normal_website"
+                and metadata.get("expected_policy") == "ordinary-antifilter-ip-classification"
+                and metadata.get("membership") == "classification_dependent"
+                and dict(outbound_by_membership) == expected_catalog_outbounds
+                and dict(egress_by_membership) == expected_catalog_egress
+                and metadata.get("forbidden_outbound") == "BLOCK"
+                and metadata.get("live_traffic_required") is False
+                and {"raw", "xhttp"}.issubset(expected_modes)
+                and expected_catalog_evidence.issubset(required_evidence_set)
+                and not blocks_catalog
+            ):
+                classification_catalog_domains.add(domain)
+        blocked_catalog_domains = sorted(set(blocked_catalog_domains))
+        hardcoded_catalog_domains = sorted(set(hardcoded_catalog_domains))
+        normal_catalog_ok = (
+            expected_catalog_domains.issubset(classification_catalog_domains)
+            and not blocked_catalog_domains
+            and not hardcoded_catalog_domains
+        )
+        results.append(
+            _result(
+                check_key="premium_spb_de_exceptions.torrent_catalog_websites",
+                check_name="Task2 torrent catalog websites follow classification-dependent routing",
+                category="route_registry",
+                status="degraded" if normal_catalog_ok else "fail",
+                safe_summary="Torrent catalog routing is declared; runtime selected-outbound evidence is still required"
+                if normal_catalog_ok
+                else "Torrent catalog websites must not be hardcoded as SPB DIRECT or represented as BLOCK routes",
+                details={
+                    "metadata_contract_only": True,
+                    "runtime_evidence_claimed": False,
+                    "expected_domains": sorted(expected_catalog_domains),
+                    "classification_catalog_domains": sorted(classification_catalog_domains & expected_catalog_domains),
+                    "blocked_catalog_domains": blocked_catalog_domains,
+                    "hardcoded_catalog_domains": hardcoded_catalog_domains,
+                    "expected_outbound_by_membership": expected_catalog_outbounds,
+                    "expected_egress_by_membership": expected_catalog_egress,
+                    "live_traffic_required": False,
+                },
+            )
+        )
+
         registry_ok = (
             len(route_entries) >= 43
             and category_contract_ok
             and default_matrix_ok
             and matched_matrix_ok
             and bridge_failure_ok
+            and bittorrent_protocol_plugin_ok
+            and normal_catalog_ok
         )
         results.append(
             _result(
@@ -1288,28 +1630,20 @@ class VpnTesterService:
             )
         )
 
-        runtime_not_claimed = str(suite_metadata.get("runtime_evidence_status") or "") == "not_claimed"
-        readiness_setting_enabled = bool(settings.remnawave_spb_de_exceptions_data_plane_ready)
-        readiness_enabled = False
-        readiness_reason = "kill_switch_disabled"
-        if readiness_setting_enabled:
-            try:
-                readiness_enabled = ensure_spb_de_exceptions_data_plane_ready(SPB_DE_EXCEPTIONS_PRODUCT_CODE)
-                readiness_reason = "signed_attestation_verified"
-            except VpnProductReadinessError as exc:
-                readiness_reason = exc.reason
-        readiness_contract_ok = (runtime_not_claimed and not readiness_setting_enabled) or (
-            not runtime_not_claimed and readiness_enabled
-        )
+        readiness_contract_ok = readiness_enabled or (declared_runtime_not_claimed and not readiness_setting_enabled)
         results.append(
             _result(
                 check_key="premium_spb_de_exceptions.readiness_gate",
                 check_name="Task2 production readiness remains fail closed",
                 category="runtime",
                 status="pass" if readiness_contract_ok else "fail",
-                safe_summary="Task2 remains disabled while runtime evidence is not claimed"
-                if runtime_not_claimed and not readiness_enabled
-                else "Task2 readiness conflicts with the suite runtime evidence state",
+                safe_summary=(
+                    "Signed Task2 data-plane readiness is verified"
+                    if readiness_enabled
+                    else "Task2 remains disabled while runtime evidence is not claimed"
+                    if declared_runtime_not_claimed and not readiness_setting_enabled
+                    else "Task2 readiness conflicts with the suite runtime evidence state"
+                ),
                 details={
                     "runtime_evidence_status": suite_metadata.get("runtime_evidence_status"),
                     "kill_switch_enabled": readiness_setting_enabled,
@@ -1323,11 +1657,9 @@ class VpnTesterService:
                 check_key="premium_spb_de_exceptions.runtime_evidence",
                 check_name="Task2 production runtime evidence",
                 category="runtime",
-                status="degraded" if runtime_not_claimed else "pass",
+                status="degraded",
                 severity="warning",
-                safe_summary="Production route evidence is intentionally not claimed"
-                if runtime_not_claimed
-                else "Production route evidence is declared by the suite",
+                safe_summary="Production route evidence is intentionally not claimed by the runtime response",
                 details={"runtime_evidence_status": suite_metadata.get("runtime_evidence_status")},
             )
         )
@@ -1531,6 +1863,41 @@ class VpnTesterService:
         try:
             if is_task2:
                 redis_client = cast(Redis, self._redis_client)
+                try:
+                    synthetic_vless_uuid = await self._task2_synthetic_vless_uuid()
+                except HTTPError as exc:
+                    vpn_tester_runtime_agent_unavailable_total.labels(reason="task2_synthetic_identity_lookup").inc()
+                    return [
+                        _result(
+                            check_key="premium_spb_de_exceptions.runtime.synthetic_identity",
+                            check_name="Task2 synthetic Remnawave identity",
+                            category="runtime",
+                            status="fail",
+                            severity="error",
+                            safe_summary="Task2 synthetic Remnawave identity lookup failed",
+                            details={
+                                "error_type": type(exc).__name__,
+                                "runtime_agent_dispatched": False,
+                                "runtime_evidence_status": "not_claimed",
+                            },
+                            started=started,
+                        )
+                    ]
+                if synthetic_vless_uuid is None:
+                    return [
+                        _result(
+                            check_key="premium_spb_de_exceptions.runtime.synthetic_identity",
+                            check_name="Task2 synthetic Remnawave identity",
+                            category="runtime",
+                            status="fail",
+                            severity="error",
+                            safe_summary="Task2 synthetic Remnawave identity is unavailable or mismatched",
+                            details={
+                                "runtime_agent_dispatched": False,
+                                "runtime_evidence_status": "not_claimed",
+                            },
+                        )
+                    ]
                 evidence_store = Task2RouteEvidenceStore(
                     redis_client,
                     expectation_ttl_seconds=(settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds),
@@ -1541,6 +1908,7 @@ class VpnTesterService:
                     run_id=str(run.id),
                     route_entries=route_entries,
                     generated_mihomo_artifact=generated_mihomo_artifact,
+                    synthetic_vless_uuid=synthetic_vless_uuid,
                     evidence_store=evidence_store,
                 )
             else:
@@ -1589,6 +1957,9 @@ class VpnTesterService:
         for item in checks:
             if not isinstance(item, dict):
                 continue
+            details = dict(item.get("details") or {})
+            if is_task2 and str(item.get("check_key") or "") == "premium_spb_de_exceptions.selected_outbound.matrix":
+                details["agent_id"] = payload.get("agent_id")
             normalized.append(
                 _result(
                     check_key=str(item.get("check_key") or "runtime.agent.check"),
@@ -1598,7 +1969,7 @@ class VpnTesterService:
                     severity=str(item.get("severity") or "warning"),
                     target=str(item.get("target") or "runtime-agent"),
                     safe_summary=str(item.get("safe_summary") or "Runtime check completed"),
-                    details=dict(item.get("details") or {}),
+                    details=details,
                     started=started,
                 )
             )
@@ -2123,6 +2494,63 @@ def _rule_outbound(rule: Mapping[str, Any]) -> str:
     return str(rule.get("outboundTag") or rule.get("outbound_tag") or "")
 
 
+def _torrent_block_outbound_tags(
+    outbounds: list[Mapping[str, Any]],
+) -> set[str]:
+    tags = set(PREMIUM_SMART_RU_TORRENT_BLOCK_OUTBOUND_TAGS)
+    for outbound in outbounds:
+        if str(outbound.get("protocol") or "").casefold() != "blackhole":
+            continue
+        tag = str(outbound.get("tag") or "").strip().casefold()
+        if tag:
+            tags.add(tag)
+    return tags
+
+
+def _has_manual_bittorrent_protocol_rule(rules: list[Mapping[str, Any]]) -> bool:
+    return any("bittorrent" in {item.casefold() for item in _string_set(rule.get("protocol"))} for rule in rules)
+
+
+def _has_manual_torrent_process_rule(rules: list[Mapping[str, Any]]) -> bool:
+    return any(any("torrent" in item.casefold() for item in _string_set(rule.get("process"))) for rule in rules)
+
+
+def _normalized_xray_domain(value: str) -> str:
+    return value.strip().casefold().removeprefix("domain:").removeprefix("full:")
+
+
+def _xray_matcher_blocks_torrent_catalog(value: str) -> bool:
+    normalized = value.strip().casefold()
+    known_catalog_hosts = {_normalized_xray_domain(item) for item in PREMIUM_SMART_RU_KNOWN_TORRENT_CATALOG_DOMAINS}
+    if normalized.startswith("keyword:"):
+        keyword = normalized.removeprefix("keyword:").strip()
+        return not keyword or any(keyword in host for host in known_catalog_hosts)
+    if normalized.startswith("regexp:"):
+        pattern = normalized.removeprefix("regexp:").strip()
+        if not pattern or len(pattern) > 512:
+            return True
+        try:
+            return any(
+                re.search(pattern, candidate, flags=re.IGNORECASE) is not None
+                for host in known_catalog_hosts
+                for candidate in (host, f"www.{host}")
+            )
+        except re.error:
+            return True
+    return _normalized_xray_domain(normalized) in known_catalog_hosts
+
+
+def _has_torrent_catalog_block_rule(
+    rules: list[Mapping[str, Any]],
+    block_outbound_tags: set[str],
+) -> bool:
+    return any(
+        any(_xray_matcher_blocks_torrent_catalog(item) for item in _string_set(rule.get("domain")))
+        and _rule_outbound(rule).casefold() in block_outbound_tags
+        for rule in rules
+    )
+
+
 def _as_boolish(value: Any, *, expected: bool) -> bool:
     if isinstance(value, bool):
         return value is expected
@@ -2130,18 +2558,23 @@ def _as_boolish(value: Any, *, expected: bool) -> bool:
     return normalized == ("true" if expected else "false")
 
 
-def _safe_de_smart_routing_contract(routing: Mapping[str, Any]) -> dict[str, Any]:
+def _safe_de_smart_routing_contract(
+    routing: Mapping[str, Any],
+    block_outbound_tags: set[str],
+) -> dict[str, Any]:
     rules_value = routing.get("rules")
     rules = [item for item in rules_value if isinstance(item, Mapping)] if isinstance(rules_value, list) else []
     expected_outbounds = [
-        "BLOCK",
+        "DIRECT",
+        "DIRECT",
+        "DIRECT",
         "BLOCK",
         "BLOCK",
         "BLOCK",
         "BLOCK",
         "DIRECT",
-        "BLOCK",
-        "BLOCK",
+        "DIRECT",
+        PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG,
         PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG,
         PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG,
         "DIRECT",
@@ -2150,75 +2583,100 @@ def _safe_de_smart_routing_contract(routing: Mapping[str, Any]) -> dict[str, Any
         "domain_strategy_ip_if_non_match": str(routing.get("domainStrategy") or routing.get("domain_strategy") or "")
         == "IPIfNonMatch",
         "rule_count": len(rules),
-        "rule_count_exact": len(rules) == 11,
+        "rule_count_exact": len(rules) == 13,
         "outbound_order_valid": [_rule_outbound(rule) for rule in rules] == expected_outbounds,
         "bridge_inbound_excluded_from_customer_rules": _rules_exclude_inbound_tag(
             rules, PREMIUM_SMART_RU_DE_BRIDGE_INBOUND_TAG
         ),
-        "private_ip_block_rule_valid": False,
-        "private_domain_block_rule_valid": False,
-        "bittorrent_block_rule_valid": False,
-        "udp_443_block_rule_valid": False,
-        "torrent_domain_block_rule_valid": False,
-        "direct_exceptions_rule_valid": False,
-        "ads_block_rule_after_direct_valid": False,
+        "manual_bittorrent_protocol_rule_absent": not _has_manual_bittorrent_protocol_rule(rules),
+        "manual_torrent_process_rule_absent": not _has_manual_torrent_process_rule(rules),
+        "torrent_catalog_block_rule_absent": not _has_torrent_catalog_block_rule(
+            rules,
+            block_outbound_tags,
+        ),
+        "private_domain_direct_rule_valid": False,
+        "private_ip_direct_rule_valid": False,
+        "direct_processes_rule_valid": False,
+        "ads_block_rule_valid": False,
         "tor_block_rule_valid": False,
+        "udp_443_853_block_rule_valid": False,
+        "smtp_abuse_block_rule_valid": False,
+        "direct_exceptions_rule_valid": False,
+        "direct_exception_ip_rule_valid": False,
         "ru_domain_bridge_rule_valid": False,
         "ru_geoip_bridge_rule_valid": False,
         "final_direct_rule_valid": False,
     }
-    if len(rules) != 11:
+    if len(rules) != 13:
         return contract
 
-    contract["private_ip_block_rule_valid"] = (
-        _string_set(rules[0].get("ip")) == {"geoip:private"} and _rule_outbound(rules[0]) == "BLOCK"
+    customer_tags = PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS
+    contract["private_domain_direct_rule_valid"] = (
+        _string_set(rules[0].get("domain")) == {"geosite:private"}
+        and _rule_has_inbound_tags(rules[0], customer_tags)
+        and _rule_outbound(rules[0]) == "DIRECT"
     )
-    contract["private_domain_block_rule_valid"] = (
-        _string_set(rules[1].get("domain")) == {"geosite:private"} and _rule_outbound(rules[1]) == "BLOCK"
+    contract["private_ip_direct_rule_valid"] = (
+        bool(_string_items(rules[1].get("ip")))
+        and _rule_has_inbound_tags(rules[1], customer_tags)
+        and _rule_outbound(rules[1]) == "DIRECT"
     )
-    contract["bittorrent_block_rule_valid"] = (
-        _string_set(rules[2].get("protocol")) == {"bittorrent"} and _rule_outbound(rules[2]) == "BLOCK"
+    contract["direct_processes_rule_valid"] = (
+        _string_set(rules[2].get("domain")) == {"geosite:category-remote-control"}
+        and _rule_has_inbound_tags(rules[2], customer_tags)
+        and _rule_outbound(rules[2]) == "DIRECT"
     )
-    contract["udp_443_block_rule_valid"] = (
-        str(rules[3].get("network") or "").lower() == "udp"
-        and str(rules[3].get("port") or "") == "443"
+    contract["ads_block_rule_valid"] = (
+        "geosite:category-ads-all" in _string_set(rules[3].get("domain"))
+        and _rule_has_inbound_tags(rules[3], customer_tags)
         and _rule_outbound(rules[3]) == "BLOCK"
     )
-    contract["torrent_domain_block_rule_valid"] = (
-        tuple(_string_items(rules[4].get("domain"))) == PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS
-        and _rule_has_inbound_tags(rules[4], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+    contract["tor_block_rule_valid"] = (
+        PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS.issubset(_string_set(rules[4].get("domain")))
+        and _rule_has_inbound_tags(rules[4], customer_tags)
         and _rule_outbound(rules[4]) == "BLOCK"
     )
-    direct_domains = _string_set(rules[5].get("domain"))
-    contract["direct_exceptions_rule_valid"] = (
-        PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS.issubset(direct_domains)
-        and _rule_has_inbound_tags(rules[5], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[5]) == "DIRECT"
+    contract["udp_443_853_block_rule_valid"] = (
+        str(rules[5].get("network") or "").lower() == "udp"
+        and str(rules[5].get("port") or "") == "443,853"
+        and _rule_has_inbound_tags(rules[5], customer_tags)
+        and _rule_outbound(rules[5]) == "BLOCK"
     )
-    contract["ads_block_rule_after_direct_valid"] = (
-        _string_items(rules[6].get("domain")) == ["geosite:category-ads-all"]
-        and _rule_has_inbound_tags(rules[6], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+    contract["smtp_abuse_block_rule_valid"] = (
+        str(rules[6].get("network") or "").lower() == "tcp"
+        and str(rules[6].get("port") or "") == "25,465,587"
+        and _rule_has_inbound_tags(rules[6], customer_tags)
         and _rule_outbound(rules[6]) == "BLOCK"
     )
-    contract["tor_block_rule_valid"] = (
-        _string_set(rules[7].get("domain")) == PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS
-        and _rule_has_inbound_tags(rules[7], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[7]) == "BLOCK"
+    direct_domains = _string_set(rules[7].get("domain"))
+    contract["direct_exceptions_rule_valid"] = (
+        PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS.issubset(direct_domains)
+        and _rule_has_inbound_tags(rules[7], customer_tags)
+        and _rule_outbound(rules[7]) == "DIRECT"
     )
-    ru_domains = _string_set(rules[8].get("domain"))
+    contract["direct_exception_ip_rule_valid"] = (
+        bool(_string_items(rules[8].get("ip")))
+        and _rule_has_inbound_tags(rules[8], customer_tags)
+        and _rule_outbound(rules[8]) == "DIRECT"
+    )
+    ru_domains = _string_set(rules[9].get("domain"))
     contract["ru_domain_bridge_rule_valid"] = (
-        PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS.issubset(ru_domains)
-        and _rule_has_inbound_tags(rules[8], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[8]) == PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG
-    )
-    contract["ru_geoip_bridge_rule_valid"] = (
-        _string_items(rules[9].get("ip")) == ["geoip:ru"]
-        and _rule_has_inbound_tags(rules[9], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
+        PREMIUM_SMART_RU_REQUIRED_RU_SERVICE_DOMAINS.issubset(ru_domains)
+        and _rule_has_inbound_tags(rules[9], customer_tags)
         and _rule_outbound(rules[9]) == PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG
     )
+    contract["ru_geoip_bridge_rule_valid"] = (
+        _string_set(rules[10].get("domain")) == {"geosite:category-ru"}
+        and _rule_has_inbound_tags(rules[10], customer_tags)
+        and _rule_outbound(rules[10]) == PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG
+        and _string_items(rules[11].get("ip")) == ["geoip:ru"]
+        and _rule_has_inbound_tags(rules[11], customer_tags)
+        and _rule_outbound(rules[11]) == PREMIUM_SMART_RU_BRIDGE_OUTBOUND_TAG
+    )
     contract["final_direct_rule_valid"] = (
-        _rule_has_inbound_tags(rules[10], PREMIUM_SMART_RU_DE_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[10]) == "DIRECT"
+        _rule_has_inbound_tags(rules[12], customer_tags)
+        and str(rules[12].get("network") or "") == "tcp,udp"
+        and _rule_outbound(rules[12]) == "DIRECT"
     )
     return contract
 
@@ -2249,7 +2707,10 @@ def _safe_de_smart_config_profile_contract(profile: Mapping[str, Any] | None) ->
     server = servers[0] if len(servers) == 1 else {}
     routing_value = config.get("routing")
     routing = routing_value if isinstance(routing_value, Mapping) else {}
-    routing_contract = _safe_de_smart_routing_contract(routing)
+    routing_contract = _safe_de_smart_routing_contract(
+        routing,
+        _torrent_block_outbound_tags(outbounds),
+    )
     details: dict[str, Any] = {
         "profile_found": profile is not None,
         "profile_config_present": bool(config),
@@ -2285,17 +2746,23 @@ def _safe_de_smart_config_profile_contract(profile: Mapping[str, Any] | None) ->
     return details
 
 
-def _safe_moscow_smart_routing_contract(routing: Mapping[str, Any]) -> dict[str, Any]:
+def _safe_moscow_smart_routing_contract(
+    routing: Mapping[str, Any],
+    block_outbound_tags: set[str],
+) -> dict[str, Any]:
     rules_value = routing.get("rules")
     rules = [item for item in rules_value if isinstance(item, Mapping)] if isinstance(rules_value, list) else []
     expected_outbounds = [
+        "DIRECT",
+        "DIRECT",
+        "DIRECT",
         "BLOCK",
         "BLOCK",
         "BLOCK",
         "BLOCK",
-        "BLOCK",
-        "BLOCK",
-        "BLOCK",
+        PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG,
+        PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG,
+        "DIRECT",
         "DIRECT",
         "DIRECT",
         PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG,
@@ -2304,7 +2771,7 @@ def _safe_moscow_smart_routing_contract(routing: Mapping[str, Any]) -> dict[str,
         "domain_strategy_ip_if_non_match": str(routing.get("domainStrategy") or routing.get("domain_strategy") or "")
         == "IPIfNonMatch",
         "rule_count": len(rules),
-        "rule_count_exact": len(rules) == 10,
+        "rule_count_exact": len(rules) == 13,
         "outbound_order_valid": [_rule_outbound(rule) for rule in rules] == expected_outbounds,
         "all_rules_customer_scoped": all(
             _rule_has_inbound_tags(rule, PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS) for rule in rules
@@ -2312,70 +2779,94 @@ def _safe_moscow_smart_routing_contract(routing: Mapping[str, Any]) -> dict[str,
         "bridge_inbound_excluded_from_customer_rules": _rules_exclude_inbound_tag(
             rules, PREMIUM_SMART_RU_MOSCOW_BRIDGE_INBOUND_TAG
         ),
-        "private_ip_block_rule_valid": False,
-        "private_domain_block_rule_valid": False,
-        "bittorrent_block_rule_valid": False,
-        "udp_443_block_rule_valid": False,
-        "torrent_domain_block_rule_valid": False,
+        "manual_bittorrent_protocol_rule_absent": not _has_manual_bittorrent_protocol_rule(rules),
+        "manual_torrent_process_rule_absent": not _has_manual_torrent_process_rule(rules),
+        "torrent_catalog_block_rule_absent": not _has_torrent_catalog_block_rule(
+            rules,
+            block_outbound_tags,
+        ),
+        "private_domain_direct_rule_valid": False,
+        "private_ip_direct_rule_valid": False,
+        "direct_processes_rule_valid": False,
         "ads_block_rule_valid": False,
         "tor_block_rule_valid": False,
+        "udp_443_853_block_rule_valid": False,
+        "smtp_abuse_block_rule_valid": False,
+        "eu_domain_bridge_rule_valid": False,
+        "eu_ip_bridge_rule_valid": False,
         "ru_domain_direct_rule_valid": False,
         "ru_geoip_direct_rule_valid": False,
         "final_global_bridge_rule_valid": False,
     }
-    if len(rules) != 10:
+    if len(rules) != 13:
         return contract
 
-    contract["private_ip_block_rule_valid"] = (
-        _string_set(rules[0].get("ip")) == {"geoip:private"}
-        and _rule_has_inbound_tags(rules[0], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[0]) == "BLOCK"
+    customer_tags = PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS
+    contract["private_domain_direct_rule_valid"] = (
+        _string_set(rules[0].get("domain")) == {"geosite:private"}
+        and _rule_has_inbound_tags(rules[0], customer_tags)
+        and _rule_outbound(rules[0]) == "DIRECT"
     )
-    contract["private_domain_block_rule_valid"] = (
-        _string_set(rules[1].get("domain")) == {"geosite:private"}
-        and _rule_has_inbound_tags(rules[1], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[1]) == "BLOCK"
+    contract["private_ip_direct_rule_valid"] = (
+        bool(_string_items(rules[1].get("ip")))
+        and _rule_has_inbound_tags(rules[1], customer_tags)
+        and _rule_outbound(rules[1]) == "DIRECT"
     )
-    contract["bittorrent_block_rule_valid"] = (
-        _string_set(rules[2].get("protocol")) == {"bittorrent"}
-        and _rule_has_inbound_tags(rules[2], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[2]) == "BLOCK"
-    )
-    contract["udp_443_block_rule_valid"] = (
-        str(rules[3].get("network") or "").lower() == "udp"
-        and str(rules[3].get("port") or "") == "443"
-        and _rule_has_inbound_tags(rules[3], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[3]) == "BLOCK"
-    )
-    contract["torrent_domain_block_rule_valid"] = (
-        tuple(_string_items(rules[4].get("domain"))) == PREMIUM_SMART_RU_TORRENT_BLOCK_DOMAINS
-        and _rule_has_inbound_tags(rules[4], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[4]) == "BLOCK"
+    contract["direct_processes_rule_valid"] = (
+        _string_set(rules[2].get("domain")) == {"geosite:category-remote-control"}
+        and _rule_has_inbound_tags(rules[2], customer_tags)
+        and _rule_outbound(rules[2]) == "DIRECT"
     )
     contract["ads_block_rule_valid"] = (
-        _string_items(rules[5].get("domain")) == ["geosite:category-ads-all"]
-        and _rule_has_inbound_tags(rules[5], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[5]) == "BLOCK"
+        "geosite:category-ads-all" in _string_set(rules[3].get("domain"))
+        and _rule_has_inbound_tags(rules[3], customer_tags)
+        and _rule_outbound(rules[3]) == "BLOCK"
     )
     contract["tor_block_rule_valid"] = (
-        _string_set(rules[6].get("domain")) == PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS
-        and _rule_has_inbound_tags(rules[6], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
+        PREMIUM_SMART_RU_TOR_BLOCK_DOMAINS.issubset(_string_set(rules[4].get("domain")))
+        and _rule_has_inbound_tags(rules[4], customer_tags)
+        and _rule_outbound(rules[4]) == "BLOCK"
+    )
+    contract["udp_443_853_block_rule_valid"] = (
+        str(rules[5].get("network") or "").lower() == "udp"
+        and str(rules[5].get("port") or "") == "443,853"
+        and _rule_has_inbound_tags(rules[5], customer_tags)
+        and _rule_outbound(rules[5]) == "BLOCK"
+    )
+    contract["smtp_abuse_block_rule_valid"] = (
+        str(rules[6].get("network") or "").lower() == "tcp"
+        and str(rules[6].get("port") or "") == "25,465,587"
+        and _rule_has_inbound_tags(rules[6], customer_tags)
         and _rule_outbound(rules[6]) == "BLOCK"
     )
-    ru_domains = _string_set(rules[7].get("domain"))
+    contract["eu_domain_bridge_rule_valid"] = (
+        PREMIUM_SMART_RU_REQUIRED_DIRECT_DOMAINS.issubset(_string_set(rules[7].get("domain")))
+        and _rule_has_inbound_tags(rules[7], customer_tags)
+        and _rule_outbound(rules[7]) == PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG
+    )
+    contract["eu_ip_bridge_rule_valid"] = (
+        bool(_string_items(rules[8].get("ip")))
+        and _rule_has_inbound_tags(rules[8], customer_tags)
+        and _rule_outbound(rules[8]) == PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG
+    )
+    ru_domains = _string_set(rules[9].get("domain"))
     contract["ru_domain_direct_rule_valid"] = (
-        PREMIUM_SMART_RU_REQUIRED_RU_DOMAINS.issubset(ru_domains)
-        and _rule_has_inbound_tags(rules[7], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[7]) == "DIRECT"
+        PREMIUM_SMART_RU_REQUIRED_RU_SERVICE_DOMAINS.issubset(ru_domains)
+        and _rule_has_inbound_tags(rules[9], customer_tags)
+        and _rule_outbound(rules[9]) == "DIRECT"
     )
     contract["ru_geoip_direct_rule_valid"] = (
-        _string_items(rules[8].get("ip")) == ["geoip:ru"]
-        and _rule_has_inbound_tags(rules[8], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[8]) == "DIRECT"
+        _string_set(rules[10].get("domain")) == {"geosite:category-ru"}
+        and _rule_has_inbound_tags(rules[10], customer_tags)
+        and _rule_outbound(rules[10]) == "DIRECT"
+        and _string_items(rules[11].get("ip")) == ["geoip:ru"]
+        and _rule_has_inbound_tags(rules[11], customer_tags)
+        and _rule_outbound(rules[11]) == "DIRECT"
     )
     contract["final_global_bridge_rule_valid"] = (
-        _rule_has_inbound_tags(rules[9], PREMIUM_SMART_RU_MOSCOW_CUSTOMER_INBOUND_TAGS)
-        and _rule_outbound(rules[9]) == PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG
+        _rule_has_inbound_tags(rules[12], customer_tags)
+        and str(rules[12].get("network") or "") == "tcp,udp"
+        and _rule_outbound(rules[12]) == PREMIUM_SMART_RU_GLOBAL_BRIDGE_OUTBOUND_TAG
     )
     return contract
 
@@ -2406,7 +2897,10 @@ def _safe_moscow_smart_config_profile_contract(profile: Mapping[str, Any] | None
     server = servers[0] if len(servers) == 1 else {}
     routing_value = config.get("routing")
     routing = routing_value if isinstance(routing_value, Mapping) else {}
-    routing_contract = _safe_moscow_smart_routing_contract(routing)
+    routing_contract = _safe_moscow_smart_routing_contract(
+        routing,
+        _torrent_block_outbound_tags(outbounds),
+    )
     details: dict[str, Any] = {
         "profile_found": profile is not None,
         "profile_config_present": bool(config),

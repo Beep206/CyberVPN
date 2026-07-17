@@ -1,14 +1,337 @@
 from __future__ import annotations
 
+import runpy
+import subprocess
+import sys
 from pathlib import Path
+
+import pytest
+import yaml
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _reviewed_security_workflow_paths() -> set[str]:
+    validator = REPOSITORY_ROOT / "scripts" / "security" / "validate_gitleaks_config.py"
+    namespace = runpy.run_path(str(validator), run_name="gitleaks_policy")
+    task2_paths = namespace["TASK2_ALLOWED_PATHS"]
+    task2_public_evidence_paths = namespace["TASK2_PUBLIC_EVIDENCE_WORKFLOW_PATHS"]
+    global_paths = namespace["REVIEWED_GLOBAL_GENERIC_WORKFLOW_PATHS"]
+    jfrog_paths = namespace["JFROG_ALLOWED_PATHS"]
+    assert isinstance(task2_paths, set)
+    assert isinstance(task2_public_evidence_paths, set)
+    assert isinstance(global_paths, set)
+    assert isinstance(jfrog_paths, set)
+    return (
+        {path for path in task2_paths if not path.startswith("backend/")}
+        | task2_public_evidence_paths
+        | global_paths
+        | jfrog_paths
+    )
 
 
 def test_backend_security_workflow_fails_closed() -> None:
-    workflow_path = Path(__file__).resolve().parents[3] / ".github" / "workflows" / "backend-security.yml"
+    workflow_path = REPOSITORY_ROOT / ".github" / "workflows" / "backend-security.yml"
     workflow = workflow_path.read_text(encoding="utf-8")
+    workflow_document = yaml.safe_load(workflow)
+    secrets_scan_steps = workflow_document["jobs"]["secrets-scan"]["steps"]
+    gitleaks_steps = [step for step in secrets_scan_steps if step.get("name") == "Run Gitleaks"]
 
     assert "continue-on-error: true" not in workflow
     assert "|| true" not in workflow
     assert "pip-audit" in workflow
     assert "bandit -r src/" in workflow
     assert "ruff check src/ --select S" in workflow
+    assert workflow.count("- '.gitleaks.toml'") == 2
+    assert "python scripts/security/validate_gitleaks_config.py" in workflow
+    assert len(gitleaks_steps) == 1
+    assert gitleaks_steps[0]["uses"] == "gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7"
+    assert gitleaks_steps[0]["env"]["GITLEAKS_VERSION"] == "8.30.1"
+    for path in _reviewed_security_workflow_paths():
+        assert workflow.count(f"- '{path}'") == 2
+
+
+def _run_gitleaks_policy_validator(
+    config_path: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
+    command = [
+        sys.executable,
+        str(REPOSITORY_ROOT / "scripts" / "security" / "validate_gitleaks_config.py"),
+    ]
+    if config_path is not None:
+        command.extend(["--config", str(config_path)])
+
+    return subprocess.run(  # noqa: S603 - command is a fixed repository test helper
+        command,
+        cwd=REPOSITORY_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_gitleaks_allowlist_policy_accepts_only_exact_task2_paths() -> None:
+    result = _run_gitleaks_policy_validator()
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "Gitleaks config policy OK"
+
+
+@pytest.mark.parametrize(
+    ("reviewed_path", "invalid_path", "expected_error"),
+    [
+        (
+            "^backend/tests/helpers/spb_de_readiness\\.py$",
+            "backend/tests/helpers/spb_de_readiness\\.py$",
+            "Gitleaks allowlist path must be anchored",
+        ),
+        (
+            "^backend/tests/helpers/spb_de_readiness\\.py$",
+            "^backend/tests/helpers/spb_de_readiness\\.py.*$",
+            "Task2 Gitleaks allowlist differs from the reviewed exact shape",
+        ),
+    ],
+)
+def test_gitleaks_allowlist_policy_rejects_broad_task2_paths(
+    tmp_path: Path,
+    reviewed_path: str,
+    invalid_path: str,
+    expected_error: str,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    assert reviewed_path in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        config.replace(reviewed_path, invalid_path, 1),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert expected_error in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("additional_allowlist", "expected_error"),
+    [
+        (
+            """
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Unreviewed broad nested allowlist"
+condition = "AND"
+regexTarget = "line"
+paths = ['''^backend/tests/helpers/spb_de_readiness\\.py.*$''']
+regexes = ['''(?i)private_key''']
+""",
+            "Exactly one generic-api-key rule extension is required",
+        ),
+        (
+            """
+[[allowlists]]
+description = "Unreviewed broad global allowlist"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+paths = ['''^backend/tests/helpers/spb_de_readiness\\.py.*$''']
+regexes = ['''(?i)private_key''']
+""",
+            "Exactly two reviewed top-level allowlists are required",
+        ),
+        (
+            """
+[[allowlists]]
+description = "Unreviewed pathless global allowlist"
+targetRules = ["generic-api-key"]
+condition = "OR"
+regexTarget = "match"
+regexes = ['''.*''']
+""",
+            "Exactly two reviewed top-level allowlists are required",
+        ),
+        (
+            """
+[[allowlists]]
+description = "Unreviewed broad JFrog allowlist"
+targetRules = ["jfrog-identity-token"]
+condition = "OR"
+regexTarget = "match"
+regexes = ['''.*''']
+""",
+            "Exactly two reviewed top-level allowlists are required",
+        ),
+    ],
+)
+def test_gitleaks_allowlist_policy_rejects_additional_rule_or_global_allowlists(
+    tmp_path: Path,
+    additional_allowlist: str,
+    expected_error: str,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(config + additional_allowlist, encoding="utf-8")
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert expected_error in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("reviewed_fragment", "invalid_fragment", "expected_error"),
+    [
+        (
+            "^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\\.json$",
+            "docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\\.json$",
+            "Gitleaks allowlist path must be anchored",
+        ),
+        (
+            "^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\\.json$",
+            "^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/.*$",
+            "Task2 public evidence allowlist differs from the reviewed exact shape",
+        ),
+        (
+            """suite_key["']?\\s*:\\s*["']premium_spb_de_exceptions_v1["']""",
+            ".*",
+            "Task2 public evidence allowlist differs from the reviewed exact shape",
+        ),
+    ],
+)
+def test_gitleaks_allowlist_policy_rejects_broad_task2_public_evidence_allowlist(
+    tmp_path: Path,
+    reviewed_fragment: str,
+    invalid_fragment: str,
+    expected_error: str,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    assert reviewed_fragment in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(config.replace(reviewed_fragment, invalid_fragment, 1), encoding="utf-8")
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert expected_error in result.stderr
+
+
+def test_gitleaks_allowlist_policy_rejects_generic_rule_override(
+    tmp_path: Path,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    reviewed_rule = 'id = "generic-api-key"\n\n[[rules.allowlists]]'
+    assert reviewed_rule in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        config.replace(
+            reviewed_rule,
+            'id = "generic-api-key"\nregex = "(?i)nevermatchgenericapikey"\n\n[[rules.allowlists]]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "generic-api-key rule extension shape changed" in result.stderr
+
+
+def test_gitleaks_allowlist_policy_rejects_jfrog_rule_override(
+    tmp_path: Path,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    reviewed_rule = 'id = "jfrog-identity-token"\n\n[[rules.allowlists]]'
+    assert reviewed_rule in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        config.replace(
+            reviewed_rule,
+            'id = "jfrog-identity-token"\nregex = "a^"\n\n[[rules.allowlists]]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "jfrog-identity-token rule extension shape changed" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("reviewed_fragment", "invalid_fragment"),
+    [
+        ('condition = "AND"', 'condition = "OR"'),
+        (
+            "paths = [\n  '''^services/vpn-test-agent/Dockerfile$''',\n]",
+            "",
+        ),
+        (
+            "'''^services/vpn-test-agent/Dockerfile$'''",
+            "'''^(.*/)?services/vpn-test-agent/Dockerfile$'''",
+        ),
+        (
+            "'''^services/vpn-test-agent/Dockerfile$'''",
+            "'''^services/vpn-test-agent/.*$'''",
+        ),
+        (
+            "'''^\\n?ARG XRAY_SHA256=[a-f0-9]{64}$'''",
+            "'''\\n?ARG XRAY_SHA256=[a-f0-9]{64}$'''",
+        ),
+        (
+            "'''^\\n?ARG XRAY_SHA256=[a-f0-9]{64}$'''",
+            "'''^\\n?ARG XRAY_SHA256=[a-f0-9]{64}.*$'''",
+        ),
+    ],
+)
+def test_gitleaks_allowlist_policy_rejects_broad_jfrog_checksum_allowlist(
+    tmp_path: Path,
+    reviewed_fragment: str,
+    invalid_fragment: str,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    marker = 'description = "Pinned public Xray release checksum is not a JFrog credential"'
+    before, separator, jfrog_config = config.partition(marker)
+    assert separator
+    assert reviewed_fragment in jfrog_config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        before + separator + jfrog_config.replace(reviewed_fragment, invalid_fragment, 1),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "JFrog checksum allowlist differs from the reviewed exact shape" in result.stderr
+
+
+def test_gitleaks_allowlist_policy_rejects_disabling_generic_default_rule(
+    tmp_path: Path,
+) -> None:
+    config = (REPOSITORY_ROOT / ".gitleaks.toml").read_text(encoding="utf-8")
+    reviewed_extend = "[extend]\nuseDefault = true"
+    assert reviewed_extend in config
+
+    invalid_config = tmp_path / ".gitleaks.toml"
+    invalid_config.write_text(
+        config.replace(
+            reviewed_extend,
+            reviewed_extend + '\ndisabledRules = ["generic-api-key"]',
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+    result = _run_gitleaks_policy_validator(invalid_config)
+
+    assert result.returncode != 0
+    assert "Gitleaks default-rule extension shape changed" in result.stderr

@@ -9,11 +9,27 @@ targetRules = ["generic-api-key"]
 condition = "AND"
 regexTarget = "match"
 paths = [
-  '''backend/tests/e2e/test_phase4_(finance|settlement)_foundations\.py''',
-  '''docs/evidence/partner-platform/stage3-outbox.*''',
+  '''^backend/tests/e2e/test_phase4_(finance|settlement)_foundations\.py$''',
+  '''^docs/evidence/partner-platform/stage3-outbox.*$''',
 ]
 regexes = [
   '''(?i)(idempotency[-_ -]?key|period_key|event_key|dead_letter_event_key|backlog_event_key|partition_key)["'\s:=]+[A-Za-z0-9_.:-]{8,}''',
+]
+
+[[allowlists]]
+description = "Task2 public evidence suite literal is not a credential"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "match"
+paths = [
+  '''^backend/tests/unit/application/vpn_testing/test_task2_runtime_fault_public_bundle\.py$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/baseline-run\.json$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/fault-window-run\.json$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/post-restore-run\.json$''',
+  '''^docs/evidence/releases/task1-task2-20260713/task2-runtime-fault-v2/signed-envelope\.json$''',
+]
+regexes = [
+  '''suite_key["']?\s*:\s*["']premium_spb_de_exceptions_v1["']''',
 ]
 
 [[rules]]
@@ -24,12 +40,16 @@ description = "Task2 contract field names and synthetic test values are not cred
 condition = "AND"
 regexTarget = "line"
 paths = [
-  '''backend/tests/helpers/spb_de_readiness\.py''',
-  '''backend/tests/unit/application/vpn_testing/test_vpn_tester_service\.py''',
-  '''infra/tests/test_antifilter_bgp_collector\.py''',
-  '''backend/src/application/vpn_testing/suites/premium_spb_de_exceptions_v1\.yaml''',
-  '''backend/src/application/vpn_testing/route_registry/premium_spb_de_exceptions_v1\.yaml''',
-  '''backend/src/application/vpn_testing/service\.py''',
+  '''^backend/tests/helpers/spb_de_readiness\.py$''',
+  '''^backend/tests/unit/application/vpn_testing/test_task2_runtime_fault_evidence\.py$''',
+  '''^backend/tests/unit/application/vpn_testing/test_task2_runtime_fault_service\.py$''',
+  '''^backend/tests/unit/application/vpn_testing/test_vpn_tester_service\.py$''',
+  '''^backend/tests/unit/infrastructure/test_vpn_tester_repository\.py$''',
+  '''^backend/tests/unit/presentation/api/v1/admin/test_vpn_tester_task2_runtime_fault_evidence\.py$''',
+  '''^infra/tests/test_antifilter_bgp_collector\.py$''',
+  '''^backend/src/application/vpn_testing/suites/premium_spb_de_exceptions_v1\.yaml$''',
+  '''^backend/src/application/vpn_testing/route_registry/premium_spb_de_exceptions_v1\.yaml$''',
+  '''^backend/src/application/vpn_testing/service\.py$''',
 ]
 regexes = [
   '''(?i)\b(private_key|suite_key|registry_key|bgp_secret)\b''',
@@ -40,7 +60,11 @@ id = "jfrog-identity-token"
 
 [[rules.allowlists]]
 description = "Pinned public Xray release checksum is not a JFrog credential"
+condition = "AND"
 regexTarget = "line"
+paths = [
+  '''^services/vpn-test-agent/Dockerfile$''',
+]
 regexes = [
-  '''ARG XRAY_SHA256=[a-f0-9]{64}''',
+  '''^\n?ARG XRAY_SHA256=[a-f0-9]{64}$''',
 ]

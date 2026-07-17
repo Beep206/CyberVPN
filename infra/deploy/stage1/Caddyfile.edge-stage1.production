@@ -1,0 +1,275 @@
+{
+  servers {
+    protocols h1 h2 h3
+    trusted_proxies static private_ranges 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+    trusted_proxies_strict
+    client_ip_headers CF-Connecting-IP X-Forwarded-For
+  }
+  email admin@cyber-vpn.net
+}
+
+(common_headers) {
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    X-Frame-Options "SAMEORIGIN"
+  }
+}
+
+(edge_health) {
+  @edge_health path /.well-known/cybervpn-edge-health /healthz
+  handle @edge_health {
+    respond "{\"status\":\"ok\",\"stage\":\"stage1-rent04\",\"surface\":\"edge\"}" 200 {
+      close
+    }
+  }
+}
+
+(backend_proxy) {
+  reverse_proxy cybervpn-stage1-cybervpn-backend-1:8000 {
+    header_up -X-CyberVPN-*
+    header_up X-Real-IP {client_ip}
+    header_up X-Forwarded-For {client_ip}
+    header_up X-Forwarded-Port 443
+  }
+}
+
+(product_subscription_gateway) {
+  reverse_proxy cybervpn-stage1-cybervpn-backend-1:8000 {
+    header_up -X-CyberVPN-*
+    header_up X-Real-IP {client_ip}
+    header_up X-Forwarded-For {client_ip}
+    header_up X-Forwarded-Port 443
+  }
+}
+
+(frontend_proxy) {
+  reverse_proxy cybervpn-stage1-cybervpn-frontend-1:3000 {
+    header_up Host {host}
+    header_up X-Real-IP {client_ip}
+    header_up X-Forwarded-For {client_ip}
+    header_up X-Forwarded-Host {host}
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Port 443
+  }
+}
+
+(admin_proxy) {
+  reverse_proxy cybervpn-stage1-cybervpn-admin-1:3000 {
+    header_up Host {host}
+    header_up X-Real-IP {client_ip}
+    header_up X-Forwarded-For {client_ip}
+    header_up X-Forwarded-Host {host}
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Port 443
+    header_down -Link
+  }
+}
+
+(partner_proxy) {
+  reverse_proxy cybervpn-stage1-cybervpn-partner-1:3000 {
+    header_up Host {host}
+    header_up X-Real-IP {client_ip}
+    header_up X-Forwarded-For {client_ip}
+    header_up X-Forwarded-Host {host}
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-Port 443
+    header_down -Link
+  }
+}
+
+(telegram_webhook_proxy) {
+  @telegram_webhook path /webhook/telegram /webhook/telegram/diagnostics
+  handle @telegram_webhook {
+    reverse_proxy cybervpn-stage1-cybervpn-telegram-bot-1:8080 {
+      header_up X-Real-IP {client_ip}
+      header_up X-Forwarded-For {client_ip}
+      header_up X-Forwarded-Port 443
+    }
+  }
+}
+
+http://cyber-vpn.net, http://www.cyber-vpn.net, http://my.cyber-vpn.net, http://api.cyber-vpn.net, http://admin.cyber-vpn.net, http://partner.cyber-vpn.net, http://status.cyber-vpn.net, http://cyber-vpn.org, http://www.cyber-vpn.org, http://admin.cyber-vpn.org {
+  import edge_health
+  redir https://{host}{uri} 308
+}
+
+https://cyber-vpn.net {
+  import common_headers
+  import edge_health
+
+  @partner_routes path_regexp partner_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?partner(?:/.*)?$
+  redir @partner_routes https://partner.cyber-vpn.net{uri} 302
+
+  @cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|delete-account|messages|monitoring|onboarding|partner|payment-history|referral|rewards|servers|settings|subscriptions|support|users|wallet)(?:/.*)?$
+  redir @cabinet_routes https://my.cyber-vpn.net{uri} 302
+
+  @backend_api path /api/v1/* /health
+  handle @backend_api {
+    import backend_proxy
+  }
+
+  handle {
+    import frontend_proxy
+  }
+}
+
+https://my.cyber-vpn.net {
+  import common_headers
+  import edge_health
+
+  @cabinet_routes path_regexp cabinet_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:analytics|dashboard|delete-account|messages|monitoring|onboarding|partner|payment-history|referral|rewards|servers|settings|subscriptions|support|users|wallet)(?:/.*)?$
+  handle @cabinet_routes {
+    import frontend_proxy
+  }
+
+  @public_routes path_regexp public_routes ^/(?:(?:[a-z]{2}-[A-Z]{2}|zh-Hant)/)?(?:acceptable-use|audits|compare|contact|cookie-policy|delete-account|devices|docs|download|features|guides|help|network|pricing|privacy|privacy-policy|refund-policy|security|status|telegram-widget|terms|trust)(?:/.*)?$
+  redir @public_routes https://cyber-vpn.net{uri} 302
+
+  @backend_api path /api/v1/* /health
+  handle @backend_api {
+    import backend_proxy
+  }
+
+  handle {
+    import frontend_proxy
+  }
+}
+
+https://www.cyber-vpn.net {
+  import edge_health
+  redir https://cyber-vpn.net{uri} 301
+}
+
+https://api.cyber-vpn.net {
+  import common_headers
+  import edge_health
+  import telegram_webhook_proxy
+
+  @remnawave_subscription path /api/sub*
+  handle @remnawave_subscription {
+    import product_subscription_gateway
+  }
+
+  @backend_api path /api/v1/* /health
+  handle @backend_api {
+    import backend_proxy
+  }
+
+  handle {
+    respond "Not found" 404
+  }
+}
+
+https://admin.cyber-vpn.net {
+  import common_headers
+  import edge_health
+
+  @backend_api path /api/v1/* /health
+  handle @backend_api {
+    import backend_proxy
+  }
+
+  handle {
+    import admin_proxy
+  }
+}
+
+https://partner.cyber-vpn.net {
+  import common_headers
+  import edge_health
+
+  @backend_api path /api/v1/* /health
+  handle @backend_api {
+    import backend_proxy
+  }
+
+  handle {
+    import partner_proxy
+  }
+}
+
+https://status.cyber-vpn.net {
+  import edge_health
+  redir https://cyber-vpn.net/en-EN/status 302
+}
+
+https://cyber-vpn.org {
+  import common_headers
+  import edge_health
+
+  @remnawave_subscription path /api/sub*
+  handle @remnawave_subscription {
+    import product_subscription_gateway
+  }
+
+  handle {
+    redir https://cyber-vpn.net{uri} 301
+  }
+}
+
+https://task2-evidence.cyber-vpn.org {
+  respond "Not found" 404
+}
+
+https://task2-evidence.cyber-vpn.org:9445 {
+  import common_headers
+
+  @task2_route_evidence_spb {
+    path /api/v1/admin/vpn-tester/internal/task2/route-evidence/xray-routing-webhook
+    # The host firewall authenticates the SPB IPv6 source before Docker's
+    # IPv6 userland proxy hands the connection off from this fixed gateway.
+    remote_ip 172.30.0.1
+  }
+  handle @task2_route_evidence_spb {
+    request_header -X-CyberVPN-Task2-Evidence-Ingress
+    request_header -X-CyberVPN-Task2-Operator-Evidence-Ingress
+    reverse_proxy cybervpn-stage1-cybervpn-backend-1:8000 {
+      header_up X-CyberVPN-Task2-Evidence-Ingress spb-source-verified-v1
+      header_up X-Real-IP {client_ip}
+      header_up X-Forwarded-For {client_ip}
+      header_up X-Forwarded-Port 9445
+    }
+  }
+
+  respond "Not found" 404
+}
+
+https://vpn-test-spb.cyber-vpn.org {
+  import common_headers
+
+  @spb_runtime_agent {
+    method POST
+    path /internal/v2/runtime-checks
+    query ""
+    remote_ip 172.30.3.0/24
+  }
+  handle @spb_runtime_agent {
+    reverse_proxy cybervpn-vpn-test-agent-spb-target:8080 {
+      header_up -Forwarded
+      header_up -X-Forwarded-For
+      header_up -X-Forwarded-Host
+      header_up -X-Forwarded-Proto
+      header_up -X-Real-IP
+      header_up -X-Original-*
+      header_up -X-CyberVPN-*
+      header_up -X-VPN-Test-Agent-Secret
+      header_up -Authorization
+      header_up -Proxy-Authorization
+      header_up -Cookie
+    }
+  }
+
+  respond "Not found" 404
+}
+
+https://www.cyber-vpn.org {
+  import edge_health
+  redir https://cyber-vpn.net{uri} 301
+}
+
+https://admin.cyber-vpn.org {
+  import edge_health
+  redir https://admin.cyber-vpn.net{uri} 301
+}

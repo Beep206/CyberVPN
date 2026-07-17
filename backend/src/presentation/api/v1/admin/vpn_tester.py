@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import time
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -22,6 +23,11 @@ from src.application.vpn_testing.task2_route_evidence import (
     Task2RouteEvidenceStore,
     Task2RouteEvidenceUnavailable,
     Task2XrayRoutingWebhook,
+)
+from src.application.vpn_testing.task2_runtime_fault_evidence import (
+    TASK2_RUNTIME_FAULT_EVIDENCE_ARTIFACT_TYPE,
+    Task2RuntimeFaultEvidenceConflict,
+    Task2RuntimeFaultEvidenceRejected,
 )
 from src.config.settings import settings
 from src.domain.enums import AdminRole
@@ -42,6 +48,8 @@ from src.presentation.dependencies.roles import require_role
 
 TASK2_ROUTE_EVIDENCE_INGRESS_HEADER = "X-CyberVPN-Task2-Evidence-Ingress"
 TASK2_ROUTE_EVIDENCE_INGRESS_MARKER = "spb-source-verified-v1"
+TASK2_OPERATOR_EVIDENCE_INGRESS_HEADER = "X-CyberVPN-Task2-Operator-Evidence-Ingress"
+TASK2_OPERATOR_EVIDENCE_INGRESS_MARKER = "local-operator-v1"
 
 router = APIRouter(prefix="/admin/vpn-tester", tags=["admin", "vpn-tester"])
 
@@ -196,6 +204,14 @@ class Task2RouteEvidenceCollectorResponse(BaseModel):
     digest: str
 
 
+class Task2RuntimeFaultEvidenceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    run: VpnTesterRunResponse
+    artifact: VpnTesterEvidenceResponse
+    created: bool
+
+
 class VpnTesterTariffMatrixResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -292,12 +308,16 @@ def _serialize_result(result: VpnTestResultModel) -> VpnTesterResultResponse:
 
 
 def _serialize_evidence(artifact: VpnTestEvidenceArtifactModel) -> VpnTesterEvidenceResponse:
+    preview = dict(artifact.preview or {})
+    if artifact.artifact_type == TASK2_RUNTIME_FAULT_EVIDENCE_ARTIFACT_TYPE:
+        raw_summary = preview.get("summary")
+        preview = {"summary": dict(raw_summary) if isinstance(raw_summary, Mapping) else {}}
     return VpnTesterEvidenceResponse(
         id=artifact.id,
         artifact_key=artifact.artifact_key,
         artifact_type=artifact.artifact_type,
         sha256=artifact.sha256,
-        preview=dict(artifact.preview or {}),
+        preview=preview,
         storage_uri=artifact.storage_uri,
         expires_at=artifact.expires_at,
         created_at=artifact.created_at,
@@ -463,6 +483,12 @@ def _require_task2_route_evidence_enabled() -> None:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task2_route_evidence_disabled")
 
 
+def _require_task2_operator_evidence_enabled() -> None:
+    if settings.vpn_tester_task2_operator_evidence_enabled:
+        return
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task2_operator_evidence_not_found")
+
+
 def _require_task2_xray_webhook_secret(secret: str | None) -> None:
     configured = settings.vpn_tester_task2_xray_webhook_secret.get_secret_value().strip()
     if not configured:
@@ -477,6 +503,13 @@ def _require_task2_route_evidence_ingress(marker: str | None) -> None:
     if marker is not None and hmac.compare_digest(marker.strip(), TASK2_ROUTE_EVIDENCE_INGRESS_MARKER):
         return
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task2_route_evidence_not_found")
+
+
+def _require_task2_operator_evidence_ingress(marker: str | None) -> None:
+    candidate = (marker or "").strip()
+    if hmac.compare_digest(candidate, TASK2_OPERATOR_EVIDENCE_INGRESS_MARKER):
+        return
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="task2_operator_evidence_not_found")
 
 
 def _task2_route_evidence_store(redis_client: Redis) -> Task2RouteEvidenceStore:
@@ -514,7 +547,10 @@ def _reject_task2_body_if_too_large(request: Request, body: bytes | None = None)
     content_length = request.headers.get("content-length")
     if content_length is not None:
         try:
-            if int(content_length) > max_body_bytes:
+            parsed_content_length = int(content_length)
+            if parsed_content_length < 0:
+                raise ValueError("negative_content_length")
+            if parsed_content_length > max_body_bytes:
                 raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="body_too_large")
         except ValueError as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_content_length") from exc
@@ -524,6 +560,49 @@ def _reject_task2_body_if_too_large(request: Request, body: bytes | None = None)
 
 async def _read_task2_bounded_body(request: Request) -> bytes:
     max_body_bytes = settings.vpn_tester_task2_xray_webhook_max_body_bytes
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > max_body_bytes:
+            raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="body_too_large")
+        body.extend(chunk)
+    return bytes(body)
+
+
+def _reject_task2_operator_evidence_transport(request: Request) -> None:
+    if request.url.query:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="query_string_not_allowed")
+    for header_name, detail in (
+        ("X-Backend-Internal-Secret", "duplicate_internal_secret_header"),
+        ("Content-Type", "duplicate_content_type_header"),
+        ("Content-Length", "duplicate_content_length_header"),
+    ):
+        if _header_count(request, header_name) > 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+    for header_name in ("Authorization", "Cookie", "Proxy-Authorization"):
+        if _header_count(request, header_name) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"{header_name.lower()}_header_not_allowed",
+            )
+    content_type = request.headers.get("content-type", "")
+    if content_type.split(";", 1)[0].strip().lower() != "application/json":
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="json_required")
+
+    max_body_bytes = settings.vpn_tester_task2_operator_evidence_max_body_bytes
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            parsed_content_length = int(content_length)
+            if parsed_content_length < 0:
+                raise ValueError("negative_content_length")
+            if parsed_content_length > max_body_bytes:
+                raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="body_too_large")
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_content_length") from exc
+
+
+async def _read_task2_operator_evidence_body(request: Request) -> bytes:
+    max_body_bytes = settings.vpn_tester_task2_operator_evidence_max_body_bytes
     body = bytearray()
     async for chunk in request.stream():
         if len(body) + len(chunk) > max_body_bytes:
@@ -803,7 +882,7 @@ async def internal_collect_task2_xray_route_evidence(
     try:
         result = await store.record_xray_routing_webhook(
             webhook,
-            synthetic_user=settings.vpn_tester_task2_synthetic_user,
+            synthetic_user=settings.vpn_tester_task2_synthetic_xray_email,
             max_skew_seconds=settings.vpn_tester_task2_xray_webhook_max_skew_seconds,
             now_epoch_seconds=int(time.time()),
         )
@@ -815,6 +894,56 @@ async def internal_collect_task2_xray_route_evidence(
     except Task2RouteEvidenceRejected as exc:
         raise _map_task2_route_evidence_rejection(exc) from exc
     return _serialize_task2_route_evidence_result(result)
+
+
+@router.post(
+    "/internal/task2/runs/{run_id}/signed-evidence",
+    response_model=Task2RuntimeFaultEvidenceResponse,
+    include_in_schema=False,
+)
+async def internal_ingest_task2_runtime_fault_evidence(
+    run_id: UUID,
+    request: Request,
+    x_task2_operator_evidence_ingress: str | None = Header(
+        default=None,
+        alias=TASK2_OPERATOR_EVIDENCE_INGRESS_HEADER,
+    ),
+    x_backend_internal_secret: str | None = Header(default=None, alias="X-Backend-Internal-Secret"),
+    service: VpnTesterService = Depends(get_vpn_tester_service),
+) -> Task2RuntimeFaultEvidenceResponse:
+    _require_task2_operator_evidence_enabled()
+    if _header_count(request, TASK2_OPERATOR_EVIDENCE_INGRESS_HEADER) > 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="duplicate_ingress_marker_header")
+    _require_task2_operator_evidence_ingress(x_task2_operator_evidence_ingress)
+    _reject_task2_operator_evidence_transport(request)
+    _require_backend_internal_secret(x_backend_internal_secret)
+    raw_body = await _read_task2_operator_evidence_body(request)
+
+    try:
+        ingested = await service.ingest_task2_runtime_fault_evidence(run_id, raw_body)
+    except Task2RuntimeFaultEvidenceConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="conflicting_task2_runtime_fault_evidence",
+        ) from exc
+    except Task2RuntimeFaultEvidenceRejected as exc:
+        status_code = (
+            status.HTTP_413_CONTENT_TOO_LARGE
+            if exc.reason == "body_too_large"
+            else status.HTTP_422_UNPROCESSABLE_CONTENT
+        )
+        raise HTTPException(
+            status_code=status_code,
+            detail="invalid_task2_runtime_fault_evidence",
+        ) from exc
+    if ingested is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="vpn_tester_run_not_found")
+    run, artifact, created = ingested
+    return Task2RuntimeFaultEvidenceResponse(
+        run=_serialize_run(run),
+        artifact=_serialize_evidence(artifact),
+        created=created,
+    )
 
 
 @router.post("/internal/runs/{run_id}/execute", response_model=InternalWorkerResultResponse, include_in_schema=False)

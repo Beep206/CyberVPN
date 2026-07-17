@@ -756,6 +756,13 @@ class TestTask2RouteEvidenceSettings:
             "vpn_tester_synthetic_users_enabled": True,
             "vpn_test_agent_url": "http://cybervpn-vpn-test-agent:8080",
             "vpn_test_agent_secret": SecretStr("liveRegionalAgentCredentialAlpha123456"),
+            "runtime_git_sha": "9" * 40,
+            "runtime_container_image": "cybervpn/cybervpn-backend:task2-runtime",
+            "runtime_origin_marker": "prod-app-1",
+            "vpn_tester_task2_operator_evidence_backend_image_id": "sha256:" + "2" * 64,
+            "vpn_tester_task2_operator_evidence_agent_git_sha": "9" * 40,
+            "vpn_tester_task2_operator_evidence_agent_image_ref": ("cybervpn/cybervpn-vpn-test-agent:task2-runtime"),
+            "vpn_tester_task2_operator_evidence_agent_image_id": "sha256:" + "3" * 64,
         }
         values.update(overrides)
         return Settings(**values)
@@ -766,15 +773,118 @@ class TestTask2RouteEvidenceSettings:
         assert settings.vpn_tester_task2_route_evidence_enabled is False
         assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == ""
         assert settings.vpn_tester_task2_synthetic_user == "cybervpn-task2-route-evidence"
+        assert settings.vpn_tester_task2_synthetic_xray_email == ""
         assert settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds == 300
         assert settings.vpn_tester_task2_route_evidence_result_ttl_seconds == 86400
         assert settings.vpn_tester_task2_xray_webhook_max_skew_seconds == 60
         assert settings.vpn_tester_task2_xray_webhook_max_body_bytes == 4096
+        assert settings.vpn_tester_task2_operator_evidence_enabled is False
+        assert settings.vpn_tester_task2_operator_evidence_public_key_path == ""
+        assert settings.vpn_tester_task2_operator_evidence_key_id == ""
+        assert settings.vpn_tester_task2_operator_evidence_revoked_key_ids == ""
+        assert settings.vpn_tester_task2_operator_evidence_backend_image_id == ""
+        assert settings.vpn_tester_task2_operator_evidence_agent_git_sha == ""
+        assert settings.vpn_tester_task2_operator_evidence_agent_image_ref == ""
+        assert settings.vpn_tester_task2_operator_evidence_agent_image_id == ""
+        assert settings.vpn_tester_task2_operator_evidence_max_skew_seconds == 60
+        assert settings.vpn_tester_task2_operator_evidence_max_validity_seconds == 900
+        assert settings.vpn_tester_task2_operator_evidence_max_fault_seconds == 240
+        assert settings.vpn_tester_task2_operator_evidence_max_body_bytes == 65536
+
+    def test_task2_operator_evidence_exact_env_names_override_settings(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_ENABLED", "true")
+        monkeypatch.setenv(
+            "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_PUBLIC_KEY_PATH",
+            "/var/lib/cybervpn/operator-public.pem",
+        )
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_KEY_ID", "task2-runtime-operator-20260713-a")
+        monkeypatch.setenv(
+            "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_REVOKED_KEY_IDS",
+            "task2-runtime-operator-20260712-z,task2-runtime-operator-20260711-y",
+        )
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_BACKEND_IMAGE_ID", "sha256:" + "2" * 64)
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_GIT_SHA", "9" * 40)
+        monkeypatch.setenv(
+            "VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_REF",
+            "cybervpn/cybervpn-vpn-test-agent:task2-runtime",
+        )
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_AGENT_IMAGE_ID", "sha256:" + "3" * 64)
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_SKEW_SECONDS", "45")
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_VALIDITY_SECONDS", "600")
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_FAULT_SECONDS", "180")
+        monkeypatch.setenv("VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_BODY_BYTES", "32768")
+
+        settings = self._base_settings()
+
+        assert settings.vpn_tester_task2_operator_evidence_enabled is True
+        assert settings.vpn_tester_task2_operator_evidence_public_key_path == "/var/lib/cybervpn/operator-public.pem"
+        assert settings.vpn_tester_task2_operator_evidence_key_id == "task2-runtime-operator-20260713-a"
+        assert settings.vpn_tester_task2_operator_evidence_backend_image_id == "sha256:" + "2" * 64
+        assert settings.vpn_tester_task2_operator_evidence_agent_git_sha == "9" * 40
+        assert settings.vpn_tester_task2_operator_evidence_agent_image_ref.endswith(":task2-runtime")
+        assert settings.vpn_tester_task2_operator_evidence_agent_image_id == "sha256:" + "3" * 64
+        assert settings.vpn_tester_task2_operator_evidence_max_skew_seconds == 45
+        assert settings.vpn_tester_task2_operator_evidence_max_validity_seconds == 600
+        assert settings.vpn_tester_task2_operator_evidence_max_fault_seconds == 180
+        assert settings.vpn_tester_task2_operator_evidence_max_body_bytes == 32768
+
+    def test_task2_operator_evidence_production_accepts_dedicated_public_key(self) -> None:
+        settings = self._production_settings(
+            vpn_tester_task2_route_evidence_enabled=True,
+            vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+            vpn_tester_task2_synthetic_xray_email="1001",
+            vpn_tester_task2_operator_evidence_enabled=True,
+            vpn_tester_task2_operator_evidence_public_key_path=(
+                "/run/cybervpn/readiness/task2/runtime-evidence-public-key.pem"
+            ),
+            vpn_tester_task2_operator_evidence_key_id="task2-runtime-operator-20260713-a",
+            remnawave_spb_de_exceptions_readiness_public_key_path=("/run/cybervpn/readiness/task2/public-key.pem"),
+        )
+
+        assert settings.vpn_tester_task2_operator_evidence_enabled is True
+
+    def test_task2_operator_evidence_production_rejects_revoked_current_key(self) -> None:
+        with pytest.raises(ValidationError, match="must not be listed as revoked"):
+            self._production_settings(
+                vpn_tester_task2_route_evidence_enabled=True,
+                vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+                vpn_tester_task2_synthetic_xray_email="1001",
+                vpn_tester_task2_operator_evidence_enabled=True,
+                vpn_tester_task2_operator_evidence_public_key_path=(
+                    "/run/cybervpn/readiness/task2/runtime-evidence-public-key.pem"
+                ),
+                vpn_tester_task2_operator_evidence_key_id="task2-runtime-operator-20260713-a",
+                vpn_tester_task2_operator_evidence_revoked_key_ids="task2-runtime-operator-20260713-a",
+                remnawave_spb_de_exceptions_readiness_public_key_path=("/run/cybervpn/readiness/task2/public-key.pem"),
+            )
+
+    def test_task2_operator_evidence_production_rejects_unbound_runtime_identity(self) -> None:
+        with pytest.raises(ValidationError, match="AGENT_IMAGE_ID"):
+            self._production_settings(
+                vpn_tester_task2_route_evidence_enabled=True,
+                vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+                vpn_tester_task2_synthetic_xray_email="1001",
+                vpn_tester_task2_operator_evidence_enabled=True,
+                vpn_tester_task2_operator_evidence_public_key_path=(
+                    "/run/cybervpn/readiness/task2/runtime-evidence-public-key.pem"
+                ),
+                vpn_tester_task2_operator_evidence_key_id="task2-runtime-operator-20260713-a",
+                vpn_tester_task2_operator_evidence_agent_image_id="",
+                remnawave_spb_de_exceptions_readiness_public_key_path=("/run/cybervpn/readiness/task2/public-key.pem"),
+            )
+
+    def test_task2_operator_evidence_rejects_unsafe_key_id(self) -> None:
+        with pytest.raises(ValidationError, match="safe lowercase identifier"):
+            self._base_settings(vpn_tester_task2_operator_evidence_key_id="Unsafe Key ID")
 
     def test_task2_route_evidence_exact_env_names_override_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_ENABLED", "true")
         monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", self.VALID_WEBHOOK_SECRET)
         monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_USER", "task2-route@cybervpn.internal")
+        monkeypatch.setenv("VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL", "1001")
         monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_EXPECTATION_TTL_SECONDS", "120")
         monkeypatch.setenv("VPN_TESTER_TASK2_ROUTE_EVIDENCE_RESULT_TTL_SECONDS", "7200")
         monkeypatch.setenv("VPN_TESTER_TASK2_XRAY_WEBHOOK_MAX_SKEW_SECONDS", "45")
@@ -785,6 +895,7 @@ class TestTask2RouteEvidenceSettings:
         assert settings.vpn_tester_task2_route_evidence_enabled is True
         assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == self.VALID_WEBHOOK_SECRET
         assert settings.vpn_tester_task2_synthetic_user == "task2-route@cybervpn.internal"
+        assert settings.vpn_tester_task2_synthetic_xray_email == "1001"
         assert settings.vpn_tester_task2_route_evidence_expectation_ttl_seconds == 120
         assert settings.vpn_tester_task2_route_evidence_result_ttl_seconds == 7200
         assert settings.vpn_tester_task2_xray_webhook_max_skew_seconds == 45
@@ -802,6 +913,7 @@ class TestTask2RouteEvidenceSettings:
             self._production_settings(
                 vpn_tester_task2_route_evidence_enabled=True,
                 vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+                vpn_tester_task2_synthetic_xray_email="1001",
                 backend_internal_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
             )
 
@@ -810,7 +922,17 @@ class TestTask2RouteEvidenceSettings:
             vpn_tester_task2_route_evidence_enabled=True,
             vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
             vpn_tester_task2_synthetic_user="task2-route@cybervpn.internal",
+            vpn_tester_task2_synthetic_xray_email="1001",
         )
 
         assert settings.vpn_tester_task2_route_evidence_enabled is True
         assert settings.vpn_tester_task2_xray_webhook_secret.get_secret_value() == self.VALID_WEBHOOK_SECRET
+
+    def test_task2_route_evidence_production_requires_numeric_xray_identity(self) -> None:
+        with pytest.raises(ValidationError, match="VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL"):
+            self._production_settings(
+                vpn_tester_task2_route_evidence_enabled=True,
+                vpn_tester_task2_xray_webhook_secret=SecretStr(self.VALID_WEBHOOK_SECRET),
+                vpn_tester_task2_synthetic_user="task2-route@cybervpn.internal",
+                vpn_tester_task2_synthetic_xray_email="task2-route@cybervpn.internal",
+            )
