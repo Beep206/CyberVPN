@@ -56,7 +56,7 @@ dev = [
     "factory-boy",
     "respx",
     "httpx",
-    "mypy>=1.20.2,<2.0",
+    "mypy>=1.20.2,<3.0",
     "ruff",
     "types-PyYAML",
 ]
