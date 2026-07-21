@@ -29,7 +29,7 @@ dependencies:
   go_router: ^17.0.0
 
   # Networking
-  dio: ^5.9.0
+  dio: ^5.10.0
   connectivity_plus: ^7.1.0
   network_info_plus: ^7.0.0
   permission_handler: ^12.0.1
