@@ -56,7 +56,7 @@ dependencies:
   # Authentication
   local_auth: ^3.0.0
   google_sign_in: ^7.2.0
-  sign_in_with_apple: ^7.0.1
+  sign_in_with_apple: ^8.1.0
 
   # In-App Purchases
   purchases_flutter: ^9.10.8
