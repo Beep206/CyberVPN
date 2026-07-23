@@ -42,7 +42,7 @@ jobs:
           python-version: '3.13.14'
 
       - name: Set up OpenTofu
-        uses: opentofu/setup-opentofu@v1
+        uses: opentofu/setup-opentofu@v2
         with:
           tofu_version_file: .opentofu-version
           tofu_wrapper: false
