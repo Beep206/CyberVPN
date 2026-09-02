@@ -30,7 +30,7 @@ void main() {
 
         expect(service.maxConcurrent, equals(10));
         expect(service.timeoutDuration, equals(const Duration(seconds: 5)));
-        expect(service.refreshInterval, equals(const Duration(seconds: 60)));
+        expect(service.refreshInterval, equals(const Duration(seconds: 30)));
 
         service.dispose();
       });
@@ -38,7 +38,10 @@ void main() {
       test('accepts custom configuration', () {
         expect(pingService.maxConcurrent, equals(3));
         expect(pingService.timeoutDuration, equals(const Duration(seconds: 2)));
-        expect(pingService.refreshInterval, equals(const Duration(seconds: 30)));
+        expect(
+          pingService.refreshInterval,
+          equals(const Duration(seconds: 30)),
+        );
       });
     });
 

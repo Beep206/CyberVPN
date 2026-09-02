@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Verfügbarkeit des VPN-Dienstes",
+    "connections": "Verbindungen",
+    "usage": "Nutzung",
+    "devices": "Geräte",
+    "available": "Verfügbar",
+    "unavailable": "Nicht verfügbar",
+    "loading": "VPN-Dienststatus wird geladen",
+    "degraded": "Teilweise eingeschränkt"
   }
 }

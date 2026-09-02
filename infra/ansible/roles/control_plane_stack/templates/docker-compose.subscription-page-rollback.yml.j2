@@ -1,0 +1,5 @@
+services:
+  remnawave-subscription-page:
+    # Component-only emergency rollback. The main release and data services
+    # remain untouched; the same private network/env/health contract is reused.
+    image: {{ control_plane_stack_subscription_page_rollback_image | to_json }}

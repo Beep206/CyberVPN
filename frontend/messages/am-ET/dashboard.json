@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "የVPN አገልግሎት ተገኝነት",
+    "connections": "ግንኙነቶች",
+    "usage": "አጠቃቀም",
+    "devices": "መሣሪያዎች",
+    "available": "ይገኛል",
+    "unavailable": "አይገኝም",
+    "loading": "የVPN አገልግሎት ሁኔታ በመጫን ላይ",
+    "degraded": "በከፊል የተገደበ"
   }
 }

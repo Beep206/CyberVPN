@@ -35,6 +35,7 @@ from src.infrastructure.messaging.nats_messaging_runtime import NatsMessagingRun
 from src.infrastructure.messaging.nats_partner_runtime import NatsPartnerRuntime
 from src.infrastructure.monitoring.http_metrics import add_http_metrics_middleware, build_metrics_response
 from src.infrastructure.payments.cryptobot.client import cryptobot_client
+from src.infrastructure.remnawave.subscription_client import RemnawaveSubscriptionError
 from src.presentation.api.subscription_gateway.routes import router as subscription_gateway_router
 from src.presentation.api.v1.router import api_router
 from src.presentation.api.v3.router import api_v3_router
@@ -49,6 +50,7 @@ from src.presentation.exception_handlers import (
     invalid_token_handler,
     invalid_webhook_signature_handler,
     payment_not_found_handler,
+    remnawave_subscription_error_handler,
     server_not_found_handler,
     subscription_expired_handler,
     traffic_limit_exceeded_handler,
@@ -219,6 +221,13 @@ async def lifespan(app: FastAPI):
         await remnawave_client.close()
     except Exception as e:
         logger.warning("Shutdown error in remnawave_client: %s", e, exc_info=True)
+
+    try:
+        from src.infrastructure.remnawave.node_ssh_gateway import remnawave_node_ssh_gateway
+
+        await remnawave_node_ssh_gateway.close()
+    except Exception as e:
+        logger.warning("Shutdown error in remnawave_node_ssh_gateway: %s", e, exc_info=True)
 
     try:
         from src.infrastructure.remnawave.subscription_proxy import remnawave_subscription_proxy_client
@@ -419,7 +428,7 @@ cors_middleware_kwargs: dict[str, object] = {
     "allow_origins": settings.cors_origins,
     "allow_credentials": allow_credentials,
     "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    "allow_headers": ["Content-Type", "Authorization", "X-Request-ID"],
+    "allow_headers": ["Content-Type", "Authorization", "X-Request-ID", "X-Fresh-Auth-Grant-Id"],
 }
 cors_middleware_cls: type[CORSMiddleware] = CORSMiddleware
 
@@ -478,6 +487,7 @@ register_exception_handler(UserAlreadyExistsError, user_already_exists_handler)
 register_exception_handler(DuplicateUsernameError, duplicate_username_handler)
 register_exception_handler(InvalidWebhookSignatureError, invalid_webhook_signature_handler)
 register_exception_handler(DomainValidationError, domain_validation_error_handler)
+register_exception_handler(RemnawaveSubscriptionError, remnawave_subscription_error_handler)
 
 # Register catch-all domain error handler
 register_exception_handler(DomainError, domain_error_handler)

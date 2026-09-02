@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Dostupnost služby VPN",
+    "connections": "Připojení",
+    "usage": "Využití",
+    "devices": "Zařízení",
+    "available": "Dostupné",
+    "unavailable": "Nedostupné",
+    "loading": "Načítání stavu služby VPN",
+    "degraded": "Částečně omezené"
   }
 }

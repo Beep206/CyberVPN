@@ -216,6 +216,25 @@ class TestRemnawaveUserResponse:
         assert user.short_uuid == "abc123"
 
     @pytest.mark.unit
+    def test_numeric_only_user_requires_exact_positive_integer_id(self, user_data_camel):
+        payload = {**user_data_camel, "id": 42}
+        payload.pop("uuid")
+
+        user = RemnawaveUserResponse(**payload)
+
+        assert user.remnawave_numeric_id == 42
+        assert user.uuid is None
+
+    @pytest.mark.unit
+    @pytest.mark.parametrize("invalid_numeric_id", [0, -1, True, "42"])
+    def test_numeric_user_rejects_inexact_id(self, user_data_camel, invalid_numeric_id):
+        payload = {**user_data_camel, "id": invalid_numeric_id}
+        payload.pop("uuid")
+
+        with pytest.raises(ValidationError, match="exact positive integer"):
+            RemnawaveUserResponse(**payload)
+
+    @pytest.mark.unit
     def test_optional_fields_default_to_none(self, user_data_snake):
         """Test that all optional fields default to None when not provided."""
         user = RemnawaveUserResponse(**user_data_snake)
@@ -574,7 +593,7 @@ class TestRemnawaveNodeResponse:
 
     @pytest.mark.unit
     def test_default_values_for_optional_with_defaults(self):
-        """Test that address and port have correct defaults when not provided."""
+        """Test dual-window defaults, including target-3.4 nullable node port."""
         node = RemnawaveNodeResponse(
             uuid="uuid-1",
             name="Test",
@@ -583,7 +602,7 @@ class TestRemnawaveNodeResponse:
         )
 
         assert node.address == ""
-        assert node.port == 0
+        assert node.port is None
         assert node.is_connected is False
         assert node.is_disabled is False
         assert node.is_connecting is False

@@ -711,7 +711,7 @@ def _scrub(value: object) -> Any:
 
 
 def _hash_optional(value: str | None) -> str | None:
-    if value in (None, ""):
+    if value is None or value == "":
         return None
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 

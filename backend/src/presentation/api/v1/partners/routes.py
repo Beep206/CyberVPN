@@ -8,7 +8,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from time import perf_counter
-from typing import Protocol, TypedDict
+from typing import TypedDict
 from uuid import UUID, uuid4
 
 import redis.asyncio as redis
@@ -96,6 +96,7 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.commissionability_evaluation_model import (
     CommissionabilityEvaluationModel,
 )
+from src.infrastructure.database.models.creative_approval_model import CreativeApprovalModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.order_attribution_result_model import (
     OrderAttributionResultModel,
@@ -107,6 +108,7 @@ from src.infrastructure.database.models.partner_model import (
     PartnerCodeLinkModel,
     PartnerCodeModel,
 )
+from src.infrastructure.database.models.partner_traffic_declaration_model import PartnerTrafficDeclarationModel
 from src.infrastructure.database.models.partner_workspace_legal_acceptance_model import (
     PartnerWorkspaceLegalAcceptanceModel,
 )
@@ -340,24 +342,6 @@ class _WorkspaceReportExportDefinition(TypedDict):
     status: str
     cadence: str
     notes: list[str]
-
-
-class _WorkspaceTrafficDeclaration(Protocol):
-    id: UUID
-    declaration_kind: str
-    declaration_status: str
-    scope_label: str
-    updated_at: datetime
-    notes_payload: list[str] | None
-
-
-class _WorkspaceCreativeApproval(Protocol):
-    id: UUID
-    approval_kind: str
-    approval_status: str
-    scope_label: str
-    updated_at: datetime
-    notes_payload: list[str] | None
 
 
 def _serialize_workspace_member(
@@ -1689,12 +1673,13 @@ async def _resolve_partner_session_workspace_access(
 
     selected_workspace = accounts[0]
     if workspace_id is not None:
-        selected_workspace = next((item for item in accounts if item.id == workspace_id), None)
-        if selected_workspace is None:
+        requested_workspace = next((item for item in accounts if item.id == workspace_id), None)
+        if requested_workspace is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Partner workspace is not available for the current session",
             )
+        selected_workspace = requested_workspace
 
     return await resolve_partner_workspace_access(
         workspace_id=selected_workspace.id,
@@ -3516,10 +3501,10 @@ def _map_workspace_traffic_status(
 
 def _build_workspace_traffic_declarations(
     *,
-    traffic_declarations: Sequence[_WorkspaceTrafficDeclaration],
-    creative_approvals: Sequence[_WorkspaceCreativeApproval],
+    traffic_declarations: Sequence[PartnerTrafficDeclarationModel],
+    creative_approvals: Sequence[CreativeApprovalModel],
 ) -> list[PartnerWorkspaceTrafficDeclarationResponse]:
-    latest_declarations_by_kind: dict[str, _WorkspaceTrafficDeclaration] = {}
+    latest_declarations_by_kind: dict[str, PartnerTrafficDeclarationModel] = {}
     for declaration_item in sorted(
         traffic_declarations,
         key=lambda declaration: _normalize_utc(declaration.updated_at),
@@ -3527,7 +3512,7 @@ def _build_workspace_traffic_declarations(
     ):
         latest_declarations_by_kind.setdefault(declaration_item.declaration_kind, declaration_item)
 
-    latest_approvals_by_kind: dict[str, _WorkspaceCreativeApproval] = {}
+    latest_approvals_by_kind: dict[str, CreativeApprovalModel] = {}
     for approval_item in sorted(
         creative_approvals,
         key=lambda approval: _normalize_utc(approval.updated_at),
@@ -5205,6 +5190,8 @@ async def mark_partner_notification_read(
         source_event_kind=target.source_event_kind,
         result="success",
     )
+    if state.read_at is None:
+        raise RuntimeError("Read notification state has no read timestamp")
     return PartnerNotificationReadStateResponse(
         notification_id=notification_id,
         unread=False,
@@ -5266,6 +5253,8 @@ async def archive_partner_notification(
         source_event_kind=target.source_event_kind,
         result="success",
     )
+    if state.read_at is None:
+        raise RuntimeError("Archived notification state has no read timestamp")
     return PartnerNotificationReadStateResponse(
         notification_id=notification_id,
         unread=False,

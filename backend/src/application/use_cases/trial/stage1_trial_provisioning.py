@@ -35,6 +35,7 @@ class Stage1TrialProvisioningRequest:
     trial_expires_at: datetime
     profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID
     existing_remnawave_uuid: str | None = None
+    existing_remnawave_user_id: int | None = None
     traffic_limit_bytes: int = STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES
     device_limit: int = STAGE1_TRIAL_DEVICE_LIMIT
     traffic_limit_strategy: str = STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY
@@ -51,20 +52,28 @@ class Stage1TrialProvisioningResult:
     """Safe result of S1 trial VPN provisioning."""
 
     customer_account_id: UUID
-    remnawave_uuid: str
+    remnawave_uuid: str | None
     profile_id: str
     status: str
     expires_at: datetime
     subscription_url: str | None = None
     created: bool = False
     provider_name: str = "remnawave"
+    remnawave_user_id: int | None = None
 
-    def to_safe_dict(self) -> dict[str, str | bool]:
+    def require_remnawave_user_id(self) -> int:
+        value = self.remnawave_user_id
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise Stage1TrialProvisioningError("Provisioning gateway returned an incomplete Remnawave 3.x identity")
+        return value
+
+    def to_safe_dict(self) -> dict[str, str | int | bool | None]:
         """Serialize metadata without leaking config links or provider secrets."""
 
         return {
             "customer_account_id": str(self.customer_account_id),
             "remnawave_uuid": self.remnawave_uuid,
+            "remnawave_user_id": self.remnawave_user_id,
             "profile_id": self.profile_id,
             "status": self.status,
             "expires_at": self.expires_at.isoformat(),
@@ -91,6 +100,7 @@ def build_stage1_trial_provisioning_request(
     telegram_id: int | None,
     trial_expires_at: datetime,
     existing_remnawave_uuid: str | None = None,
+    existing_remnawave_user_id: int | None = None,
     profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID,
 ) -> Stage1TrialProvisioningRequest:
     """Build and validate the S1 trial provisioning request."""
@@ -107,6 +117,7 @@ def build_stage1_trial_provisioning_request(
         trial_expires_at=trial_expires_at,
         profile_id=profile.profile_id,
         existing_remnawave_uuid=existing_remnawave_uuid,
+        existing_remnawave_user_id=existing_remnawave_user_id,
     )
 
 
@@ -125,6 +136,7 @@ class Stage1TrialProvisioningService:
         telegram_id: int | None,
         trial_expires_at: datetime,
         existing_remnawave_uuid: str | None = None,
+        existing_remnawave_user_id: int | None = None,
         profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID,
     ) -> Stage1TrialProvisioningResult:
         request = build_stage1_trial_provisioning_request(
@@ -134,6 +146,7 @@ class Stage1TrialProvisioningService:
             telegram_id=telegram_id,
             trial_expires_at=trial_expires_at,
             existing_remnawave_uuid=existing_remnawave_uuid,
+            existing_remnawave_user_id=existing_remnawave_user_id,
             profile_id=profile_id,
         )
         result = await self._gateway.provision_trial_access(request)
@@ -142,6 +155,12 @@ class Stage1TrialProvisioningService:
         expires_delta_seconds = abs((result.expires_at - request.trial_expires_at).total_seconds())
         if expires_delta_seconds > 1:
             raise Stage1TrialProvisioningError("Provisioning gateway returned an unexpected trial expiry")
-        if not result.remnawave_uuid:
-            raise Stage1TrialProvisioningError("Provisioning gateway returned no Remnawave user UUID")
+        result.require_remnawave_user_id()
+        if result.remnawave_uuid is not None:
+            try:
+                UUID(result.remnawave_uuid)
+            except ValueError as exc:
+                raise Stage1TrialProvisioningError(
+                    "Provisioning gateway returned an invalid Remnawave rollback reference"
+                ) from exc
         return result

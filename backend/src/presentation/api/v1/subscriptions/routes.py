@@ -2,13 +2,15 @@ import hmac
 from dataclasses import asdict
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Annotated
 from uuid import UUID
 
 import redis.asyncio as redis
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.cache_service import CacheService
+from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
 from src.application.use_cases.payments.commit_checkout import (
     CheckoutIdempotencyConflictError,
@@ -25,25 +27,28 @@ from src.application.use_cases.subscriptions import (
     Stage1ProvisioningRetryWorkerResult,
     UpgradeSubscriptionUseCase,
 )
+from src.application.use_cases.subscriptions.cancel_subscription import (
+    SubscriptionCancellationIdentityConflictError,
+    SubscriptionCancellationNotFoundError,
+)
 from src.config.settings import settings
 from src.domain.enums import AdminRole
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
 from src.infrastructure.cache.redis_client import get_redis
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
-from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.stage1_provisioning_retry_repo import Stage1ProvisioningRetryJobRepository
 from src.infrastructure.monitoring.instrumentation.routes import track_subscription_activation
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
 from src.infrastructure.remnawave.client import RemnawaveClient
-from src.infrastructure.remnawave.contracts import (
-    RemnawaveSubscriptionConfigResponse,
-    RemnawaveSubscriptionResponse,
-    StatusMessageResponse,
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionConfigResponse
+from src.infrastructure.remnawave.control_plane_gateways import (
+    RemnawaveSubscriptionTemplateControlPlaneGateway,
+    RemnawaveSubscriptionTemplateCreateSafetyDisabled,
+    RemnawaveSubscriptionTemplateMutationAcceptedPending,
 )
 from src.infrastructure.remnawave.stage1_paid_gateway import RemnawaveStage1PaidProvisioningGateway
 from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
 from src.infrastructure.remnawave.subscription_client import CachedSubscriptionClient, RemnawaveSubscriptionClient
-from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.infrastructure.remnawave.user_gateway import RemnawaveMutationAcceptedPending, RemnawaveUserGateway
 from src.presentation.api.v1.payments.schemas import (
     CheckoutAddonResponse,
     CheckoutCodeResolutionResponse,
@@ -54,12 +59,25 @@ from src.presentation.api.v1.payments.schemas import (
     InvoiceResponse,
 )
 from src.presentation.api.v1.remnawave_degraded import optional_remnawave_read
-from src.presentation.dependencies import get_current_active_user, get_remnawave_client, require_role
-from src.presentation.dependencies.auth import get_current_active_web_user, get_current_mobile_user_id
-from src.presentation.dependencies.auth_realms import get_request_customer_realm, get_request_web_auth_realm
+from src.presentation.dependencies import get_remnawave_client, require_role
+from src.presentation.dependencies.auth import (
+    CurrentPrincipalActor,
+    get_current_mobile_user_id,
+    get_current_principal_actor,
+)
+from src.presentation.dependencies.auth_realms import get_request_auth_realm, get_request_customer_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.services import get_crypto_client
 
+from .credential_access import (
+    read_customer_vpn_credentials_as_admin,
+)
+from .credential_access import (
+    require_customer_principal as _require_customer_principal,
+)
+from .credential_access import (
+    resolve_exact_mobile_user_ref as _resolve_exact_mobile_user_ref,
+)
 from .schemas import (
     ActiveSubscriptionResponse,
     CancelSubscriptionResponse,
@@ -67,11 +85,26 @@ from .schemas import (
     CurrentEntitlementsResponse,
     PurchaseSubscriptionAddonsRequest,
     SubscriptionTemplateListResponse,
+    SubscriptionTemplateResponse,
     UpdateSubscriptionTemplateRequest,
     UpgradeSubscriptionRequest,
 )
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
+
+_CANONICAL_LOCAL_USER_UUID_PATTERN = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
+
+def _parse_canonical_local_user_id(raw_user_id: str) -> UUID:
+    try:
+        parsed = UUID(raw_user_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid customer identifier"
+        ) from exc
+    if str(parsed) != raw_user_id:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid customer identifier")
+    return parsed
 
 
 def _is_valid_telegram_bot_secret(secret: str | None) -> bool:
@@ -387,57 +420,89 @@ async def list_subscription_templates(
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """List all subscription templates (admin only)"""
-    empty_templates: list[RemnawaveSubscriptionResponse] = []
-    templates: list[RemnawaveSubscriptionResponse] = await optional_remnawave_read(
+    empty_templates: list[SubscriptionTemplateResponse] = []
+    templates: list[SubscriptionTemplateResponse] = await optional_remnawave_read(
         route="subscriptions",
         action="list_templates",
         fetch=lambda: client.get_collection_validated(
             "/subscription-templates",
             "templates",
-            RemnawaveSubscriptionResponse,
+            SubscriptionTemplateResponse,
         ),
         fallback=empty_templates,
     )
     return SubscriptionTemplateListResponse(total=len(templates), templates=templates)
 
 
-@router.post("/", response_model=RemnawaveSubscriptionResponse)
+@router.post(
+    "/",
+    response_model=SubscriptionTemplateResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "description": "Template creation is safety-disabled pending durable settlement",
+        }
+    },
+)
 async def create_subscription_template(
     template_data: CreateSubscriptionTemplateRequest,
     current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-):
-    """Create a new subscription template (admin only)"""
-    return await client.post_validated(
-        "/subscription-templates",
-        RemnawaveSubscriptionResponse,
-        json=template_data.model_dump(),
-    )
+) -> SubscriptionTemplateResponse:
+    """Refuse duplicate-prone create until CyberVPN owns durable settlement."""
+    try:
+        return await RemnawaveSubscriptionTemplateControlPlaneGateway(client).create(
+            template_data.to_upstream_payload()
+        )
+    except RemnawaveSubscriptionTemplateCreateSafetyDisabled as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": exc.error_code},
+        ) from exc
 
 
 @router.get("/config/{user_uuid}", response_model=RemnawaveSubscriptionConfigResponse)
 async def generate_config(
-    user_uuid: str,
-    current_user: AdminUserModel = Depends(get_current_active_web_user),
-    current_realm=Depends(get_request_web_auth_realm),
+    user_uuid: Annotated[
+        str,
+        Path(
+            min_length=36,
+            max_length=36,
+            pattern=_CANONICAL_LOCAL_USER_UUID_PATTERN,
+            description="Canonical CyberVPN MobileUser UUID; never a Remnawave identifier.",
+        ),
+    ],
+    request: Request,
+    current_actor: CurrentPrincipalActor = Depends(get_current_principal_actor),
+    current_realm: RealmResolution = Depends(get_request_auth_realm),
     db: AsyncSession = Depends(get_db),
     client: RemnawaveClient = Depends(get_remnawave_client),
+    redis_client: redis.Redis = Depends(get_redis),
 ):
-    """Generate VPN configuration for the authenticated customer or an admin-selected user."""
-    if current_realm.realm_type != "admin" and user_uuid != str(current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot access another user's VPN configuration",
-        )
+    """Return a customer's live VPN credential through an object-authorized path."""
 
-    resolved_user_uuid = user_uuid
+    customer_id = _parse_canonical_local_user_id(user_uuid)
     if current_realm.realm_type == "customer":
-        mobile_user = await MobileUserRepository(db).get_by_id(current_user.id)
-        if mobile_user is not None and mobile_user.remnawave_uuid:
-            resolved_user_uuid = mobile_user.remnawave_uuid
+        _require_customer_principal(current_actor, current_realm)
+        if current_actor.principal_id != customer_id:
+            # Do not turn this credential endpoint into a customer enumeration oracle.
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+        _customer, user_ref = await _resolve_exact_mobile_user_ref(
+            db,
+            customer_id=customer_id,
+            expected_auth_realm_id=current_actor.auth_realm_id,
+        )
+        return await GenerateConfigUseCase(client).execute(user_ref)
 
-    use_case = GenerateConfigUseCase(client)
-    return await use_case.execute(resolved_user_uuid)
+    return await read_customer_vpn_credentials_as_admin(
+        customer_id=customer_id,
+        request=request,
+        actor=current_actor,
+        current_realm=current_realm,
+        db=db,
+        client=client,
+        redis_client=redis_client,
+    )
 
 
 @router.get(
@@ -447,10 +512,13 @@ async def generate_config(
     description="Retrieve the authenticated user's current subscription status.",
     responses={
         401: {"description": "Not authenticated"},
+        202: {"description": "Revocation accepted; authoritative state reconciliation is pending"},
     },
 )
 async def get_active_subscription(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_actor: CurrentPrincipalActor = Depends(get_current_principal_actor),
+    current_realm: RealmResolution = Depends(get_request_auth_realm),
+    db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> ActiveSubscriptionResponse:
@@ -459,6 +527,13 @@ async def get_active_subscription(
     Returns subscription status, plan details, expiration, and traffic usage.
     Data is cached for 5 minutes for performance.
     """
+    _require_customer_principal(current_actor, current_realm)
+    _customer, user_ref = await _resolve_exact_mobile_user_ref(
+        db,
+        customer_id=current_actor.principal_id,
+        expected_auth_realm_id=current_actor.auth_realm_id,
+    )
+
     # Build subscription client with caching
     cache_service = CacheService(redis_client)
     base_client = RemnawaveSubscriptionClient(remnawave_client)
@@ -466,7 +541,7 @@ async def get_active_subscription(
 
     # Execute use case
     use_case = GetActiveSubscriptionUseCase(cached_client)
-    subscription = await use_case.execute(current_user.id)
+    subscription = await use_case.execute(user_ref)
 
     # Track subscription activation metric
     if subscription.status == "active" and subscription.plan_name:
@@ -494,10 +569,12 @@ async def get_active_subscription(
     },
 )
 async def cancel_subscription(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_actor: CurrentPrincipalActor = Depends(get_current_principal_actor),
+    current_realm: RealmResolution = Depends(get_request_auth_realm),
+    db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
     redis_client: redis.Redis = Depends(get_redis),
-) -> CancelSubscriptionResponse:
+) -> CancelSubscriptionResponse | Response:
     """Cancel the user's active subscription.
 
     Sets the subscription revocation timestamp and invalidates cached data.
@@ -505,8 +582,16 @@ async def cancel_subscription(
 
     Rate limited to 3 requests per hour per user.
     """
-    # Rate limiting: 3 requests per hour per user
-    rate_limit_key = f"subscription_cancel:{current_user.id}"
+    _require_customer_principal(current_actor, current_realm)
+    _customer, user_ref = await _resolve_exact_mobile_user_ref(
+        db,
+        customer_id=current_actor.principal_id,
+        expected_auth_realm_id=current_actor.auth_realm_id,
+    )
+
+    # Rate limiting is scoped to the immutable local customer id, not an
+    # attacker-controlled upstream identifier.
+    rate_limit_key = f"subscription_cancel:{current_actor.principal_id}"
     rate_limit_window = 3600  # 1 hour in seconds
     rate_limit_max = 3
 
@@ -529,52 +614,72 @@ async def cancel_subscription(
     use_case = CancelSubscriptionUseCase(user_gateway, cached_client)
 
     try:
-        await use_case.execute(current_user.id)
-    except ValueError as exc:
+        canceled_at = await use_case.execute(user_ref)
+    except SubscriptionCancellationNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(exc),
         ) from exc
+    except SubscriptionCancellationIdentityConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except RemnawaveMutationAcceptedPending:
+        return Response(status_code=status.HTTP_202_ACCEPTED, headers={"Retry-After": "30"})
 
     # Increment rate limit counter
     pipe = redis_client.pipeline()
-    await pipe.incr(rate_limit_key)
-    await pipe.expire(rate_limit_key, rate_limit_window)
+    pipe.incr(rate_limit_key)
+    pipe.expire(rate_limit_key, rate_limit_window)
     await pipe.execute()
 
-    return CancelSubscriptionResponse(canceled_at=datetime.now(UTC))
+    return CancelSubscriptionResponse(canceled_at=canceled_at)
 
 
-@router.get("/{uuid}", response_model=RemnawaveSubscriptionResponse)
+@router.get("/{uuid}", response_model=SubscriptionTemplateResponse)
 async def get_subscription_template(
-    uuid: str,
-    current_user=Depends(get_current_active_user),
+    uuid: UUID,
+    current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
 ):
     """Get subscription template details"""
-    return await client.get_validated(f"/subscription-templates/{uuid}", RemnawaveSubscriptionResponse)
+    return await client.get_validated(f"/subscription-templates/{uuid}", SubscriptionTemplateResponse)
 
 
-@router.put("/{uuid}", response_model=RemnawaveSubscriptionResponse)
+@router.put(
+    "/{uuid}",
+    response_model=SubscriptionTemplateResponse,
+    responses={
+        status.HTTP_202_ACCEPTED: {
+            "description": "Remnawave accepted the template update without a response body.",
+        }
+    },
+)
 async def update_subscription_template(
-    uuid: str,
+    uuid: UUID,
     template_data: UpdateSubscriptionTemplateRequest,
     current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-):
+) -> SubscriptionTemplateResponse | Response:
     """Update subscription template (admin only)"""
-    return await client.put_validated(
-        f"/subscription-templates/{uuid}",
-        RemnawaveSubscriptionResponse,
-        json=template_data.model_dump(exclude_none=True),
-    )
+    try:
+        result = await RemnawaveSubscriptionTemplateControlPlaneGateway(client).update(
+            uuid,
+            template_data.to_upstream_payload(),
+        )
+    except RemnawaveSubscriptionTemplateMutationAcceptedPending:
+        return Response(status_code=status.HTTP_202_ACCEPTED, headers={"Retry-After": "30"})
+    return SubscriptionTemplateResponse.model_validate(result.model_dump(by_alias=True, mode="json"))
 
 
-@router.delete("/{uuid}", response_model=StatusMessageResponse)
+@router.delete(
+    "/{uuid}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
 async def delete_subscription_template(
-    uuid: str,
+    uuid: UUID,
     current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-):
+) -> Response:
     """Delete subscription template (admin only)"""
-    return await client.delete_validated(f"/subscription-templates/{uuid}", StatusMessageResponse)
+    await client.delete_validated(f"/subscription-templates/{uuid}")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

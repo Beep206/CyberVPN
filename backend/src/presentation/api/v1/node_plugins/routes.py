@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 
 from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
@@ -44,40 +44,29 @@ async def get_torrent_blocker_stats(
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
 ) -> TorrentBlockerReportsStatsResponse:
-    result = await optional_remnawave_read(
-        route="node_plugins",
-        action="torrent_stats",
-        fetch=lambda: client.get_validated(
-            "/node-plugins/torrent-blocker/reports/stats",
-            TorrentBlockerReportsStatsResponse,
-        ),
-        fallback=TorrentBlockerReportsStatsResponse.model_validate(
-            {
-                "stats": {
-                    "distinct_nodes": 0,
-                    "distinct_users": 0,
-                    "total_reports": 0,
-                    "reports_last_24_hours": 0,
-                },
-                "top_users": [],
-                "top_nodes": [],
-            }
-        ),
+    result = await client.get_validated(
+        "/node-plugins/torrent-blocker/stats",
+        TorrentBlockerReportsStatsResponse,
     )
+    route_operations_total.labels(route="node_plugins", action="torrent_stats", status="success").inc()
     return result
 
 
-@router.delete("/torrent-blocker/reports", response_model=TorrentBlockerReportsResponse)
+@router.delete(
+    "/torrent-blocker/reports",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_model=None,
+)
 async def truncate_torrent_blocker_reports(
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> TorrentBlockerReportsResponse:
-    result = await client.delete_validated(
+) -> Response:
+    await client.delete_validated(
         "/node-plugins/torrent-blocker/truncate",
-        TorrentBlockerReportsResponse,
+        None,
     )
     route_operations_total.labels(route="node_plugins", action="torrent_truncate", status="success").inc()
-    return result
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/", response_model=NodePluginCollectionResponse)
@@ -93,59 +82,83 @@ async def list_node_plugins(
     )
 
 
-@router.post("/", response_model=NodePluginResponse)
+@router.post(
+    "/",
+    response_model=NodePluginResponse,
+    responses={202: {"description": "Creation accepted by Remnawave without a response body"}},
+)
 async def create_node_plugin(
     body: CreateNodePluginRequest,
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> NodePluginResponse:
+) -> NodePluginResponse | Response:
     result = await client.post_validated("/node-plugins", NodePluginResponse, json=body.model_dump(by_alias=True))
     route_operations_total.labels(route="node_plugins", action="create", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return result
 
 
-@router.post("/reorder", response_model=NodePluginCollectionResponse)
+@router.post(
+    "/reorder",
+    response_model=NodePluginCollectionResponse,
+    responses={202: {"description": "Reorder accepted by Remnawave without a response body"}},
+)
 async def reorder_node_plugins(
     body: ReorderNodePluginsRequest,
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> NodePluginCollectionResponse:
+) -> NodePluginCollectionResponse | Response:
     result = await client.post_validated(
         "/node-plugins/actions/reorder",
         NodePluginCollectionResponse,
         json=body.model_dump(by_alias=True),
     )
     route_operations_total.labels(route="node_plugins", action="reorder", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return result
 
 
-@router.post("/clone", response_model=NodePluginResponse)
+@router.post(
+    "/clone",
+    response_model=NodePluginResponse,
+    responses={202: {"description": "Clone accepted by Remnawave without a response body"}},
+)
 async def clone_node_plugin(
     body: CloneNodePluginRequest,
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> NodePluginResponse:
+) -> NodePluginResponse | Response:
     result = await client.post_validated(
         "/node-plugins/actions/clone",
         NodePluginResponse,
         json=body.model_dump(by_alias=True),
     )
     route_operations_total.labels(route="node_plugins", action="clone", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return result
 
 
-@router.post("/execute", response_model=PluginExecutorResponse)
+@router.post(
+    "/execute",
+    response_model=PluginExecutorResponse,
+    responses={202: {"description": "Execution accepted by Remnawave without a response body"}},
+)
 async def execute_node_plugin(
     body: PluginExecutorRequest,
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> PluginExecutorResponse:
+) -> PluginExecutorResponse | Response:
     result = await client.post_validated(
         "/node-plugins/executor",
         PluginExecutorResponse,
         json=body.model_dump(by_alias=True),
     )
     route_operations_total.labels(route="node_plugins", action="execute", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return result
 
 
@@ -160,26 +173,38 @@ async def get_node_plugin(
     return result
 
 
-@router.put("/{uuid}", response_model=NodePluginResponse)
+@router.put(
+    "/{uuid}",
+    response_model=NodePluginResponse,
+    responses={202: {"description": "Update accepted by Remnawave without a response body"}},
+)
 async def update_node_plugin(
     uuid: str,
     body: UpdateNodePluginRequest,
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> NodePluginResponse:
+) -> NodePluginResponse | Response:
     payload = body.model_dump(by_alias=True, exclude_none=True)
     payload["uuid"] = uuid
     result = await client.patch_validated("/node-plugins", NodePluginResponse, json=payload)
     route_operations_total.labels(route="node_plugins", action="update", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return result
 
 
-@router.delete("/{uuid}", response_model=DeleteNodePluginResponse)
+@router.delete(
+    "/{uuid}",
+    response_model=DeleteNodePluginResponse,
+    responses={204: {"description": "Plugin was deleted; Remnawave returned no body"}},
+)
 async def delete_node_plugin(
     uuid: str,
     _current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-) -> DeleteNodePluginResponse:
+) -> DeleteNodePluginResponse | Response:
     result = await client.delete_validated(f"/node-plugins/{uuid}", DeleteNodePluginResponse)
     route_operations_total.labels(route="node_plugins", action="delete", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     return result

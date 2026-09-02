@@ -4,8 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/shared/services/version_service.dart';
 import 'package:cybervpn_mobile/shared/widgets/in_app_update_dialog.dart';
+
+Widget _testApp({required Widget home}) {
+  return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('en'),
+    home: home,
+  );
+}
 
 void main() {
   late SharedPreferences prefs;
@@ -23,12 +33,13 @@ void main() {
       latestVersion: '2.0.0',
     );
 
-    testWidgets('renders without dismiss option and blocks interaction',
-        (tester) async {
+    testWidgets('renders without dismiss option and blocks interaction', (
+      tester,
+    ) async {
       bool updateCalled = false;
 
       await tester.pumpWidget(
-        MaterialApp(
+        _testApp(
           home: Scaffold(
             body: InAppUpdateDialog(
               updateInfo: mandatoryUpdate,
@@ -62,7 +73,7 @@ void main() {
 
     testWidgets('cannot be dismissed by tapping outside', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        _testApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
@@ -98,20 +109,22 @@ void main() {
 
     testWidgets('blocks back button navigation', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        _testApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () {
-                  unawaited(showDialog<void>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => InAppUpdateDialog(
-                      updateInfo: mandatoryUpdate,
-                      onUpdate: () {},
-                      prefs: prefs,
+                  unawaited(
+                    showDialog<void>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => InAppUpdateDialog(
+                        updateInfo: mandatoryUpdate,
+                        onUpdate: () {},
+                        prefs: prefs,
+                      ),
                     ),
-                  ));
+                  );
                 },
                 child: const Text('Show Dialog'),
               ),
@@ -146,10 +159,11 @@ void main() {
       latestVersion: '1.1.0',
     );
 
-    testWidgets('renders with dismiss option and snooze checkbox',
-        (tester) async {
+    testWidgets('renders with dismiss option and snooze checkbox', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        _testApp(
           home: Scaffold(
             body: InAppUpdateDialog(
               updateInfo: optionalUpdate,
@@ -181,7 +195,7 @@ void main() {
       bool dismissCalled = false;
 
       await tester.pumpWidget(
-        MaterialApp(
+        _testApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => InAppUpdateDialog(
@@ -203,10 +217,11 @@ void main() {
       expect(dismissCalled, isTrue);
     });
 
-    testWidgets('stores snooze timestamp when checkbox is checked',
-        (tester) async {
+    testWidgets('stores snooze timestamp when checkbox is checked', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        _testApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => InAppUpdateDialog(
@@ -239,10 +254,11 @@ void main() {
       expect(snoozeTimestamp, greaterThan(0));
     });
 
-    testWidgets('does not store snooze when checkbox is unchecked',
-        (tester) async {
+    testWidgets('does not store snooze when checkbox is unchecked', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        MaterialApp(
+        _testApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => InAppUpdateDialog(
@@ -298,8 +314,9 @@ void main() {
 
     test('returns true for mandatory update regardless of snooze', () async {
       // Set snooze timestamp to 1 day ago
-      final oneDayAgo =
-          DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch;
+      final oneDayAgo = DateTime.now()
+          .subtract(const Duration(days: 1))
+          .millisecondsSinceEpoch;
       await prefs.setInt(InAppUpdateDialog.snoozeKey, oneDayAgo);
 
       final shouldShow = InAppUpdateDialog.shouldShowDialog(
@@ -319,35 +336,41 @@ void main() {
       expect(shouldShow, isTrue);
     });
 
-    test('returns false for optional update within 3-day snooze period',
-        () async {
-      // Set snooze timestamp to 1 day ago
-      final oneDayAgo =
-          DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch;
-      await prefs.setInt(InAppUpdateDialog.snoozeKey, oneDayAgo);
+    test(
+      'returns false for optional update within 3-day snooze period',
+      () async {
+        // Set snooze timestamp to 1 day ago
+        final oneDayAgo = DateTime.now()
+            .subtract(const Duration(days: 1))
+            .millisecondsSinceEpoch;
+        await prefs.setInt(InAppUpdateDialog.snoozeKey, oneDayAgo);
 
-      final shouldShow = InAppUpdateDialog.shouldShowDialog(
-        updateInfo: optionalUpdate,
-        prefs: prefs,
-      );
+        final shouldShow = InAppUpdateDialog.shouldShowDialog(
+          updateInfo: optionalUpdate,
+          prefs: prefs,
+        );
 
-      expect(shouldShow, isFalse);
-    });
+        expect(shouldShow, isFalse);
+      },
+    );
 
-    test('returns true for optional update after 3-day snooze expires',
-        () async {
-      // Set snooze timestamp to 4 days ago
-      final fourDaysAgo =
-          DateTime.now().subtract(const Duration(days: 4)).millisecondsSinceEpoch;
-      await prefs.setInt(InAppUpdateDialog.snoozeKey, fourDaysAgo);
+    test(
+      'returns true for optional update after 3-day snooze expires',
+      () async {
+        // Set snooze timestamp to 4 days ago
+        final fourDaysAgo = DateTime.now()
+            .subtract(const Duration(days: 4))
+            .millisecondsSinceEpoch;
+        await prefs.setInt(InAppUpdateDialog.snoozeKey, fourDaysAgo);
 
-      final shouldShow = InAppUpdateDialog.shouldShowDialog(
-        updateInfo: optionalUpdate,
-        prefs: prefs,
-      );
+        final shouldShow = InAppUpdateDialog.shouldShowDialog(
+          updateInfo: optionalUpdate,
+          prefs: prefs,
+        );
 
-      expect(shouldShow, isTrue);
-    });
+        expect(shouldShow, isTrue);
+      },
+    );
   });
 
   group('InAppUpdateDialog - clearSnooze', () {

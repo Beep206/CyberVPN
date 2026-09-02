@@ -8,6 +8,7 @@ import pytest
 from fastapi.exceptions import RequestValidationError
 from starlette.requests import Request
 
+from src.infrastructure.remnawave.subscription_client import RemnawaveSubscriptionIdentityError
 from src.presentation import exception_handlers
 
 
@@ -72,3 +73,23 @@ async def test_unhandled_handler_redacts_subscription_bearer_path(monkeypatch: p
     call = logger.exception.call_args
     assert call.kwargs["extra"]["path"] == "/api/sub/[REDACTED]"
     assert token not in str(call)
+
+
+@pytest.mark.asyncio
+async def test_subscription_dependency_handler_returns_stable_503_without_identity_details(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logger = MagicMock()
+    monkeypatch.setattr(exception_handlers, "logger", logger)
+    secret_detail = "numeric 42 legacy 11111111-1111-1111-1111-111111111111"
+
+    response = await exception_handlers.remnawave_subscription_error_handler(
+        _request("/api/v1/mobile/auth/me"),
+        RemnawaveSubscriptionIdentityError(secret_detail),
+    )
+
+    assert response.status_code == 503
+    body = response.body.decode()
+    assert "remnawave_subscription_unavailable" in body
+    assert secret_detail not in body
+    assert secret_detail not in str(logger.warning.call_args)

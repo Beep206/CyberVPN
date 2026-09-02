@@ -24,6 +24,9 @@ void main() {
       container = ProviderContainer(
         overrides: [
           settingsRepositoryProvider.overrideWithValue(mockSettingsRepo),
+          hapticServiceProvider.overrideWith(
+            (ref) => HapticService(ref, isPlatformSupported: () => true),
+          ),
         ],
       );
     });
@@ -41,15 +44,16 @@ void main() {
 
       test('selection() calls HapticFeedback.selectionClick', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
         // Setup method channel mock
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.selection();
 
@@ -68,14 +72,15 @@ void main() {
 
       test('impact() calls HapticFeedback.mediumImpact', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.impact();
 
@@ -93,14 +98,15 @@ void main() {
 
       test('heavy() calls HapticFeedback.heavyImpact', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.heavy();
 
@@ -118,14 +124,15 @@ void main() {
 
       test('success() calls light and medium impacts with delay', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.success();
 
@@ -138,14 +145,15 @@ void main() {
 
       test('error() calls HapticFeedback.heavyImpact', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.error();
 
@@ -171,14 +179,15 @@ void main() {
 
       test('selection() does not trigger haptic feedback', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.selection();
 
@@ -191,14 +200,15 @@ void main() {
 
       test('impact() does not trigger haptic feedback', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.impact();
 
@@ -210,14 +220,15 @@ void main() {
 
       test('success() does not trigger haptic feedback', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         await service.success();
 
@@ -230,20 +241,22 @@ void main() {
 
     group('when settings repository throws', () {
       setUp(() {
-        when(() => mockSettingsRepo.getSettings())
-            .thenThrow(Exception('Settings error'));
+        when(
+          () => mockSettingsRepo.getSettings(),
+        ).thenThrow(Exception('Settings error'));
       });
 
       test('defaults to enabled and triggers haptic', () async {
         final service = container.read(hapticServiceProvider);
+        await service.refreshEnabledState();
 
-        const channel = MethodChannel('flutter/platform');
+        const channel = SystemChannels.platform;
         final List<MethodCall> log = [];
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
             .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
-          log.add(methodCall);
-          return null;
-        });
+              log.add(methodCall);
+              return null;
+            });
 
         // Should not throw and should trigger haptic (defaults to enabled)
         await service.selection();

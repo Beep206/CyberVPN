@@ -379,8 +379,10 @@ def _serialize_launch_timeline_entry(
     else:
         event_type = "launch_action"
         action_name = payload.get("action")
-        runtime_payload = payload.get("runtime") if isinstance(payload.get("runtime"), dict) else {}
-        summary_payload = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        raw_runtime_payload = payload.get("runtime")
+        raw_summary_payload = payload.get("summary")
+        runtime_payload = raw_runtime_payload if isinstance(raw_runtime_payload, dict) else {}
+        summary_payload = raw_summary_payload if isinstance(raw_summary_payload, dict) else {}
         resulting_runtime_mode = runtime_payload.get("mode")
         resulting_launch_state = summary_payload.get("launch_state")
 
@@ -405,7 +407,8 @@ def _serialize_customer_site_runtime_timeline_entry(
     entry: AuditLog,
 ) -> AdminCustomerSiteRuntimeTimelineEntryResponse:
     payload = entry.new_value if isinstance(entry.new_value, dict) else {}
-    site_payload = payload.get("site") if isinstance(payload.get("site"), dict) else payload
+    raw_site_payload = payload.get("site")
+    site_payload = raw_site_payload if isinstance(raw_site_payload, dict) else payload
     return AdminCustomerSiteRuntimeTimelineEntryResponse(
         id=entry.id,
         created_at=entry.created_at,

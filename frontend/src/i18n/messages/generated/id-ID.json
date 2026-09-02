@@ -460,7 +460,17 @@
     "serverStatus": "STATUS SERVER",
     "statusLabel": "STATUS SISTEM:",
     "statusValue": "OPTIMAL",
-    "title": "PUSAT KOMANDO VPN"
+    "title": "PUSAT KOMANDO VPN",
+    "vpnServiceStatus": {
+      "available": "Tersedia",
+      "connections": "Koneksi",
+      "degraded": "Sebagian terganggu",
+      "devices": "Perangkat",
+      "loading": "Memuat status layanan VPN",
+      "title": "Ketersediaan layanan VPN",
+      "unavailable": "Tidak tersedia",
+      "usage": "Penggunaan"
+    }
   },
   "DeleteAccount": {
     "contact": {

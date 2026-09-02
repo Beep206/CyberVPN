@@ -37,8 +37,8 @@ const SUPPORTED_UPSTREAM_DECISION_LABEL: &str = "remnawave_supported_upstream_ve
 const SUPPORTED_UPSTREAM_PROFILE: &str = "supported_upstream_verification";
 const SUPPORTED_UPSTREAM_SUMMARY_VERSION: u8 = 1;
 
-const SUPPORTED_UPSTREAM_VERSION_FLOOR: SimpleVersion = SimpleVersion::new(2, 7, 0);
-const SUPPORTED_UPSTREAM_VERSION_PREFERRED: SimpleVersion = SimpleVersion::new(2, 7, 4);
+const SUPPORTED_UPSTREAM_VERSION_FLOOR: SimpleVersion = SimpleVersion::new(3, 4, 1);
+const SUPPORTED_UPSTREAM_VERSION_PREFERRED: SimpleVersion = SimpleVersion::new(3, 4, 1);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum OutputFormat {
@@ -1328,7 +1328,7 @@ fn apply_source_version_override(
     mut snapshot: AccountSnapshot,
     source_version_override: Option<&str>,
 ) -> AccountSnapshot {
-    if snapshot.source_version.is_none() {
+    if source_version_override.is_some() {
         snapshot.source_version = source_version_override
             .map(str::trim)
             .filter(|value| !value.is_empty())
@@ -1578,8 +1578,8 @@ mod tests {
 
     #[derive(Debug, Deserialize)]
     struct ResolveBootstrapRequest {
-        bootstrap_subject_kind: String,
-        bootstrap_subject: String,
+        #[serde(rename = "shortUuid")]
+        short_uuid: String,
     }
 
     struct TestUpstreamState {
@@ -1597,7 +1597,7 @@ mod tests {
 
     fn supported_snapshot(version: &str) -> AccountSnapshot {
         AccountSnapshot {
-            account_id: "acct-1".to_owned(),
+            account_id: "42".to_owned(),
             bootstrap_subjects: vec![BootstrapSubject::ShortUuid("sub-1".to_owned())],
             lifecycle: ns_remnawave_adapter::AccountLifecycle::Active,
             verta_access: ns_remnawave_adapter::VertaAccess {
@@ -1620,27 +1620,36 @@ mod tests {
         State(state): State<Arc<TestUpstreamState>>,
         headers: HeaderMap,
         Json(request): Json<ResolveBootstrapRequest>,
-    ) -> Result<Json<AccountSnapshot>, reqwest::StatusCode> {
+    ) -> Result<Json<serde_json::Value>, reqwest::StatusCode> {
         if !authorized(&headers, &state.expected_token) {
             return Err(reqwest::StatusCode::UNAUTHORIZED);
         }
-        if request.bootstrap_subject_kind != "short_uuid" || request.bootstrap_subject != "sub-1" {
+        if request.short_uuid != "sub-1" {
             return Err(reqwest::StatusCode::NOT_FOUND);
         }
-        Ok(Json(
-            state
-                .snapshot
-                .lock()
-                .expect("test upstream state poisoned")
-                .clone(),
-        ))
+        let snapshot = state
+            .snapshot
+            .lock()
+            .expect("test upstream state poisoned")
+            .clone();
+        let id = snapshot
+            .account_id
+            .parse::<u64>()
+            .map_err(|_| reqwest::StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(Json(serde_json::json!({
+            "response": {
+                "id": id,
+                "username": "verta-test-user",
+                "shortUuid": "sub-1"
+            }
+        })))
     }
 
     async fn get_user(
         State(state): State<Arc<TestUpstreamState>>,
         headers: HeaderMap,
         AxumPath(account_id): AxumPath<String>,
-    ) -> Result<Json<AccountSnapshot>, reqwest::StatusCode> {
+    ) -> Result<Json<serde_json::Value>, reqwest::StatusCode> {
         if !authorized(&headers, &state.expected_token) {
             return Err(reqwest::StatusCode::UNAUTHORIZED);
         }
@@ -1652,7 +1661,23 @@ mod tests {
         if snapshot.account_id != account_id {
             return Err(reqwest::StatusCode::NOT_FOUND);
         }
-        Ok(Json(snapshot))
+        let status = match snapshot.lifecycle {
+            ns_remnawave_adapter::AccountLifecycle::Active => "ACTIVE",
+            ns_remnawave_adapter::AccountLifecycle::Disabled => "DISABLED",
+            ns_remnawave_adapter::AccountLifecycle::Revoked => "REVOKED",
+            ns_remnawave_adapter::AccountLifecycle::Expired => "EXPIRED",
+            ns_remnawave_adapter::AccountLifecycle::Limited => "LIMITED",
+        };
+        Ok(Json(serde_json::json!({
+            "response": {
+                "id": account_id.parse::<u64>().map_err(|_| reqwest::StatusCode::INTERNAL_SERVER_ERROR)?,
+                "shortUuid": "sub-1",
+                "username": "verta-test-user",
+                "status": status,
+                "hwidDeviceLimit": snapshot.verta_access.device_limit,
+                "subRevokedAt": null
+            }
+        })))
     }
 
     async fn spawn_test_upstream(
@@ -1683,14 +1708,14 @@ mod tests {
             source_version_override: None,
             request_timeout_ms: 500,
             max_snapshot_age_seconds: 300,
-            expected_account_id: Some("acct-1".to_owned()),
+            expected_account_id: Some("42".to_owned()),
             webhook_event_type: "subscription.updated".to_owned(),
         }
     }
 
     #[tokio::test]
     async fn supported_upstream_summary_is_ready_for_supported_fixture_server() {
-        let (base_url, handle) = spawn_test_upstream(supported_snapshot("2.7.4")).await;
+        let (base_url, handle) = spawn_test_upstream(supported_snapshot("3.4.1")).await;
         let summary = build_supported_upstream_summary(&test_config(
             Some(base_url),
             Some("rw-token".to_owned()),
@@ -1743,12 +1768,10 @@ mod tests {
 
     #[tokio::test]
     async fn supported_upstream_summary_fails_closed_on_unsupported_version() {
-        let (base_url, handle) = spawn_test_upstream(supported_snapshot("2.6.9")).await;
-        let summary = build_supported_upstream_summary(&test_config(
-            Some(base_url),
-            Some("rw-token".to_owned()),
-        ))
-        .await;
+        let (base_url, handle) = spawn_test_upstream(supported_snapshot("3.4.1")).await;
+        let mut config = test_config(Some(base_url), Some("rw-token".to_owned()));
+        config.source_version_override = Some("3.4.0".to_owned());
+        let summary = build_supported_upstream_summary(&config).await;
 
         assert_eq!(summary.verdict, "hold");
         assert_eq!(summary.gate_state_reason, "summary_contract_invalid");
@@ -1768,7 +1791,7 @@ mod tests {
 
     #[tokio::test]
     async fn supported_upstream_summary_marks_auth_failures_unready() {
-        let (base_url, handle) = spawn_test_upstream(supported_snapshot("2.7.4")).await;
+        let (base_url, handle) = spawn_test_upstream(supported_snapshot("3.4.1")).await;
         let summary = build_supported_upstream_summary(&test_config(
             Some(base_url),
             Some("wrong-token".to_owned()),

@@ -79,7 +79,7 @@ sealed class RoutingProfile with _$RoutingProfile {
     final rawRules = json['rules'];
     final rules = rawRules is List
         ? rawRules
-              .whereType<Map>()
+              .whereType<Map<String, dynamic>>()
               .map(
                 (rule) => RoutingRule.fromStorageJson(
                   Map<String, dynamic>.from(rule),

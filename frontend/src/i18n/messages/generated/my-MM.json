@@ -460,7 +460,17 @@
     "serverStatus": "ဆာဗာအခြေအနေ",
     "statusLabel": "စနစ်အခြေအနေ:",
     "statusValue": "အကောင်းဆုံး",
-    "title": "VPN ထိန်းချုပ်ရေးဗဟို"
+    "title": "VPN ထိန်းချုပ်ရေးဗဟို",
+    "vpnServiceStatus": {
+      "available": "ရရှိနိုင်သည်",
+      "connections": "ချိတ်ဆက်မှုများ",
+      "degraded": "တစ်စိတ်တစ်ပိုင်း အားနည်းနေသည်",
+      "devices": "စက်များ",
+      "loading": "VPN ဝန်ဆောင်မှုအခြေအနေကို တင်နေသည်",
+      "title": "VPN ဝန်ဆောင်မှု ရရှိနိုင်မှု",
+      "unavailable": "မရရှိနိုင်ပါ",
+      "usage": "အသုံးပြုမှု"
+    }
   },
   "DeleteAccount": {
     "contact": {

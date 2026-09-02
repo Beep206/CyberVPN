@@ -109,10 +109,6 @@ from src.infrastructure.monitoring.instrumentation.routes import (
     track_registration_funnel_step,
 )
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
-from src.infrastructure.remnawave.adapters import (
-    RemnawaveUserAdapter,
-    get_remnawave_adapter,
-)
 from src.infrastructure.tasks.email_task_dispatcher import (
     EmailTaskDispatcher,
     get_email_dispatcher,
@@ -1441,6 +1437,7 @@ async def get_me(
 )
 async def delete_account(
     current_user=Depends(get_current_active_web_user),
+    current_realm: RealmResolution = Depends(get_request_web_auth_realm),
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
 ) -> DeleteAccountResponse:
@@ -1450,6 +1447,18 @@ async def delete_account(
     and JWT access tokens. The user will be immediately logged out of all
     devices.
     """
+    if current_realm.realm_type == "customer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "CUSTOMER_ACCOUNT_DELETION_REQUIRES_PRIVACY_REQUEST",
+                "message": (
+                    "Customer account deletion must use the privacy request workflow at "
+                    "POST /api/v1/auth/me/privacy-requests."
+                ),
+            },
+        )
+
     user_repo = AdminUserRepository(db)
     use_case = DeleteAccountUseCase(
         user_repo=user_repo,
@@ -1489,7 +1498,6 @@ async def verify_otp(
     response: Response,
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
-    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
 ) -> VerifyOtpResponse:
     """
@@ -1523,7 +1531,6 @@ async def verify_otp(
         auth_service=auth_service,
         otp_service=otp_service,
         session=db,
-        remnawave_gateway=remnawave_adapter,
     )
 
     await _repair_unverified_customer_web_user_realm(
@@ -1991,7 +1998,7 @@ async def verify_magic_link(
     payload_locale = payload.get("locale") if isinstance(payload, dict) else None
     is_new_user = user is None
 
-    if is_new_user:
+    if user is None:
         try:
             ensure_public_registration_enabled(
                 channel="magic_link",
@@ -2237,7 +2244,7 @@ async def verify_magic_link_otp(
     payload_locale = payload.get("locale") if isinstance(payload, dict) else None
     is_new_user = user is None
 
-    if is_new_user:
+    if user is None:
         try:
             ensure_public_registration_enabled(
                 channel="magic_link_otp",
@@ -2435,7 +2442,6 @@ async def telegram_miniapp_auth(
     db: AsyncSession = Depends(get_db),
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
-    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramMiniAppResponse:
     """Authenticate via Telegram Mini App initData.
 
@@ -2456,7 +2462,6 @@ async def telegram_miniapp_auth(
         session=db,
         telegram_provider=telegram_provider,
         replay_guard=RedisTelegramInitDataReplayGuard(redis_client),
-        remnawave_gateway=remnawave_adapter,
         allow_new_users=settings.registration_enabled,
         bootstrap_usernames=settings.telegram_miniapp_bootstrap_usernames,
     )
@@ -2706,7 +2711,6 @@ async def telegram_web_auth(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
-    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramWebLoginResponse:
     """Authenticate via Telegram Web Widget OAuth payload.
 
@@ -2726,7 +2730,6 @@ async def telegram_web_auth(
         auth_service=auth_service,
         session=db,
         telegram_service=telegram_service,
-        remnawave_gateway=remnawave_adapter,
         allow_new_users=settings.registration_enabled,
     )
 

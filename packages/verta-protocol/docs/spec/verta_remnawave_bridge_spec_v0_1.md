@@ -149,14 +149,13 @@ but not the Xray-core data plane.
 
 ### 5.3 Version compatibility floor
 
-This spec recommends the following minimum versions:
+The maintained target profile for this spec is:
 
-- **Remnawave Panel 2.7.0+**: strongly recommended; introduces typed `resolvedProxyConfigs`, metadata endpoints, and `POST /api/users/resolve`
-- **Remnawave Panel 2.7.4+**: preferred; adds `additionalExtendedClientsRegex`, useful for future compatibility experiments
-- **Remnawave Panel 2.7.5+**: optional improvement if operator wants the newer HWID response headers
-- **Remnawave Subscription Page 7.0.0+**: recommended for dynamic app config loading and API-token-based page integration
+- **Remnawave Panel/backend/frontend 3.4.1**: required by the default adapter profile; user identity is the positive numeric `id`
+- **Remnawave Subscription Page 8.0.0**: recommended for the target deployment
+- **Remnawave 2.8.x**: supported only through the explicit `legacy-2.8-rollback` adapter profile during rollback; its UUID identity MUST NOT leak into target-profile state
 
-Older versions may still be usable with custom adapter logic, but they are outside the recommended baseline for v0.1.
+The Bridge MUST NOT probe and automatically fall back from `3.4.1` to the legacy profile. Profile selection is an operator-visible rollback decision.
 
 ---
 
@@ -232,6 +231,7 @@ This section is one of the most important in the document.
 | Domain | Authority | Notes |
 |---|---|---|
 | User creation / deletion / disable / revoke / expire | Remnawave | Canonical |
+| Numeric user `id` in target profile | Remnawave | Canonical stable account identity after the 3.4.1 cutover |
 | Subscription identifier (`shortUuid`) | Remnawave | Canonical |
 | User plan / traffic-lifecycle / subscription status | Remnawave | Canonical input into Bridge policy |
 | Verta gateway inventory | Bridge | Canonical; not stored as Remnawave Xray nodes |
@@ -440,9 +440,9 @@ Recommended extras:
 
 - webhook ingestion enabled
 - user metadata endpoints enabled and used
-- Subscription Page 7.x dynamic app config
+- Subscription Page 8.0.0 dynamic app config
 - clear install pages for each Verta client platform
-- Remnawave 2.7.4+ if future client detection adjustments are needed
+- Remnawave 3.4.1 with numeric user routes and metadata endpoints
 
 ### 12.3 Graceful degradation
 
@@ -473,8 +473,8 @@ Recommended API capabilities:
 
 - `GET /api/subscriptions/by-short-uuid/{shortUuid}/raw`
 - `POST /api/users/resolve`
-- user lookup by short UUID, UUID, username, or equivalent
-- metadata endpoints for users
+- target user resolution by numeric `id`, `shortUuid`, or username (the target request has no UUID field)
+- `GET /api/users/{id}` and `/api/metadata/user/{id}` for target user state and metadata
 - optional metadata endpoints for nodes
 
 ### 13.3 Required webhook capabilities for push-first mode
@@ -826,7 +826,7 @@ The Bridge MUST therefore perform an explicit domain mapping instead of pretendi
 
 | Remnawave source | Verta target | Status | Notes |
 |---|---|---|---|
-| User UUID | `account_id` | required | canonical stable account reference |
+| Positive numeric user `id` | `account_id` | required | canonical stable account reference for the 3.4.1 target profile |
 | `shortUuid` | bootstrap subject | required | used only for import/bootstrap |
 | User status / revoked / expired / disabled / limited | account entitlement state | required | canonical allow/deny input |
 | Traffic strategy / reset model | usage-policy hint | optional in v0.1 | Bridge may surface informationally |
@@ -846,8 +846,8 @@ Example normalized account snapshot:
 ```json
 {
   "source": "remnawave",
-  "source_version": "2.7.x",
-  "account_id": "rw:user:2a6627e6-....",
+  "source_version": "3.4.1",
+  "account_id": "42",
   "bootstrap_subject": "rw:shortuuid:QHc8Yk...",
   "status": "active",
   "flags": {
@@ -1374,6 +1374,16 @@ pub trait RemnawaveAdapter {
 }
 ```
 
+Target-profile HTTP mapping is fixed for Remnawave `3.4.1`:
+
+- `POST /api/users/resolve` body is exactly one of `{ "id": number }`, `{ "shortUuid": string }`, or `{ "username": string }`; UUID is not a target-profile input
+- resolve returns `{ "response": { "id": number, "username": string, "shortUuid": string } }`
+- account fetch is `GET /api/users/{id}` and the normalized `account_id` is the decimal numeric ID
+- metadata fetch/upsert is `/api/metadata/user/{id}`; fetch returns `{ "response": { "metadata": object } }` and upsert sends `{ "metadata": object }`
+- account-scoped verified webhook effects validate the same numeric target identity before reconciliation is scheduled
+
+The `legacy-2.8-rollback` profile uses the former UUID routes and identity only while an operator has explicitly selected rollback. It is not a second canonical identity and MUST NOT be reached by schema-error fallback.
+
 ### 29.2 Adapter responsibilities
 
 The adapter MUST:
@@ -1399,7 +1409,7 @@ Suggested classes:
 
 ### 29.4 Schema drift rule
 
-If the adapter sees an unexpected upstream schema drift, it MUST fail closed for affected operations rather than silently guessing.
+If the adapter sees an unexpected upstream schema drift, it MUST fail closed for affected operations rather than silently guessing. In particular, a UUID-only resolve response, a missing/non-numeric target `id`, a target route called with a UUID, or non-object metadata is schema/contract failure rather than a reason to switch profiles.
 
 ---
 
@@ -1968,6 +1978,8 @@ The Bridge test corpus SHOULD include fixtures for:
 - expired user
 - limited user
 - malformed metadata
+- exact Remnawave 3.4.1 numeric-ID resolve, user, and metadata envelopes
+- removed UUID-only resolve shape as a negative schema-drift case
 - user with no Verta override
 - user with allowlist override
 - empty gateway inventory
@@ -2061,7 +2073,8 @@ bridge:
     token_exchange_per_minute: 60
 remnawave:
   base_url: https://panel.example.net
-  version_floor: 2.7.0
+  api_profile: target-3.4.1
+  version_floor: 3.4.1
   polling:
     light_reconcile_seconds: 300
     full_reconcile_seconds: 14400

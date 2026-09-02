@@ -70,6 +70,8 @@ class AdminCreateInviteUseCase:
         created = await self._invite_repo.create_batch(models)
         if self._notification_fanout is not None:
             for invite in created:
+                if invite.owner_user_id is None:
+                    raise ValueError("Created invite has no owner")
                 notes = [f"Source: {str(invite.source).replace('_', ' ')}."]
                 if invite.expires_at is not None:
                     notes.append(f"Expires {invite.expires_at.date().isoformat()}.")

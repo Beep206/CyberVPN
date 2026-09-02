@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Ketersediaan layanan VPN",
+    "connections": "Koneksi",
+    "usage": "Penggunaan",
+    "devices": "Perangkat",
+    "available": "Tersedia",
+    "unavailable": "Tidak tersedia",
+    "loading": "Memuat status layanan VPN",
+    "degraded": "Sebagian terganggu"
   }
 }

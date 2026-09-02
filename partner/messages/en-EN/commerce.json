@@ -192,24 +192,28 @@
     "metaTitle": "Subscription Templates - Ozoxy Admin",
     "eyebrow": "DELIVERY TEMPLATES",
     "title": "Subscription Templates",
-    "description": "Manage Remnawave template definitions, host bindings, flows, and config payloads used for delivery.",
+    "description": "Manage Remnawave 3.4 template definitions and their JSON or encoded YAML payloads.",
     "createAction": "Create template",
     "createTitle": "Create template",
     "editTitle": "Edit template",
     "deleteTitle": "Delete template",
     "deleteConfirm": "Delete this subscription template?",
     "empty": "No subscription templates found.",
+    "tags": "Tags",
+    "encodedYaml": "Encoded YAML",
     "form": {
       "namePlaceholder": "VLESS Vision Template",
-      "configPlaceholder": "{\n  \"security\": \"reality\"\n}"
+      "configPlaceholder": "{\n  \"outbounds\": []\n}",
+      "encodedYaml": "Encoded YAML",
+      "encodedYamlPlaceholder": "Paste the encoded YAML template"
     },
     "metrics": {
       "total": "Templates",
       "totalHint": "template records",
-      "withFlow": "Flow enabled",
-      "withFlowHint": "templates with flow control",
-      "hostBound": "Host bound",
-      "hostBoundHint": "templates attached to a host",
+      "withFlow": "Tagged",
+      "withFlowHint": "templates with at least one tag",
+      "hostBound": "Encoded YAML",
+      "hostBoundHint": "templates with an encoded YAML payload",
       "jsonConfig": "JSON config",
       "jsonConfigHint": "templates with config payload"
     }

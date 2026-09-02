@@ -30,6 +30,9 @@ class ApiClient {
         'SECURITY: Production API base URL must use HTTPS. Got: $resolvedBaseUrl',
         category: 'ApiClient',
       );
+      throw StateError(
+        'Production API base URL must use HTTPS. Got: $resolvedBaseUrl',
+      );
     }
 
     // In non-production, only allow HTTP for local development addresses.
@@ -62,9 +65,9 @@ class ApiClient {
     //   flutter build apk --dart-define=CERT_FINGERPRINTS=AA:BB:CC:...,DD:EE:FF:...
     final fingerprints = EnvironmentConfig.certificateFingerprints;
     if (fingerprints.isNotEmpty) {
-      final pinner = certificatePinner ?? CertificatePinner(
-        pinnedFingerprints: fingerprints,
-      );
+      final pinner =
+          certificatePinner ??
+          CertificatePinner(pinnedFingerprints: fingerprints);
       _configureCertificatePinning(pinner);
 
       AppLogger.info(
@@ -237,7 +240,10 @@ class ApiClient {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return NetworkException(message: 'Connection timed out', code: e.response?.statusCode);
+        return NetworkException(
+          message: 'Connection timed out',
+          code: e.response?.statusCode,
+        );
       case DioExceptionType.connectionError:
         return const NetworkException(message: 'No internet connection');
       case DioExceptionType.badResponse:
@@ -245,7 +251,10 @@ class ApiClient {
         if (statusCode == 401) {
           return AuthException(message: 'Unauthorized', code: statusCode);
         }
-        return ServerException(message: e.response?.statusMessage ?? 'Server error', code: statusCode);
+        return ServerException(
+          message: e.response?.statusMessage ?? 'Server error',
+          code: statusCode,
+        );
       default:
         return ServerException(message: e.message ?? 'Unknown error');
     }
@@ -272,7 +281,10 @@ class _RedactedLogInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     // SECURITY: Never log response bodies — they may contain tokens, emails,
     // device IDs, or other PII that would be forwarded to Sentry breadcrumbs.
     AppLogger.debug(

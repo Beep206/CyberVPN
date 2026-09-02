@@ -460,7 +460,17 @@
     "serverStatus": "สถานะเซิร์ฟเวอร์",
     "statusLabel": "สถานะระบบ:",
     "statusValue": "สมบูรณ์แบบ",
-    "title": "ศูนย์บัญชาการ VPN"
+    "title": "ศูนย์บัญชาการ VPN",
+    "vpnServiceStatus": {
+      "available": "พร้อมใช้งาน",
+      "connections": "การเชื่อมต่อ",
+      "degraded": "ประสิทธิภาพลดลงบางส่วน",
+      "devices": "อุปกรณ์",
+      "loading": "กำลังโหลดสถานะบริการ VPN",
+      "title": "ความพร้อมใช้งานของบริการ VPN",
+      "unavailable": "ไม่พร้อมใช้งาน",
+      "usage": "การใช้งาน"
+    }
   },
   "DeleteAccount": {
     "contact": {

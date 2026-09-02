@@ -681,7 +681,7 @@ async def reject_growth_fx_rate(
     old_status = model.status
     model.status = "rejected"
     model.approval_state = "rejected"
-    model.rejection_reason = change_reason[:500]
+    model.rejection_reason = change_reason[:500] if change_reason is not None else None
     metadata = dict(model.metadata_ or {})
     metadata.update(
         {

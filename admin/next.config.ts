@@ -69,6 +69,15 @@ const config: NextConfigWithCompiler = {
   turbopack: {
     root: WORKSPACE_ROOT,
   },
+  async redirects() {
+    return [
+      {
+        source: "/:locale/infrastructure/snippets",
+        destination: "/:locale/infrastructure/remnawave/operator?section=snippets",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

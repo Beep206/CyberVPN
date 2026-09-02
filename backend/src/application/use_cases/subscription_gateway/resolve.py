@@ -7,9 +7,13 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from httpx import HTTPStatusError, RequestError
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.services.vpn_product_readiness import (
     SMART_RU_PRODUCT_CODE,
     SPB_DE_EXCEPTIONS_PRODUCT_CODE,
@@ -43,7 +47,8 @@ class SubscriptionGatewayUnavailableError(Exception):
 class _RemnawaveUser(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
-    uuid: str
+    id: StrictInt = Field(gt=0)
+    uuid: str | None = None
     status: str
     external_squad_uuid: str | None = Field(default=None, alias="externalSquadUuid")
 
@@ -58,6 +63,7 @@ class ResolveSubscriptionProductUseCase:
     """Resolve a public Remnawave token to one active CyberVPN product."""
 
     def __init__(self, session: AsyncSession, remnawave_client: RemnawaveClient) -> None:
+        self._session = session
         self._repo = ServiceAccessRepository(session)
         self._remnawave_client = remnawave_client
 
@@ -69,54 +75,58 @@ class ResolveSubscriptionProductUseCase:
         if provider_user.status.upper() != "ACTIVE":
             raise SubscriptionGatewayNotFoundError
 
-        identities = await self._repo.list_active_subscription_identities_by_provider_subject(
+        identities = await self._repo.list_active_subscription_identities_by_provider_numeric_subject(
             provider_name="remnawave",
-            provider_subject_ref=provider_user.uuid,
+            provider_numeric_subject_id=provider_user.id,
         )
-        candidates: list[tuple[str, bool]] = []
-        active_grant_plan_codes: list[str] = []
-        now = datetime.now(UTC)
-
-        for identity in identities:
-            grant = await self._repo.get_active_entitlement_grant_for_service_identity(
-                service_identity_id=identity.id,
-                now=now,
-            )
-            if grant is None:
-                continue
-            if (
-                grant.customer_account_id != identity.customer_account_id
-                or grant.auth_realm_id != identity.auth_realm_id
-            ):
-                raise SubscriptionGatewayUnavailableError
-
-            try:
-                product_code = resolve_gateway_product_plan_code(
-                    grant_snapshot=getattr(grant, "grant_snapshot", None),
-                    service_context=identity.service_context,
-                )
-            except VpnProductReadinessError as exc:
-                raise SubscriptionGatewayUnavailableError(exc.reason) from exc
-
-            active_grant_plan_codes.append(product_code)
-            if product_code not in SUPPORTED_PRODUCT_CODES:
-                continue
-            candidates.append(
-                (
-                    product_code,
-                    _is_premium_smart_ru_xray_failover_canary(
-                        product_code=product_code,
-                        service_context=identity.service_context,
-                    ),
-                )
-            )
-
-        if not candidates:
+        if not identities:
             raise SubscriptionGatewayNotFoundError
-        if len(active_grant_plan_codes) != 1 or len(candidates) != 1:
+        if len(identities) != 1:
+            # Never attempt to pick a winner from an ambiguous local binding.
             raise SubscriptionGatewayUnavailableError
 
-        product_code, xray_failover_canary = candidates[0]
+        identity = identities[0]
+        try:
+            local_ref = await resolve_exact_mapped_remnawave_ref(
+                self._session,
+                subject_type="service_identity",
+                subject_id=identity.id,
+                numeric_user_id=identity.provider_numeric_subject_id,
+                legacy_uuid_raw=identity.provider_subject_ref,
+            )
+        except RemnawaveIdentityAccessConflict as exc:
+            raise SubscriptionGatewayUnavailableError from exc
+        if local_ref is None or local_ref.require_numeric_id() != provider_user.id:
+            raise SubscriptionGatewayUnavailableError
+
+        provider_legacy_uuid = _provider_legacy_uuid_or_unavailable(provider_user.uuid)
+        if provider_legacy_uuid is not None and local_ref.legacy_uuid != provider_legacy_uuid:
+            raise SubscriptionGatewayUnavailableError
+
+        now = datetime.now(UTC)
+        grant = await self._repo.get_active_entitlement_grant_for_service_identity(
+            service_identity_id=identity.id,
+            now=now,
+        )
+        if grant is None:
+            raise SubscriptionGatewayNotFoundError
+        if grant.customer_account_id != identity.customer_account_id or grant.auth_realm_id != identity.auth_realm_id:
+            raise SubscriptionGatewayUnavailableError
+
+        try:
+            product_code = resolve_gateway_product_plan_code(
+                grant_snapshot=getattr(grant, "grant_snapshot", None),
+                service_context=identity.service_context,
+            )
+        except VpnProductReadinessError as exc:
+            raise SubscriptionGatewayUnavailableError(exc.reason) from exc
+        if product_code not in SUPPORTED_PRODUCT_CODES:
+            raise SubscriptionGatewayNotFoundError
+
+        xray_failover_canary = _is_premium_smart_ru_xray_failover_canary(
+            product_code=product_code,
+            service_context=identity.service_context,
+        )
         try:
             ensure_spb_de_exceptions_data_plane_ready(product_code)
         except VpnProductReadinessError as exc:
@@ -181,6 +191,15 @@ def _normalize_uuid_or_unavailable(value: str | None, *, reason: str) -> str:
         return str(UUID(value.strip()))
     except ValueError as exc:
         raise SubscriptionGatewayUnavailableError(reason) from exc
+
+
+def _provider_legacy_uuid_or_unavailable(value: str | None) -> UUID | None:
+    if value is None:
+        return None
+    try:
+        return UUID(value.strip())
+    except (AttributeError, ValueError) as exc:
+        raise SubscriptionGatewayUnavailableError from exc
 
 
 def _is_premium_smart_ru_xray_failover_canary(*, product_code: str, service_context: object) -> bool:

@@ -460,7 +460,17 @@
     "serverStatus": "STATUS SERWERA",
     "statusLabel": "STATUS SYSTEMU:",
     "statusValue": "OPTYMALNY",
-    "title": "CENTRUM DOWODZENIA VPN"
+    "title": "CENTRUM DOWODZENIA VPN",
+    "vpnServiceStatus": {
+      "available": "Dostępne",
+      "connections": "Połączenia",
+      "degraded": "Częściowo ograniczone",
+      "devices": "Urządzenia",
+      "loading": "Wczytywanie stanu usługi VPN",
+      "title": "Dostępność usługi VPN",
+      "unavailable": "Niedostępne",
+      "usage": "Użycie"
+    }
   },
   "DeleteAccount": {
     "contact": {

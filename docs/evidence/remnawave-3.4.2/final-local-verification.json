@@ -1,0 +1,175 @@
+{
+  "schema_version": "1.0.0",
+  "captured_at": "2026-09-01T06:17:47+05:00",
+  "scope": "local implementation and automated verification only",
+  "release_status": "partial_not_promotion_eligible",
+  "production_or_staging_mutated": false,
+  "targets": {
+    "panel_backend_frontend": "3.4.2",
+    "node": "3.4.1",
+    "subscription_page": "8.0.0"
+  },
+  "local_artifacts": {
+    "panel": {
+      "image": "cybervpn/remnawave-backend:3.4.2-raw-vision-flow.2",
+      "digest": "sha256:6418f623a11c0b474cdbd2f15847201b126e5c7931bf24de8babb6774a8f4697",
+      "backend_commit": "fca29680290f6f010bae1100ff0f5a14ad4a3196",
+      "frontend_commit": "ca22544c8082c497f57119b245990ee8f24d5c7a"
+    },
+    "node": {
+      "image": "cybervpn/remnawave-node:3.4.1-verified.1",
+      "digest": "sha256:89a2ff0961936032fb20afe41df0d2d549073ef417d7253831da7e0da9ed8879",
+      "upstream_commit": "44912631321664dbd5822e9bf8d96766ccff7c93"
+    },
+    "subscription_page": {
+      "image": "remnawave/subscription-page:8.0.0",
+      "digest": "sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac"
+    },
+    "node_ssh_proxy": {
+      "image": "cybervpn/node-ssh-proxy:2.11.4-mirror",
+      "digest": "sha256:f7d85950bdde35dca4802f195e95c0a40561d7be45de56098f0a1cc968dfffec"
+    }
+  },
+  "canonical_contracts": {
+    "contract_document_sha256": "a8b33c4451f0a7dc97a01c1c53bee4dd259cee8076309051d12d30e6d75ea54b",
+    "generated_types_sha256": "eb3bd4d8f4a50892dac25dbc345eaed0ba5ad7e429e4bfe0721176862f33aa0f",
+    "generated_consumers": [
+      "frontend",
+      "admin",
+      "partner"
+    ]
+  },
+  "automated_gates": [
+    {
+      "name": "canonical OpenAPI identity",
+      "status": "pass",
+      "evidence": "Final check-api-contract.sh --verbose returned RESULT:IDENTICAL; the canonical contract has 769 paths, 1190 schemas and three Admin reconciliation paths"
+    },
+    {
+      "name": "generated artifact reproducibility",
+      "status": "pass",
+      "evidence": "OpenAPI, frontend/admin/partner clients and i18n regenerated twice after the final backend changes; both generations reported no drift"
+    },
+    {
+      "name": "scoped changed-surface contract verifier",
+      "status": "partial",
+      "evidence": "The retained bash scripts/codex/verify-changed.sh --scope contracts origin/main run passed at the time, but later affected source/evidence changes made that wrapper log stale. Fresh exact backend/web/contract constituents are recorded separately; the historical wrapper is superseded and not PASS. No all-surface umbrella pass is claimed."
+    },
+    {
+      "name": "full backend clean gate",
+      "status": "partial",
+      "evidence": "Fresh clean run on isolated PostgreSQL 17.10 database cybervpn_full_final_342_r14 and Valkey 8.1.8 DB15 reached exit code 0: 4512 collected, 4424 passed, 88 explicitly conditional skips, 0 failures and 0 errors in 4445.009 seconds. JUnit is retained at .codex/command-logs/remnawave-342-final-backend-r14.xml; Ruff, the 1768-file format check and mypy over 1165 source files pass. The aggregate required gate is PARTIAL, not PASS, because repository policy treats every skip as incomplete evidence."
+    },
+    {
+      "name": "Connections, durable receipts and append-only audit",
+      "status": "partial",
+      "evidence": "Historical focused-count summary records 105 tests plus 3 real PostgreSQL concurrency/restart/audit tests with the expected behavior, but its exact focused invocation/log was not retained. The fresh full backend JUnit has zero failures/errors but an aggregate PARTIAL status due 88 skips, so no direct focused PASS is claimed."
+    },
+    {
+      "name": "connection-drop receipt reconciliation and expand-only rollback",
+      "status": "partial",
+      "evidence": "Independent review recorded 72 unit/HTTP/contract, 5 isolated PostgreSQL 17 and 6 compatibility tests with the expected behavior, but the exact focused invocation/log was not retained. The fresh full backend JUnit has zero failures/errors but an aggregate PARTIAL status due 88 skips, so no direct focused PASS is claimed."
+    },
+    {
+      "name": "invite numeric identity provisioning",
+      "status": "partial",
+      "evidence": "Historical focused-count summary records 21 focused/E2E tests with the expected identity behavior, but its exact invocation/log was not retained. The fresh full backend JUnit has zero failures/errors but an aggregate PARTIAL status due 88 skips, so no direct focused PASS is claimed."
+    },
+    {
+      "name": "canonical service-access and subscription URL synchronization",
+      "status": "partial",
+      "evidence": "Historical focused-count summary records 96 unit, 10 integration and 1 PostgreSQL onboarding test with the expected behavior, but its exact invocation/log was not retained. The fresh full backend JUnit has zero failures/errors but an aggregate PARTIAL status due 88 skips, so no direct focused PASS is claimed."
+    },
+    {
+      "name": "public short-token subscription gateway identity boundary",
+      "status": "partial",
+      "evidence": "Historical focused-count summary records 45 unit and 14 integration/route tests with the expected identity boundary, but its exact invocation/log was not retained. The fresh full backend JUnit has zero failures/errors but an aggregate PARTIAL status due 88 skips, so no direct focused PASS is claimed."
+    },
+    {
+      "name": "trusted-admin browser SSH and route boundary",
+      "status": "partial",
+      "evidence": "Historical focused-count summary records 85 security/unit tests plus 24 exact custom-image source regressions with the expected SSH boundary. The custom-image command is retained and passes, but the backend focused invocation/log was not retained; the fresh full backend JUnit is aggregate PARTIAL due 88 skips, so the combined gate is PARTIAL."
+    },
+    {
+      "name": "gift redemption and provisioning safety",
+      "status": "partial",
+      "evidence": "Historical focused gift, invite and trial summaries report the expected safety behavior, and the fresh full backend run had zero failures or errors; however the focused invocation/log was not retained and the aggregate backend gate remains PARTIAL because 88 tests were skipped. Persisted gift device limits and provisioning numeric IDs fail closed, the global one-use gift plus customer mutation latch is reserved atomically before provider I/O, and ambiguous reuse is designed to emit no second provider mutation."
+    },
+    {
+      "name": "subscription request source-stream privacy",
+      "status": "partial",
+      "evidence": "Historical focused-count summary records 64 tests with post-commit atomic XACK+XDEL, retry PEL preservation and redacted terminal DLQ, but its exact invocation/log was not retained. Task-worker's fresh 460-test command passes, while the combined cross-service focused gate remains PARTIAL rather than a direct PASS."
+    },
+    {
+      "name": "backend Ruff",
+      "status": "pass",
+      "evidence": "all checks pass; 1768 files format-clean"
+    },
+    {
+      "name": "backend mypy full",
+      "status": "pass",
+      "evidence": "Success: no issues found in 1165 source files"
+    },
+    {
+      "name": "frontend",
+      "status": "partial",
+      "evidence": "Fresh exact-command rerun: 39-locale generation, lint, warning-free corrected TypeScript no-emit check and the 3644-page production build passed; 220 test files passed and 1 skipped, with 1530 tests passed and 7 skipped. The aggregate required gate is PARTIAL, not PASS, because skipped output is not PASS under repository policy."
+    },
+    {
+      "name": "admin",
+      "status": "pass",
+      "evidence": "Fresh exact-command rerun: i18n, lint and warning-free corrected TypeScript no-emit check passed; all 125 test files and 813 tests passed with no excluded cases reported; the 205-page build passed, including bounded unresolved receipt queue and reconciliation states"
+    },
+    {
+      "name": "partner",
+      "status": "pass",
+      "evidence": "Fresh exact-command rerun: i18n, lint and warning-free corrected TypeScript no-emit check passed; all 154 test files and 836 tests passed with no excluded cases reported; the 99-page production build passed and no Admin reconciliation surface is exposed"
+    },
+    {
+      "name": "Remnawave 3.4 infrastructure assertions",
+      "status": "partial",
+      "evidence": "Fresh exact-command reruns record 192 passed infra tests and 5 skips, 3 clean node-mirror tests, a clean Compose render and 20 clean WSL Ansible tests. All six rollout/verify/rollback playbooks parsed; the three production syntax checks were clean and the three staging checks emitted the expected empty-host warning from the intentionally empty staging inventory. The aggregate required gate is PARTIAL, not PASS, because skips and warnings are not PASS under repository policy."
+    },
+    {
+      "name": "task-worker",
+      "status": "pass",
+      "evidence": "Fresh exact-command rerun: Ruff and 194-file format check passed, mypy found no issues in 142 source files, and all 460 tests passed with no excluded cases reported, including atomic subscription-request XACK+XDEL privacy behavior"
+    },
+    {
+      "name": "Rust/Verta/desktop full gate",
+      "status": "fail",
+      "evidence": "Helix and targeted Verta/desktop checks pass, but full Verta fmt fails with CRLF drift and desktop all-features requires unavailable Linux dependencies on Windows; no clean merge-base reproduction was retained, so the failures are unresolved rather than labeled pre-existing"
+    },
+    {
+      "name": "Flutter full gate",
+      "status": "fail",
+      "evidence": "Targeted parser cases pass 76; full tests record 2446 pass, 39 skip and 204 fail, while analyzer records 17 issues; no clean merge-base reproduction was retained"
+    },
+    {
+      "name": "all-surface verify-changed wrapper",
+      "status": "not_run",
+      "evidence": "scripts/codex/verify-changed.sh origin/main was not run after its independently executed Flutter and Verta constituents remained failed; no umbrella pass is claimed"
+    }
+  ],
+  "coverage_accounting": {
+    "changelog_records": 470,
+    "changelog_not_applicable": 186,
+    "changelog_gaps": 284,
+    "capability_groups": 25,
+    "capability_surface_gaps": 144,
+    "capability_surface_not_applicable": 131,
+    "capability_groups_with_at_least_one_gap": 25
+  },
+  "accepted_non_blocking_risk": {
+    "docker_scout_critical_high": true,
+    "decision": "accepted by repository owner and not a release blocker for this task",
+    "diagnostic_counts_preserved_in": "local-image-build-verification.json"
+  },
+  "promotion_blockers": [
+    "missing registry signatures, SBOM and provenance",
+    "missing sanitized live baseline inventory",
+    "missing production-like migration, canary, soak and rollback evidence",
+    "remaining changelog and capability-surface gaps",
+    "required full repository gates are not all green"
+  ]
+}

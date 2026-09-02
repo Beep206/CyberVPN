@@ -18,7 +18,6 @@ import {
   formatDateTime,
   formatTtl,
   humanizeToken,
-  settingFamily,
   shortId,
   toneForInviteRole,
   toneForWebhookState,
@@ -61,25 +60,13 @@ export function GovernanceOverview() {
     staleTime: 15_000,
   });
 
-  const settingsQuery = useQuery({
-    queryKey: ['governance', 'settings'],
-    queryFn: async () => {
-      const response = await governanceApi.getSettings();
-      return response.data;
-    },
-    staleTime: 30_000,
-  });
-
   const auditLogs = auditQuery.data ?? [];
   const webhookLogs = webhookQuery.data ?? [];
   const invites = invitesQuery.data?.invites ?? [];
-  const settings = settingsQuery.data ?? [];
   const invalidWebhookCount = webhookLogs.filter(
     (entry) => entry.is_valid === false,
   ).length;
-  const publicSettingsCount = settings.filter((item) => item.isPublic).length;
   const restrictedInviteCount = invites.filter((item) => item.email_hint).length;
-  const settingFamilies = new Set(settings.map((item) => settingFamily(item.key)));
 
   return (
     <GovernancePageShell
@@ -105,12 +92,6 @@ export function GovernanceOverview() {
           value: String(invites.length),
           hint: t('overview.metrics.invitesHint'),
           tone: invites.length > 0 ? 'warning' : 'neutral',
-        },
-        {
-          label: t('overview.metrics.settings'),
-          value: String(settings.length),
-          hint: t('overview.metrics.settingsHint'),
-          tone: 'info',
         },
       ]}
     >
@@ -335,22 +316,7 @@ export function GovernanceOverview() {
                     {restrictedInviteCount}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4">
-                  <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                    {t('overview.policyStats.publicSettings')}
-                  </p>
-                  <p className="mt-3 text-2xl font-display tracking-[0.12em] text-white">
-                    {publicSettingsCount}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-grid-line/20 bg-terminal-bg/45 p-4">
-                  <p className="text-[11px] font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                    {t('overview.policyStats.settingFamilies')}
-                  </p>
-                  <p className="mt-3 text-2xl font-display tracking-[0.12em] text-white">
-                    {settingFamilies.size}
-                  </p>
-                </div>
+                <GovernanceEmptyState label={t('policy.gapDescription')} />
               </div>
             </div>
           </div>

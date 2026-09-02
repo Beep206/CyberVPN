@@ -8,10 +8,23 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from httpx import HTTPStatusError, RequestError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
+from src.application.services.remnawave_create_attempts import (
+    RemnawaveCreateAttemptConflict,
+    RemnawaveCreateAttemptService,
+    remnawave_create_request_hash,
+    remnawave_customer_create_key,
+)
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    persist_runtime_mapped_mobile_identity,
+    persist_runtime_mapped_service_identity,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.use_cases.customer_subscriptions.list_customer_subscriptions import (
     CustomerSubscriptionSummary,
     ListCustomerSubscriptionsUseCase,
@@ -38,6 +51,7 @@ from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
 )
 from src.config.settings import settings
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
 from src.infrastructure.database.models.device_credential_model import DeviceCredentialModel
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
@@ -59,7 +73,13 @@ from src.infrastructure.remnawave.spb_de_exceptions_bundle import (
 )
 from src.infrastructure.remnawave.stage1_ru_bundle import resolve_stage1_ru_bundle_external_squad_uuid
 from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
-from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.infrastructure.remnawave.user_gateway import (
+    RemnawaveIdentityBindingError,
+    RemnawaveMutationAcceptedPending,
+    RemnawaveUserGateway,
+)
+
+_SUBSCRIPTION_URL_SYNC_MAX_CHANNELS = 1_000
 
 
 @dataclass(frozen=True)
@@ -190,14 +210,20 @@ class CustomerSubscriptionServiceAccessUseCase:
             ensure_delivery=True,
         )
         service_identity = state.service_identity
-        if service_identity is None or not service_identity.provider_subject_ref:
+        if service_identity is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Selected subscription VPN identity is not provisioned",
             )
 
+        remnawave_ref = await self._resolve_service_identity_ref(service_identity)
+        if remnawave_ref is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Selected subscription VPN identity is not provisioned",
+            )
         config = await GenerateConfigUseCase(remnawave_client).execute(
-            service_identity.provider_subject_ref,
+            remnawave_ref,
             plan_code=state.subscription.plan_code,
         )
         subscription_url = normalize_public_subscription_url(config.get("subscription_url"))
@@ -208,6 +234,88 @@ class CustomerSubscriptionServiceAccessUseCase:
                 channel=state.access_delivery_channel,
             )
         return config
+
+    async def sync_current_remnawave_subscription_url(
+        self,
+        *,
+        customer_account_id: UUID,
+        auth_realm_id: UUID,
+        remnawave_ref: RemnawaveUserRef,
+        subscription_url: str | None,
+    ) -> None:
+        """Persist a provider-read URL without issuing another provider mutation.
+
+        The numeric mobile-user bootstrap is a read-through path.  When it
+        observes a changed URL, keep only that customer's exact active
+        subscription identity and its active shared-client delivery channels
+        coherent.  Archived channels and identities in another scope, realm,
+        or customer are intentionally not refreshed.
+        """
+
+        normalized_url = normalize_public_subscription_url(subscription_url)
+        if normalized_url is None:
+            return
+
+        customer = await self._session.get(MobileUserModel, customer_account_id)
+        if customer is None:
+            raise ValueError("Customer account not found")
+        if customer.auth_realm_id != auth_realm_id:
+            raise PermissionError("Customer account does not belong to auth realm")
+
+        current_ref = await self._resolve_mobile_identity_ref(customer)
+        if current_ref is None or not _same_remnawave_identity(current_ref, remnawave_ref):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Customer Remnawave identity is not exactly reconciled",
+            )
+
+        try:
+            service_identity = await self._repo.get_service_identity_by_customer_realm_provider_numeric_subject(
+                customer_account_id=customer_account_id,
+                auth_realm_id=auth_realm_id,
+                provider_name="remnawave",
+                provider_numeric_subject_id=remnawave_ref.require_numeric_id(),
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Customer Remnawave service identity is ambiguous",
+            ) from exc
+        if (
+            service_identity is not None
+            and service_identity.identity_scope == "subscription"
+            and service_identity.identity_status == "active"
+        ):
+            service_ref = await self._resolve_service_identity_ref(service_identity)
+            if service_ref is None or not _same_remnawave_identity(service_ref, remnawave_ref):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Selected subscription Remnawave identity is not exactly reconciled",
+                )
+            channels = await self._repo.list_active_access_delivery_channels_for_update(
+                service_identity_id=service_identity.id,
+                channel_type="shared_client",
+                limit=_SUBSCRIPTION_URL_SYNC_MAX_CHANNELS + 1,
+            )
+            if len(channels) > _SUBSCRIPTION_URL_SYNC_MAX_CHANNELS:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Customer subscription delivery channel set exceeds the safe sync bound",
+                )
+            service_identity.service_context = {
+                **dict(service_identity.service_context or {}),
+                "subscription_url": normalized_url,
+            }
+            for channel in channels:
+                channel.delivery_payload = {
+                    **dict(channel.delivery_payload or {}),
+                    "subscription_url": normalized_url,
+                    "subscription_key": service_identity.subscription_key,
+                }
+
+        if normalize_public_subscription_url(customer.subscription_url) != normalized_url:
+            customer.subscription_url = normalized_url
+        await self._session.flush()
 
     async def _get_subscription(
         self,
@@ -279,7 +387,8 @@ class CustomerSubscriptionServiceAccessUseCase:
             provider_name=provider_name,
             subscription_key=item.subscription_key,
         )
-        if existing is not None and existing.provider_subject_ref:
+        existing_ref = await self._resolve_service_identity_ref(existing) if existing is not None else None
+        if existing is not None and existing_ref is not None:
             spb_de_exceptions_bundle = _resolve_spb_de_exceptions_bundle_or_http(item.plan_code)
             if spb_de_exceptions_bundle is not None and (remnawave_client is None or grant is None):
                 _assert_spb_de_exceptions_context(existing, spb_de_exceptions_bundle)
@@ -325,9 +434,10 @@ class CustomerSubscriptionServiceAccessUseCase:
         spb_de_exceptions_bundle = _resolve_spb_de_exceptions_bundle_or_http(item.plan_code)
 
         if remnawave_client is None:
+            existing_ref = await self._resolve_service_identity_ref(existing) if existing is not None else None
             if (
                 existing is not None
-                and existing.provider_subject_ref
+                and existing_ref is not None
                 and existing.identity_scope == "subscription"
                 and existing.subscription_key == item.subscription_key
             ):
@@ -352,7 +462,7 @@ class CustomerSubscriptionServiceAccessUseCase:
         lifetime_access = (
             bool(grant_snapshot.get("lifetime")) or bool(snapshot.get("lifetime")) or duration_mode == "lifetime"
         )
-        payload = {
+        payload: dict[str, Any] = {
             "email": customer.email,
             "traffic_limit_bytes": _resolve_traffic_limit_bytes(effective),
             "trafficLimitStrategy": STAGE1_PAID_TRAFFIC_LIMIT_STRATEGY,
@@ -372,6 +482,8 @@ class CustomerSubscriptionServiceAccessUseCase:
         spb_de_exceptions_context = (
             spb_de_exceptions_bundle.service_context() if spb_de_exceptions_bundle is not None else {}
         )
+        external_squad_uuid: str | None
+        internal_squad_uuids: list[str]
         if spb_de_exceptions_bundle is not None:
             external_squad_uuid = spb_de_exceptions_bundle.external_squad_uuid
             internal_squad_uuids = list(spb_de_exceptions_bundle.internal_squad_uuids)
@@ -393,14 +505,14 @@ class CustomerSubscriptionServiceAccessUseCase:
         if internal_squad_uuids:
             payload["active_internal_squads"] = internal_squad_uuids
 
+        existing_ref = await self._resolve_service_identity_ref(existing) if existing is not None else None
         if (
             existing is not None
-            and existing.provider_subject_ref
+            and existing_ref is not None
             and existing.identity_scope == "subscription"
             and existing.subscription_key == item.subscription_key
         ):
-            existing_uuid = _parse_remnawave_uuid(existing.provider_subject_ref)
-            existing_user = await gateway.get_by_uuid(existing_uuid) if existing_uuid is not None else None
+            existing_user = await gateway.get_by_ref(existing_ref) if existing_ref is not None else None
             if existing_user is not None:
                 if grant.service_identity_id != existing.id:
                     grant.service_identity_id = existing.id
@@ -408,29 +520,38 @@ class CustomerSubscriptionServiceAccessUseCase:
                     existing,
                     spb_de_exceptions_bundle,
                 ):
-                    existing_user = await gateway.update(existing_user.uuid, **payload)
+                    existing_user = await gateway.update(existing_ref, **payload)
                 if spb_de_exceptions_context:
                     existing.service_context = {
                         **_strip_bridge_context_keys(existing.service_context),
                         **spb_de_exceptions_context,
                     }
+                await _sync_remnawave_user_refs(
+                    session=self._session,
+                    customer=customer,
+                    service_identity=existing,
+                    user=existing_user,
+                    source="selected_grant_existing",
+                )
                 subscription_url = normalize_public_subscription_url(existing_user.subscription_url)
                 if subscription_url:
-                    if customer.remnawave_uuid != str(existing_user.uuid):
-                        customer.remnawave_uuid = str(existing_user.uuid)
                     if normalize_public_subscription_url(customer.subscription_url) != subscription_url:
                         customer.subscription_url = subscription_url
                     await self._store_subscription_url(
                         service_identity=existing,
                         subscription_url=subscription_url,
                     )
-                if subscription_url or spb_de_exceptions_context:
-                    await self._session.flush()
+                await self._session.flush()
                 return existing
 
-        created_user = await gateway.create(
+        created_user, create_attempts, create_record = await self._create_remnawave_user_once(
+            gateway=gateway,
             username=f"cvpn_s_{grant.id.hex[:28]}",
-            **payload,
+            customer_account_id=grant.customer_account_id,
+            business_key=(
+                f"grant:{grant.customer_account_id}:{grant.auth_realm_id}:{provider_name}:{item.subscription_key}"
+            ),
+            payload=payload,
         )
         if lifetime_access:
             observe_lifetime_remnawave_expiry_mode(
@@ -446,7 +567,8 @@ class CustomerSubscriptionServiceAccessUseCase:
                 provider_name=provider_name,
                 source_order_id=grant.source_order_id,
                 origin_storefront_id=grant.origin_storefront_id,
-                provider_subject_ref=str(created_user.uuid),
+                provider_subject_ref=str(created_user.uuid) if created_user.uuid is not None else None,
+                provider_numeric_subject_id=getattr(created_user, "remnawave_id", None),
                 identity_scope="subscription",
                 subscription_key=item.subscription_key,
                 service_context={
@@ -466,7 +588,6 @@ class CustomerSubscriptionServiceAccessUseCase:
             )
             service_identity = created.service_identity
         else:
-            existing.provider_subject_ref = str(created_user.uuid)
             existing.identity_status = "active"
             existing.service_context = {
                 **(
@@ -490,8 +611,20 @@ class CustomerSubscriptionServiceAccessUseCase:
             service_identity = existing
 
         grant.service_identity_id = service_identity.id
-        if customer.remnawave_uuid != str(created_user.uuid):
-            customer.remnawave_uuid = str(created_user.uuid)
+        await _sync_remnawave_user_refs(
+            session=self._session,
+            customer=customer,
+            service_identity=service_identity,
+            user=created_user,
+            source="selected_grant_create",
+        )
+        completed_ref = await self._resolve_service_identity_ref(service_identity)
+        if completed_ref is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave creation requires reconciliation",
+            )
+        await create_attempts.mark_completed(create_record, user_ref=completed_ref)
         if (
             subscription_url
             and normalize_public_subscription_url(getattr(customer, "subscription_url", None)) != subscription_url
@@ -522,26 +655,48 @@ class CustomerSubscriptionServiceAccessUseCase:
         if auth_realm_id is None:
             raise ValueError("Customer account has no auth realm")
 
-        provider_subject_ref = customer.remnawave_uuid
+        customer_ref = await self._resolve_mobile_identity_ref(customer)
+        provider_subject_ref = (
+            str(customer_ref.legacy_uuid) if customer_ref is not None and customer_ref.legacy_uuid is not None else None
+        )
+        provider_numeric_subject_id = customer_ref.require_numeric_id() if customer_ref is not None else None
         subscription_url = normalize_public_subscription_url(customer.subscription_url)
-        if not provider_subject_ref:
+        create_attempts: RemnawaveCreateAttemptService | None = None
+        create_record = None
+        created_user = None
+        if provider_numeric_subject_id is None and not provider_subject_ref:
             if remnawave_client is None:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Selected trial VPN identity requires Remnawave provisioning",
                 )
             gateway = RemnawaveUserGateway(remnawave_client)
-            user = await gateway.create(
+            trial_payload: dict[str, Any] = {
+                "email": customer.email,
+                "expire_at": _parse_datetime(item.expires_at) or datetime.now(UTC) + timedelta(days=3),
+                "traffic_limit_bytes": STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+                "trafficLimitStrategy": STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
+                "hwid_device_limit": STAGE1_TRIAL_DEVICE_LIMIT,
+            }
+            created_user, create_attempts, create_record = await self._create_remnawave_user_once(
+                gateway=gateway,
                 username=f"cvpn_ts_{customer.id.hex[:27]}",
-                email=customer.email,
-                expire_at=_parse_datetime(item.expires_at) or datetime.now(UTC) + timedelta(days=3),
-                traffic_limit_bytes=STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
-                trafficLimitStrategy=STAGE1_TRIAL_TRAFFIC_LIMIT_STRATEGY,
-                hwid_device_limit=STAGE1_TRIAL_DEVICE_LIMIT,
+                customer_account_id=customer.id,
+                business_key=f"customer:{customer.id}",
+                payload=trial_payload,
+                scope="remnawave-customer:create",
+                idempotency_key=remnawave_customer_create_key(customer.id),
             )
-            provider_subject_ref = str(user.uuid)
-            subscription_url = normalize_public_subscription_url(user.subscription_url)
-            customer.remnawave_uuid = provider_subject_ref
+            provider_subject_ref = str(created_user.uuid) if created_user.uuid is not None else None
+            provider_numeric_subject_id = getattr(created_user, "remnawave_id", None)
+            subscription_url = normalize_public_subscription_url(created_user.subscription_url)
+            await persist_runtime_mapped_mobile_identity(
+                self._session,
+                customer=customer,
+                remnawave_user_id=provider_numeric_subject_id,
+                remnawave_uuid=provider_subject_ref,
+                source="selected_trial_create",
+            )
             customer.subscription_url = subscription_url
 
         if existing is None:
@@ -550,6 +705,7 @@ class CustomerSubscriptionServiceAccessUseCase:
                 auth_realm_id=auth_realm_id,
                 provider_name=provider_name,
                 provider_subject_ref=provider_subject_ref,
+                provider_numeric_subject_id=provider_numeric_subject_id,
                 identity_scope="subscription",
                 subscription_key=item.subscription_key,
                 service_context={
@@ -560,7 +716,6 @@ class CustomerSubscriptionServiceAccessUseCase:
             )
             service_identity = created.service_identity
         else:
-            existing.provider_subject_ref = provider_subject_ref
             existing.identity_status = "active"
             existing.service_context = {
                 **dict(existing.service_context or {}),
@@ -569,9 +724,83 @@ class CustomerSubscriptionServiceAccessUseCase:
                 "provisioned_from": "msub08_selected_trial",
             }
             service_identity = existing
+        try:
+            await persist_runtime_mapped_service_identity(
+                self._session,
+                service_identity=service_identity,
+                remnawave_user_id=provider_numeric_subject_id,
+                remnawave_uuid=provider_subject_ref,
+                source="selected_trial_identity",
+            )
+        except RemnawaveIdentityAccessConflict as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave identity is not exactly reconciled",
+            ) from exc
+        if create_attempts is not None and create_record is not None and created_user is not None:
+            completed_ref = await self._resolve_service_identity_ref(service_identity)
+            if completed_ref is None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Selected subscription Remnawave creation requires reconciliation",
+                )
+            await create_attempts.mark_completed(create_record, user_ref=completed_ref)
         await self._store_subscription_url(service_identity=service_identity, subscription_url=subscription_url)
         await self._session.flush()
         return service_identity
+
+    async def _create_remnawave_user_once(
+        self,
+        *,
+        gateway: RemnawaveUserGateway,
+        username: str,
+        customer_account_id: UUID,
+        business_key: str,
+        payload: dict[str, Any],
+        scope: str = "remnawave-service:create",
+        idempotency_key: str | None = None,
+    ) -> tuple[Any, RemnawaveCreateAttemptService, Any]:
+        """Issue one provider create behind a committed, durable stop marker."""
+
+        operation_key = idempotency_key or remnawave_create_request_hash({"business_key": business_key})
+        request_payload = {
+            key: (("present" if value else None) if key.lower() in {"email", "password"} else value)
+            for key, value in payload.items()
+        }
+        request_payload["username"] = username
+        attempts = RemnawaveCreateAttemptService(self._session)
+        try:
+            decision = await attempts.begin(
+                scope=scope,
+                idempotency_key=operation_key,
+                request_hash=remnawave_create_request_hash(request_payload),
+                customer_account_id=customer_account_id,
+            )
+        except RemnawaveCreateAttemptConflict as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave creation requires reconciliation",
+            ) from exc
+        if not decision.should_mutate:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave creation requires reconciliation",
+            )
+
+        try:
+            user = await gateway.create(username=username, **payload)
+        except (
+            RemnawaveMutationAcceptedPending,
+            RemnawaveIdentityBindingError,
+            RequestError,
+            HTTPStatusError,
+        ) as exc:
+            await attempts.mark_reconciliation_required(decision.record)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave creation requires reconciliation",
+            ) from exc
+        return user, attempts, decision.record
 
     async def _ensure_provisioning_profile(
         self,
@@ -709,6 +938,47 @@ class CustomerSubscriptionServiceAccessUseCase:
             }
         await self._session.flush()
 
+    async def _resolve_mobile_identity_ref(self, customer: MobileUserModel) -> RemnawaveUserRef | None:
+        try:
+            return await resolve_exact_mapped_remnawave_ref(
+                self._session,
+                subject_type="mobile_user",
+                subject_id=customer.id,
+                numeric_user_id=customer.remnawave_user_id,
+                legacy_uuid_raw=customer.remnawave_uuid,
+            )
+        except RemnawaveIdentityAccessConflict as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave identity is not exactly reconciled",
+            ) from exc
+
+    async def _resolve_service_identity_ref(
+        self,
+        service_identity: ServiceIdentityModel | None,
+    ) -> RemnawaveUserRef | None:
+        if service_identity is None:
+            return None
+        subject_id = getattr(service_identity, "id", None)
+        if not isinstance(subject_id, UUID):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave identity is not exactly reconciled",
+            )
+        try:
+            return await resolve_exact_mapped_remnawave_ref(
+                self._session,
+                subject_type="service_identity",
+                subject_id=subject_id,
+                numeric_user_id=getattr(service_identity, "provider_numeric_subject_id", None),
+                legacy_uuid_raw=getattr(service_identity, "provider_subject_ref", None),
+            )
+        except RemnawaveIdentityAccessConflict as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Selected subscription Remnawave identity is not exactly reconciled",
+            ) from exc
+
     async def _customer_id(self, item: CustomerSubscriptionSummary) -> UUID:
         if item.kind == "trial":
             return _parse_subscription_uuid(item.subscription_key, prefix="trial")
@@ -821,13 +1091,42 @@ def _parse_subscription_uuid(subscription_key: str, *, prefix: str) -> UUID:
     return UUID(raw_uuid)
 
 
-def _parse_remnawave_uuid(value: str | None) -> UUID | None:
-    if not value:
-        return None
+def _same_remnawave_identity(left: RemnawaveUserRef, right: RemnawaveUserRef) -> bool:
+    if left.require_numeric_id() != right.require_numeric_id():
+        return False
+    return left.legacy_uuid is None or right.legacy_uuid is None or left.legacy_uuid == right.legacy_uuid
+
+
+async def _sync_remnawave_user_refs(
+    *,
+    session: AsyncSession,
+    customer: MobileUserModel,
+    service_identity: ServiceIdentityModel,
+    user: Any,
+    source: str,
+) -> None:
+    numeric_id = getattr(user, "remnawave_id", None)
+    raw_uuid = getattr(user, "uuid", None)
     try:
-        return UUID(str(value))
-    except ValueError:
-        return None
+        await persist_runtime_mapped_mobile_identity(
+            session,
+            customer=customer,
+            remnawave_user_id=numeric_id,
+            remnawave_uuid=raw_uuid,
+            source=source,
+        )
+        await persist_runtime_mapped_service_identity(
+            session,
+            service_identity=service_identity,
+            remnawave_user_id=numeric_id,
+            remnawave_uuid=raw_uuid,
+            source=source,
+        )
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Selected subscription Remnawave identity is not exactly reconciled",
+        ) from exc
 
 
 def _parse_datetime(value: str | None) -> datetime | None:

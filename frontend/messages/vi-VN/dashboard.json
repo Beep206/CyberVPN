@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Khả dụng của dịch vụ VPN",
+    "connections": "Kết nối",
+    "usage": "Mức sử dụng",
+    "devices": "Thiết bị",
+    "available": "Khả dụng",
+    "unavailable": "Không khả dụng",
+    "loading": "Đang tải trạng thái dịch vụ VPN",
+    "degraded": "Suy giảm một phần"
   }
 }

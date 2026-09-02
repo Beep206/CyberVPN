@@ -99,7 +99,7 @@ The task-scheduler runtime contract is:
 
 The scheduler release uses:
 
-- command family: `taskiq scheduler src.broker:scheduler`
+- command family: `taskiq scheduler src.scheduler:scheduler`
 - the same task-worker image family
 - the same OpenBao extract key as the worker release
 - `replicaCount=1`

@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Доступність VPN-сервісу",
+    "connections": "Підключення",
+    "usage": "Використання",
+    "devices": "Пристрої",
+    "available": "Доступно",
+    "unavailable": "Недоступно",
+    "loading": "Завантаження стану VPN-сервісу",
+    "degraded": "Частково обмежено"
   }
 }

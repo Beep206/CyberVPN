@@ -85,7 +85,7 @@ def payment_failed(username: str, amount: float, currency: str, reason: str = ""
     return msg
 
 
-def auto_renew_invoice(username: str, amount: float, currency: str, pay_url: str) -> str:
+def auto_renew_invoice(username: str, amount: float | str, currency: str, pay_url: str) -> str:
     """Notification for auto-renewal invoice created."""
     return (
         "💳 <b>Auto-Renewal Invoice</b>\n\n"

@@ -98,6 +98,42 @@ async def test_cleanup_webhook_logs_batch():
 
 
 @pytest.mark.asyncio
+async def test_cleanup_webhook_logs_uses_bounded_committed_chunks() -> None:
+    """A backlog larger than one batch never becomes one unbounded DELETE."""
+
+    from sqlalchemy.dialects import postgresql
+
+    from src.tasks.cleanup.webhook_logs import cleanup_webhook_logs
+
+    with (
+        patch("src.tasks.cleanup.webhook_logs.get_session_factory") as mock_factory,
+        patch("src.tasks.cleanup.webhook_logs.get_settings") as mock_settings,
+    ):
+        mock_settings.return_value.cleanup_webhook_retention_days = 30
+        mock_session = AsyncMock()
+        mock_session.execute.side_effect = [
+            MagicMock(rowcount=1000),
+            MagicMock(rowcount=1000),
+            MagicMock(rowcount=25),
+        ]
+        mock_factory.return_value.return_value.__aenter__.return_value = mock_session
+
+        result = await cleanup_webhook_logs()
+
+    assert result["deleted"] == 2025
+    assert mock_session.execute.await_count == 3
+    assert mock_session.commit.await_count == 3
+    for execute_call in mock_session.execute.await_args_list:
+        compiled = str(
+            execute_call.args[0].compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        ).lower()
+        assert "limit 1000" in compiled
+
+
+@pytest.mark.asyncio
 async def test_cleanup_notifications_old_only():
     """Test notifications cleanup only deletes old sent/failed."""
     from src.tasks.cleanup.notifications import cleanup_notifications
@@ -141,6 +177,75 @@ async def test_cleanup_cache_patterns():
         assert result["health_deleted"] == 5
         assert result["bandwidth_raw_deleted"] == 3
         assert result["bandwidth_hourly_deleted"] == 7
+
+
+@pytest.mark.asyncio
+async def test_remnawave_stream_retention_commits_bounded_backend_batches():
+    from src.services.backend_api_client import BackendRemnawaveRetentionResult
+    from src.tasks.cleanup.remnawave_stream_retention import purge_remnawave_stream_retention
+
+    first_counts = {
+        "remnawave_stream_receipts": 2,
+        "remnawave_stream_dead_letters": 0,
+        "remnawave_user_usage_hourly": 0,
+        "remnawave_subscription_request_events": 0,
+        "remnawave_node_user_presence": 0,
+        "remnawave_node_connections_hourly": 0,
+    }
+    second_counts = {name: 0 for name in first_counts}
+    second_counts["remnawave_stream_dead_letters"] = 1
+    receipts = [
+        BackendRemnawaveRetentionResult(
+            deleted_by_table=first_counts,
+            total_deleted=2,
+            has_more=True,
+            purged_at=datetime(2026, 8, 30, 12, 0, tzinfo=UTC),
+        ),
+        BackendRemnawaveRetentionResult(
+            deleted_by_table=second_counts,
+            total_deleted=1,
+            has_more=False,
+            purged_at=datetime(2026, 8, 30, 12, 0, 1, tzinfo=UTC),
+        ),
+    ]
+
+    with (
+        patch("src.tasks.cleanup.remnawave_stream_retention.get_settings") as settings_fn,
+        patch("src.tasks.cleanup.remnawave_stream_retention.BackendAPIClient") as backend_cls,
+    ):
+        settings_fn.return_value.remnawave_stream_retention_enabled = True
+        settings_fn.return_value.remnawave_stream_retention_batch_limit = 1000
+        settings_fn.return_value.remnawave_stream_retention_max_batches = 20
+        backend = AsyncMock()
+        backend.purge_remnawave_stream_retention.side_effect = receipts
+        backend_cls.return_value.__aenter__.return_value = backend
+
+        result = await purge_remnawave_stream_retention()
+
+    assert result["total_deleted"] == 3
+    assert result["batches"] == 2
+    assert result["has_more"] is False
+    assert result["deleted_by_table"] == {
+        **first_counts,
+        "remnawave_stream_dead_letters": 1,
+    }
+    assert backend.purge_remnawave_stream_retention.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_remnawave_stream_retention_disabled_is_noop():
+    from src.tasks.cleanup.remnawave_stream_retention import purge_remnawave_stream_retention
+
+    with (
+        patch("src.tasks.cleanup.remnawave_stream_retention.get_settings") as settings_fn,
+        patch("src.tasks.cleanup.remnawave_stream_retention.BackendAPIClient") as backend_cls,
+    ):
+        settings_fn.return_value.remnawave_stream_retention_enabled = False
+
+        result = await purge_remnawave_stream_retention()
+
+    assert result == {"enabled": False, "total_deleted": 0, "batches": 0, "has_more": False}
+    backend_cls.assert_not_called()
 
 
 @pytest.mark.asyncio

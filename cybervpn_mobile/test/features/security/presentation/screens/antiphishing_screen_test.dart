@@ -19,9 +19,7 @@ import 'package:mocktail/mocktail.dart';
 class MockSecurityRepository extends Mock implements SecurityRepository {}
 
 /// Helper to create an [AntiphishingCode] for testing via its factory constructor.
-AntiphishingCode createTestAntiphishingCode({
-  required String? code,
-}) {
+AntiphishingCode createTestAntiphishingCode({required String? code}) {
   return AntiphishingCode(code: code);
 }
 
@@ -80,9 +78,11 @@ Widget buildTestableAntiphishingScreen({
 }
 
 // Finders
-Finder findSetCodeButton() => find.widgetWithText(FilledButton, 'Set Code');
+Finder findSetCodeButton() =>
+    find.widgetWithText(FilledButton, 'Set Antiphishing Code');
 Finder findEditCodeButton() => find.widgetWithText(FilledButton, 'Edit Code');
-Finder findDeleteCodeButton() => find.widgetWithText(OutlinedButton, 'Delete Code');
+Finder findDeleteCodeButton() =>
+    find.widgetWithText(OutlinedButton, 'Delete Code');
 Finder findSaveButton() => find.widgetWithText(FilledButton, 'Save');
 Finder findCancelButton() => find.widgetWithText(TextButton, 'Cancel');
 Finder findCodeField() => find.byType(TextFormField);
@@ -101,9 +101,7 @@ void main() {
 
   group('AntiphishingScreen - Rendering', () {
     testWidgets('test_renders_antiphishing_title', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -132,8 +130,10 @@ void main() {
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
           mockRepository: mockRepository,
-          codeOverride:
-              AsyncValue.error(Exception('Failed'), StackTrace.current),
+          codeOverride: AsyncValue.error(
+            Exception('Failed'),
+            StackTrace.current,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -145,9 +145,7 @@ void main() {
 
   group('AntiphishingScreen - Not Set State', () {
     testWidgets('test_not_set_state_shows_message', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -162,9 +160,7 @@ void main() {
     });
 
     testWidgets('test_not_set_state_shows_set_button', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -178,9 +174,7 @@ void main() {
     });
 
     testWidgets('test_not_set_state_shows_explanation', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -191,7 +185,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Set a code to verify official emails from CyberVPN'),
+        find.text(
+          'Set a personal antiphishing code that will appear in all official '
+          'emails from CyberVPN. This helps you identify legitimate emails '
+          'and avoid phishing attempts.',
+        ),
         findsOneWidget,
       );
     });
@@ -199,9 +197,7 @@ void main() {
 
   group('AntiphishingScreen - View Mode', () {
     testWidgets('test_view_mode_displays_masked_code', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -211,15 +207,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('SEC****23'), findsOneWidget);
-      expect(find.text('Current Code'), findsOneWidget);
+      expect(find.text('•••••••••'), findsOneWidget);
+      expect(find.text('Your Antiphishing Code'), findsOneWidget);
     });
 
-    testWidgets('test_view_mode_shows_edit_and_delete_buttons',
-        (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+    testWidgets('test_view_mode_shows_edit_and_delete_buttons', (tester) async {
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -234,9 +227,7 @@ void main() {
     });
 
     testWidgets('test_view_mode_shows_verified_user_icon', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -252,9 +243,7 @@ void main() {
 
   group('AntiphishingScreen - Edit Mode', () {
     testWidgets('test_clicking_set_code_enters_edit_mode', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -273,9 +262,7 @@ void main() {
     });
 
     testWidgets('test_clicking_edit_code_enters_edit_mode', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -293,9 +280,7 @@ void main() {
     });
 
     testWidgets('test_edit_mode_shows_edit_icon', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -312,9 +297,7 @@ void main() {
     });
 
     testWidgets('test_cancel_button_returns_to_view_mode', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -330,16 +313,14 @@ void main() {
       await tester.tap(findCancelButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('SEC****23'), findsOneWidget);
+      expect(find.text('•••••••••'), findsOneWidget);
       expect(findEditCodeButton(), findsOneWidget);
     });
   });
 
   group('AntiphishingScreen - Form Validation', () {
     testWidgets('test_validates_empty_code', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -355,13 +336,11 @@ void main() {
       await tester.tap(findSaveButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('This field is required'), findsOneWidget);
+      expect(find.text('This field is required.'), findsOneWidget);
     });
 
-    testWidgets('test_validates_code_too_long', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+    testWidgets('test_enforces_max_code_length', (tester) async {
+      final code = createTestAntiphishingCode(code: null);
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -378,18 +357,15 @@ void main() {
         findCodeField(),
         'a' * 51, // 51 characters (max is 50)
       );
-      await tester.tap(findSaveButton());
-      await tester.pumpAndSettle();
 
-      expect(find.text('Code must be 50 characters or less'), findsOneWidget);
+      final codeField = tester.widget<TextFormField>(findCodeField());
+      expect(codeField.controller?.text, hasLength(50));
     });
   });
 
   group('AntiphishingScreen - Save Code', () {
     testWidgets('test_successful_save_returns_to_view_mode', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       when(() => mockRepository.setAntiphishingCode(any())).thenAnswer(
         (_) async => const Success<AntiphishingCode>(
@@ -412,14 +388,13 @@ void main() {
       await tester.tap(findSaveButton());
       await tester.pumpAndSettle();
 
-      verify(() => mockRepository.setAntiphishingCode('MySecretCode123'))
-          .called(1);
+      verify(
+        () => mockRepository.setAntiphishingCode('MySecretCode123'),
+      ).called(1);
     });
 
     testWidgets('test_save_error_shows_error_message', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: null,
-      );
+      final code = createTestAntiphishingCode(code: null);
 
       when(() => mockRepository.setAntiphishingCode(any())).thenAnswer(
         (_) async => const Failure<AntiphishingCode>(
@@ -448,11 +423,8 @@ void main() {
   });
 
   group('AntiphishingScreen - Delete Code', () {
-    testWidgets('test_delete_button_shows_confirmation_dialog',
-        (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+    testWidgets('test_delete_button_shows_confirmation_dialog', (tester) async {
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -470,9 +442,7 @@ void main() {
     });
 
     testWidgets('test_delete_confirmation_can_be_cancelled', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -489,17 +459,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text('SEC****23'), findsOneWidget);
+      expect(find.text('•••••••••'), findsOneWidget);
     });
 
     testWidgets('test_delete_confirmation_deletes_code', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
-      when(() => mockRepository.deleteAntiphishingCode()).thenAnswer(
-        (_) async => const Success<void>(null),
-      );
+      when(
+        () => mockRepository.deleteAntiphishingCode(),
+      ).thenAnswer((_) async => const Success<void>(null));
 
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
@@ -519,14 +487,11 @@ void main() {
     });
 
     testWidgets('test_delete_error_shows_error_message', (tester) async {
-      final code = createTestAntiphishingCode(
-        code: 'SECRET123',
-      );
+      final code = createTestAntiphishingCode(code: 'SECRET123');
 
       when(() => mockRepository.deleteAntiphishingCode()).thenAnswer(
-        (_) async => const Failure<void>(
-          ServerFailure(message: 'Failed to delete'),
-        ),
+        (_) async =>
+            const Failure<void>(ServerFailure(message: 'Failed to delete')),
       );
 
       await tester.pumpWidget(
@@ -552,8 +517,10 @@ void main() {
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
           mockRepository: mockRepository,
-          codeOverride:
-              AsyncValue.error(Exception('Failed'), StackTrace.current),
+          codeOverride: AsyncValue.error(
+            Exception('Failed'),
+            StackTrace.current,
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -565,8 +532,10 @@ void main() {
       await tester.pumpWidget(
         buildTestableAntiphishingScreen(
           mockRepository: mockRepository,
-          codeOverride:
-              AsyncValue.error(Exception('Failed'), StackTrace.current),
+          codeOverride: AsyncValue.error(
+            Exception('Failed'),
+            StackTrace.current,
+          ),
         ),
       );
       await tester.pumpAndSettle();

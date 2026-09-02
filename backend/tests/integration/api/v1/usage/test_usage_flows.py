@@ -9,6 +9,7 @@ Requires: AsyncClient, test database, Redis.
 """
 
 import secrets
+import uuid
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
@@ -19,6 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.usage.get_user_usage import UsageData
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.remnawave_upgrade_model import RemnawaveIdentityReconciliationModel
 from tests.integration.conftest import admin_auth_headers, get_default_test_realm, issue_realm_access_token
 
 
@@ -42,6 +45,34 @@ async def _create_verified_user(db: AsyncSession) -> tuple[AdminUserModel, str]:
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    remnawave_uuid = uuid.uuid4()
+    remnawave_user_id = secrets.randbelow(2_000_000_000) + 1
+    mobile_user = MobileUserModel(
+        id=user.id,
+        auth_realm_id=admin_realm.id,
+        email=email,
+        password_hash=password_hash,
+        username=user.login,
+        is_active=True,
+        status="active",
+        remnawave_user_id=remnawave_user_id,
+        remnawave_uuid=str(remnawave_uuid),
+    )
+    db.add(mobile_user)
+    await db.flush()
+    db.add(
+        RemnawaveIdentityReconciliationModel(
+            subject_type="mobile_user",
+            subject_id=mobile_user.id,
+            legacy_uuid=str(remnawave_uuid),
+            numeric_user_id=remnawave_user_id,
+            reconciliation_state="mapped",
+            evidence={"source": "usage-integration-test"},
+        )
+    )
+    await db.commit()
+
     access_token = await issue_realm_access_token(
         db,
         subject=str(user.id),
@@ -98,6 +129,8 @@ class TestUsageEndpoint:
         assert data["connections_limit"] == 5
         assert data["last_connection_at"] is not None
         assert data["generated_at"] is not None
+        user_ref = mock_uc.execute.await_args.args[0]
+        assert user_ref.require_numeric_id() > 0
 
     @pytest.mark.integration
     async def test_get_usage_no_subscription(
@@ -134,6 +167,7 @@ class TestUsageEndpoint:
         assert data["connections_limit"] == 0
         assert data["last_connection_at"] is None
         assert data["generated_at"] is not None
+        mock_uc.execute.assert_awaited_once()
 
     @pytest.mark.integration
     async def test_usage_requires_auth(

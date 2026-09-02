@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from uuid import uuid4
 
+import pytest
+
 from src.application.services.config_service import MiniAppRuntimeConfig
 from src.application.use_cases.trial.stage1_trial_policy import (
     STAGE1_TRIAL_DEVICE_LIMIT,
@@ -13,10 +15,12 @@ from src.application.use_cases.trial.stage1_trial_policy import (
 )
 from src.domain.entities.user import User
 from src.domain.enums import UserStatus
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.presentation.api.v1.miniapp import routes as miniapp_routes
 from src.presentation.api.v1.miniapp.routes import (
     _build_primary_cta,
     _build_usage_snapshot,
+    _has_canonical_service_config,
     _is_rtl_locale,
     activate_miniapp_trial,
     commit_miniapp_checkout,
@@ -35,6 +39,45 @@ def _customer_realm() -> SimpleNamespace:
     return SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()))
 
 
+class _ScalarResult:
+    def __init__(self, value: object | None, *, duplicate: bool = False) -> None:
+        self._value = value
+        self._duplicate = duplicate
+
+    def scalars(self):
+        return self
+
+    def all(self) -> list[object]:
+        if self._value is None:
+            return []
+        return [self._value, self._value] if self._duplicate else [self._value]
+
+
+class _ReconciliationDb:
+    def __init__(self, reconciliation: object | None, *, duplicate: bool = False) -> None:
+        self._reconciliation = reconciliation
+        self._duplicate = duplicate
+
+    async def execute(self, _statement) -> _ScalarResult:
+        return _ScalarResult(self._reconciliation, duplicate=self._duplicate)
+
+
+def _mapped_reconciliation(
+    *,
+    subject_id,
+    numeric_id: int,
+    legacy_uuid,
+    state: str = "mapped",
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        subject_type="mobile_user",
+        subject_id=subject_id,
+        reconciliation_state=state,
+        numeric_user_id=numeric_id,
+        legacy_uuid=str(legacy_uuid),
+    )
+
+
 def test_build_primary_cta_prefers_trial_for_new_users() -> None:
     cta = _build_primary_cta(subscription_status="none", trial_eligible=True, has_config=False)
 
@@ -46,6 +89,35 @@ def test_build_primary_cta_uses_select_server_for_active_users_with_config() -> 
     cta = _build_primary_cta(subscription_status="active", trial_eligible=False, has_config=True)
 
     assert cta.kind == "select_server"
+
+
+def test_bootstrap_config_readiness_ignores_legacy_url_without_canonical_state() -> None:
+    has_config = _has_canonical_service_config(
+        legacy_subscription_url="https://legacy.example/must-not-enable-config",
+        selected_service_state=None,
+        current_service_state=None,
+    )
+    cta = _build_primary_cta(subscription_status="active", trial_eligible=False, has_config=has_config)
+
+    assert has_config is False
+    assert cta.kind == "get_config"
+
+
+@pytest.mark.parametrize("canonical_field", ["service_identity", "access_delivery_channel"])
+def test_bootstrap_config_readiness_accepts_canonical_service_state(canonical_field: str) -> None:
+    state = SimpleNamespace(
+        service_identity=object() if canonical_field == "service_identity" else None,
+        access_delivery_channel=object() if canonical_field == "access_delivery_channel" else None,
+    )
+
+    assert (
+        _has_canonical_service_config(
+            legacy_subscription_url="https://legacy.example/cache-is-not-authoritative",
+            selected_service_state=state,
+            current_service_state=None,
+        )
+        is True
+    )
 
 
 def test_rtl_locale_detection_supports_telegram_locales() -> None:
@@ -275,7 +347,8 @@ def test_get_miniapp_offers_aggregates_catalog_and_current_state(monkeypatch) ->
 
 def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> None:
     user_id = uuid4()
-    remnawave_user_id = uuid4()
+    remnawave_user_id = 42
+    legacy_uuid = uuid4()
     realm = _customer_realm()
 
     class FakeMobileUserRepo:
@@ -286,7 +359,8 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
             return SimpleNamespace(
                 id=user_id,
                 telegram_id=123456789,
-                remnawave_uuid=None,
+                remnawave_user_id=remnawave_user_id,
+                remnawave_uuid=str(legacy_uuid),
                 subscription_url="https://legacy.example/sub",
             )
 
@@ -294,8 +368,8 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
         def __init__(self, _client) -> None:
             pass
 
-        async def execute(self, user_uuid):
-            assert user_uuid == remnawave_user_id
+        async def execute(self, user_ref):
+            assert user_ref == RemnawaveUserRef(id=remnawave_user_id, legacy_uuid=legacy_uuid)
             return {
                 "config": "vless://generated",
                 "config_string": "vless://generated",
@@ -306,19 +380,20 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
                 "subscription_url": "https://generated.example/sub",
             }
 
-    async def fake_get_remnawave_user(*, client, telegram_id):
-        assert telegram_id == 123456789
-        return SimpleNamespace(uuid=remnawave_user_id)
-
     monkeypatch.setattr(miniapp_routes, "MobileUserRepository", FakeMobileUserRepo)
     monkeypatch.setattr(miniapp_routes, "GenerateConfigUseCase", FakeGenerateConfigUseCase)
-    monkeypatch.setattr(miniapp_routes, "_get_remnawave_user", fake_get_remnawave_user)
     monkeypatch.setattr(miniapp_routes, "_get_miniapp_runtime_config", _default_rollout_config)
 
     response = asyncio.run(
         get_miniapp_config(
             selected_subscription_key=None,
-            db=object(),
+            db=_ReconciliationDb(
+                _mapped_reconciliation(
+                    subject_id=user_id,
+                    numeric_id=remnawave_user_id,
+                    legacy_uuid=legacy_uuid,
+                )
+            ),
             user_id=user_id,
             current_realm=realm,
             remnawave_client=object(),
@@ -332,7 +407,71 @@ def test_get_miniapp_config_prefers_remnawave_generated_config(monkeypatch) -> N
     assert response.subscription_url == "https://generated.example/sub"
 
 
-def test_get_miniapp_config_falls_back_to_legacy_subscription_url(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    ("state", "mapped_numeric_id", "duplicate"),
+    [
+        (None, None, False),
+        ("pending", 42, False),
+        ("mapped", 99, False),
+        ("mapped", 42, True),
+    ],
+)
+def test_get_miniapp_config_rejects_non_exact_reconciliation_without_fallback(
+    monkeypatch,
+    state: str | None,
+    mapped_numeric_id: int | None,
+    duplicate: bool,
+) -> None:
+    user_id = uuid4()
+    legacy_uuid = uuid4()
+    realm = _customer_realm()
+    reconciliation = (
+        _mapped_reconciliation(
+            subject_id=user_id,
+            numeric_id=mapped_numeric_id,
+            legacy_uuid=legacy_uuid,
+            state=state,
+        )
+        if state is not None and mapped_numeric_id is not None
+        else None
+    )
+
+    class FakeMobileUserRepo:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def get_by_id(self, _user_id):
+            return SimpleNamespace(
+                id=user_id,
+                telegram_id=123456789,
+                remnawave_user_id=42,
+                remnawave_uuid=str(legacy_uuid),
+                subscription_url="https://legacy.example/must-not-leak",
+            )
+
+    class ForbiddenGenerateConfigUseCase:
+        def __init__(self, _client) -> None:
+            raise AssertionError("config generation must not run for a non-exact mapping")
+
+    monkeypatch.setattr(miniapp_routes, "MobileUserRepository", FakeMobileUserRepo)
+    monkeypatch.setattr(miniapp_routes, "GenerateConfigUseCase", ForbiddenGenerateConfigUseCase)
+    monkeypatch.setattr(miniapp_routes, "_get_miniapp_runtime_config", _default_rollout_config)
+
+    with pytest.raises(miniapp_routes.HTTPException) as exc_info:
+        asyncio.run(
+            get_miniapp_config(
+                selected_subscription_key=None,
+                db=_ReconciliationDb(reconciliation, duplicate=duplicate),
+                user_id=user_id,
+                current_realm=realm,
+                remnawave_client=object(),
+            )
+        )
+
+    assert exc_info.value.status_code == 409
+
+
+def test_get_miniapp_config_rejects_unmapped_legacy_subscription_url(monkeypatch) -> None:
     user_id = uuid4()
     realm = _customer_realm()
 
@@ -344,35 +483,29 @@ def test_get_miniapp_config_falls_back_to_legacy_subscription_url(monkeypatch) -
             return SimpleNamespace(
                 id=user_id,
                 telegram_id=None,
+                remnawave_user_id=None,
                 remnawave_uuid=None,
                 subscription_url="https://legacy.example/sub",
             )
 
-    async def fake_get_remnawave_user(*, client, telegram_id):
-        assert telegram_id is None
-        return None
-
     monkeypatch.setattr(miniapp_routes, "MobileUserRepository", FakeMobileUserRepo)
-    monkeypatch.setattr(miniapp_routes, "_get_remnawave_user", fake_get_remnawave_user)
     monkeypatch.setattr(miniapp_routes, "_get_miniapp_runtime_config", _default_rollout_config)
 
-    response = asyncio.run(
-        get_miniapp_config(
-            selected_subscription_key=None,
-            db=object(),
-            user_id=user_id,
-            current_realm=realm,
-            remnawave_client=object(),
+    with pytest.raises(miniapp_routes.HTTPException) as exc_info:
+        asyncio.run(
+            get_miniapp_config(
+                selected_subscription_key=None,
+                db=object(),
+                user_id=user_id,
+                current_realm=realm,
+                remnawave_client=object(),
+            )
         )
-    )
 
-    assert response.config == "https://legacy.example/sub"
-    assert response.client_type == "subscription"
-    assert response.source == "legacy_subscription_url"
-    assert response.subscription_url == "https://legacy.example/sub"
+    assert exc_info.value.status_code == 404
 
 
-def test_get_remnawave_user_for_mobile_user_prefers_local_remnawave_uuid(monkeypatch) -> None:
+def test_exact_remnawave_user_lookup_uses_only_numeric_id(monkeypatch) -> None:
     remnawave_uuid = uuid4()
     seen: dict[str, object] = {}
 
@@ -380,27 +513,168 @@ def test_get_remnawave_user_for_mobile_user_prefers_local_remnawave_uuid(monkeyp
         def __init__(self, _client) -> None:
             pass
 
-        async def get_by_uuid(self, user_uuid):
-            seen["uuid"] = user_uuid
-            return SimpleNamespace(uuid=user_uuid)
+        async def get_by_id(self, user_id):
+            seen["id"] = user_id
+            return SimpleNamespace(remnawave_id=user_id, uuid=remnawave_uuid)
+
+        async def get_by_uuid(self, _user_uuid):
+            raise AssertionError("legacy UUID lookup must remain rollback-only")
 
         async def get_by_telegram_id(self, _telegram_id: int):
-            raise AssertionError("telegram_id lookup must not run when local remnawave_uuid exists")
+            raise AssertionError("Telegram lookup must not run after numeric cutover")
 
     monkeypatch.setattr(miniapp_routes, "RemnawaveUserGateway", FakeGateway)
 
     response = asyncio.run(
-        miniapp_routes._get_remnawave_user_for_mobile_user(
+        miniapp_routes._get_exact_remnawave_user(
             client=object(),
-            mobile_user=SimpleNamespace(
-                remnawave_uuid=str(remnawave_uuid),
-                telegram_id=123456789,
-            ),
+            user_ref=RemnawaveUserRef(id=42, legacy_uuid=remnawave_uuid),
         )
     )
 
-    assert seen["uuid"] == remnawave_uuid
+    assert seen["id"] == 42
     assert response.uuid == remnawave_uuid
+
+
+def test_exact_remnawave_user_accepts_numeric_only_upstream_response(monkeypatch) -> None:
+    legacy_uuid = uuid4()
+
+    class FakeGateway:
+        def __init__(self, _client) -> None:
+            pass
+
+        async def get_by_id(self, user_id):
+            return SimpleNamespace(remnawave_id=user_id, uuid=None)
+
+    monkeypatch.setattr(miniapp_routes, "RemnawaveUserGateway", FakeGateway)
+
+    response = asyncio.run(
+        miniapp_routes._get_exact_remnawave_user(
+            client=object(),
+            user_ref=RemnawaveUserRef(id=42, legacy_uuid=legacy_uuid),
+        )
+    )
+
+    assert response.remnawave_id == 42
+    assert response.uuid is None
+
+
+def test_exact_remnawave_user_rejects_present_mismatched_legacy_uuid(monkeypatch) -> None:
+    class FakeGateway:
+        def __init__(self, _client) -> None:
+            pass
+
+        async def get_by_id(self, user_id):
+            return SimpleNamespace(remnawave_id=user_id, uuid=uuid4())
+
+    monkeypatch.setattr(miniapp_routes, "RemnawaveUserGateway", FakeGateway)
+
+    with pytest.raises(miniapp_routes.HTTPException) as exc_info:
+        asyncio.run(
+            miniapp_routes._get_exact_remnawave_user(
+                client=object(),
+                user_ref=RemnawaveUserRef(id=42, legacy_uuid=uuid4()),
+            )
+        )
+
+    assert exc_info.value.status_code == 409
+
+
+@pytest.mark.parametrize(
+    ("state", "mapped_numeric_id"),
+    [
+        (None, None),
+        ("pending", 42),
+        ("mapped", 99),
+    ],
+)
+def test_exact_miniapp_identity_rejects_missing_pending_or_wrong_numeric_mapping(
+    state: str | None,
+    mapped_numeric_id: int | None,
+) -> None:
+    legacy_uuid = uuid4()
+    subject_id = uuid4()
+    reconciliation = (
+        _mapped_reconciliation(
+            subject_id=subject_id,
+            numeric_id=mapped_numeric_id,
+            legacy_uuid=legacy_uuid,
+            state=state,
+        )
+        if state is not None and mapped_numeric_id is not None
+        else None
+    )
+    with pytest.raises(miniapp_routes.HTTPException) as exc_info:
+        asyncio.run(
+            miniapp_routes._resolve_exact_mapped_remnawave_ref(
+                db=_ReconciliationDb(reconciliation),
+                subject_type="mobile_user",
+                subject_id=subject_id,
+                numeric_user_id=42,
+                legacy_uuid_raw=str(legacy_uuid),
+            )
+        )
+
+    assert exc_info.value.status_code == 409
+
+
+def test_exact_miniapp_identity_rejects_stale_legacy_mapping() -> None:
+    subject_id = uuid4()
+    with pytest.raises(miniapp_routes.HTTPException) as exc_info:
+        asyncio.run(
+            miniapp_routes._resolve_exact_mapped_remnawave_ref(
+                db=_ReconciliationDb(_mapped_reconciliation(subject_id=subject_id, numeric_id=42, legacy_uuid=uuid4())),
+                subject_type="mobile_user",
+                subject_id=subject_id,
+                numeric_user_id=42,
+                legacy_uuid_raw=str(uuid4()),
+            )
+        )
+
+    assert exc_info.value.status_code == 409
+
+
+def test_exact_miniapp_identity_rejects_duplicate_reconciliation_rows() -> None:
+    legacy_uuid = uuid4()
+    subject_id = uuid4()
+    with pytest.raises(miniapp_routes.HTTPException) as exc_info:
+        asyncio.run(
+            miniapp_routes._resolve_exact_mapped_remnawave_ref(
+                db=_ReconciliationDb(
+                    _mapped_reconciliation(subject_id=subject_id, numeric_id=42, legacy_uuid=legacy_uuid),
+                    duplicate=True,
+                ),
+                subject_type="mobile_user",
+                subject_id=subject_id,
+                numeric_user_id=42,
+                legacy_uuid_raw=str(legacy_uuid),
+            )
+        )
+
+    assert exc_info.value.status_code == 409
+
+
+def test_exact_remnawave_user_rejects_wrong_upstream_numeric_id(monkeypatch) -> None:
+    legacy_uuid = uuid4()
+
+    class FakeGateway:
+        def __init__(self, _client) -> None:
+            pass
+
+        async def get_by_id(self, _user_id):
+            return SimpleNamespace(remnawave_id=99, uuid=legacy_uuid)
+
+    monkeypatch.setattr(miniapp_routes, "RemnawaveUserGateway", FakeGateway)
+
+    with pytest.raises(miniapp_routes.HTTPException) as exc_info:
+        asyncio.run(
+            miniapp_routes._get_exact_remnawave_user(
+                client=object(),
+                user_ref=RemnawaveUserRef(id=42, legacy_uuid=legacy_uuid),
+            )
+        )
+
+    assert exc_info.value.status_code == 409
 
 
 def test_quote_miniapp_checkout_uses_surface_specific_flow(monkeypatch) -> None:

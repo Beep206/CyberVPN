@@ -21,8 +21,9 @@ use ns_observability::{
 };
 use ns_remnawave_adapter::{
     AccountLifecycle, AccountSnapshot, AdapterError, AdapterWebhookEffect, BootstrapSubject,
-    HttpRemnawaveAdapter, HttpRemnawaveAdapterConfig, RemnawaveAdapter, VerifiedWebhookPayload,
-    VertaAccess, WebhookAuthenticator, WebhookVerificationConfig, WebhookVerificationError,
+    HttpRemnawaveAdapter, HttpRemnawaveAdapterConfig, RemnawaveAdapter, RemnawaveApiProfile,
+    VerifiedWebhookPayload, VertaAccess, WebhookAuthenticator, WebhookVerificationConfig,
+    WebhookVerificationError,
 };
 use ns_storage::{
     FileBackedBridgeStore, HttpServiceBackedBridgeStoreAdapter, ServiceBackedBridgeStore,
@@ -62,6 +63,8 @@ struct Cli {
     remnawave_api_token: Option<String>,
     #[arg(long, default_value_t = 3_000)]
     remnawave_request_timeout_ms: u64,
+    #[arg(long, value_enum, default_value_t = RemnawaveApiProfileArg::Target3_4_1)]
+    remnawave_api_profile: RemnawaveApiProfileArg,
     #[command(subcommand)]
     command: Command,
 }
@@ -77,6 +80,23 @@ enum StoreBackend {
 enum AdapterBackend {
     Fake,
     Http,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, ValueEnum)]
+enum RemnawaveApiProfileArg {
+    #[value(name = "target-3.4.1")]
+    Target3_4_1,
+    #[value(name = "legacy-2.8-rollback")]
+    Legacy2_8Rollback,
+}
+
+impl From<RemnawaveApiProfileArg> for RemnawaveApiProfile {
+    fn from(value: RemnawaveApiProfileArg) -> Self {
+        match value {
+            RemnawaveApiProfileArg::Target3_4_1 => Self::V3_4_1,
+            RemnawaveApiProfileArg::Legacy2_8Rollback => Self::LegacyV2_8,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -95,6 +115,7 @@ struct RemnawaveAdapterConfig {
     base_url: Option<String>,
     api_token: Option<String>,
     request_timeout_ms: u64,
+    api_profile: RemnawaveApiProfileArg,
 }
 
 impl BridgeStoreConfig {
@@ -172,7 +193,8 @@ impl RemnawaveAdapterConfig {
             .api_token
             .clone()
             .context("HTTP Remnawave adapter requires --remnawave-api-token")?;
-        let config = HttpRemnawaveAdapterConfig::new(base_url, api_token, self.request_timeout_ms)?;
+        let config = HttpRemnawaveAdapterConfig::new(base_url, api_token, self.request_timeout_ms)?
+            .with_api_profile(self.api_profile.into());
         Ok(HttpRemnawaveAdapter::new(config))
     }
 }
@@ -272,6 +294,7 @@ impl Cli {
             base_url: self.remnawave_base_url.clone(),
             api_token: self.remnawave_api_token.clone(),
             request_timeout_ms: self.remnawave_request_timeout_ms,
+            api_profile: self.remnawave_api_profile,
         }
     }
 }
@@ -650,6 +673,7 @@ fn build_fake_runtime_dependencies(
             base_url: None,
             api_token: None,
             request_timeout_ms: 3_000,
+            api_profile: RemnawaveApiProfileArg::Target3_4_1,
         },
         webhook_signature,
     )
@@ -975,7 +999,7 @@ fn sample_manifest_template() -> BridgeManifestTemplate {
 
 fn sample_snapshot() -> AccountSnapshot {
     AccountSnapshot {
-        account_id: "acct-1".to_owned(),
+        account_id: "42".to_owned(),
         bootstrap_subjects: vec![BootstrapSubject::ShortUuid("sub-1".to_owned())],
         lifecycle: AccountLifecycle::Active,
         verta_access: VertaAccess {
@@ -990,7 +1014,7 @@ fn sample_snapshot() -> AccountSnapshot {
         },
         metadata: None,
         observed_at_unix: 1_700_000_000,
-        source_version: Some("2.7.4".to_owned()),
+        source_version: Some("3.4.1".to_owned()),
     }
 }
 
@@ -1013,6 +1037,38 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use tokio::net::TcpListener;
     use tower::ServiceExt;
+
+    #[test]
+    fn remnawave_api_profile_defaults_to_target_and_requires_explicit_rollback_value() {
+        let target = Cli::try_parse_from(["verta-bridge", "compile-demo-manifest"])
+            .expect("target profile must be the CLI default");
+        assert_eq!(
+            target.remnawave_api_profile,
+            RemnawaveApiProfileArg::Target3_4_1
+        );
+
+        let rollback = Cli::try_parse_from([
+            "verta-bridge",
+            "--remnawave-api-profile",
+            "legacy-2.8-rollback",
+            "compile-demo-manifest",
+        ])
+        .expect("legacy profile must require the explicit rollback value");
+        assert_eq!(
+            rollback.remnawave_api_profile,
+            RemnawaveApiProfileArg::Legacy2_8Rollback
+        );
+
+        assert!(
+            Cli::try_parse_from([
+                "verta-bridge",
+                "--remnawave-api-profile",
+                "legacy",
+                "compile-demo-manifest",
+            ])
+            .is_err()
+        );
+    }
 
     struct TestRemnawaveState {
         account: Mutex<Option<AccountSnapshot>>,
@@ -1142,24 +1198,34 @@ mod tests {
     async fn resolve_user(
         State(state): State<Arc<TestRemnawaveState>>,
         headers: HeaderMap,
-    ) -> Result<Json<AccountSnapshot>, StatusCode> {
+        Json(request): Json<serde_json::Value>,
+    ) -> Result<Json<serde_json::Value>, StatusCode> {
         if !authorized(&headers, &state.expected_token) {
             return Err(StatusCode::UNAUTHORIZED);
         }
-        let snapshot = state
+        state
             .account
             .lock()
             .expect("test remnawave state poisoned")
             .clone()
             .ok_or(StatusCode::NOT_FOUND)?;
-        Ok(Json(snapshot))
+        if request != json!({"shortUuid": "sub-1"}) {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        Ok(Json(json!({
+            "response": {
+                "id": 42,
+                "username": "verta-test-user",
+                "shortUuid": "sub-1"
+            }
+        })))
     }
 
     async fn get_user(
         State(state): State<Arc<TestRemnawaveState>>,
         headers: HeaderMap,
         AxumPath(account_id): AxumPath<String>,
-    ) -> Result<Json<AccountSnapshot>, StatusCode> {
+    ) -> Result<Json<serde_json::Value>, StatusCode> {
         if !authorized(&headers, &state.expected_token) {
             return Err(StatusCode::UNAUTHORIZED);
         }
@@ -1172,7 +1238,16 @@ mod tests {
         if snapshot.account_id != account_id {
             return Err(StatusCode::NOT_FOUND);
         }
-        Ok(Json(snapshot))
+        Ok(Json(json!({
+            "response": {
+                "id": 42,
+                "shortUuid": "sub-1",
+                "username": "verta-test-user",
+                "status": "ACTIVE",
+                "hwidDeviceLimit": 2,
+                "subRevokedAt": null
+            }
+        })))
     }
 
     async fn get_metadata(
@@ -1189,7 +1264,7 @@ mod tests {
             .expect("test remnawave state poisoned")
             .get(&account_id)
             .cloned()
-            .map(Json)
+            .map(|metadata| Json(json!({"response": {"metadata": metadata}})))
             .ok_or(StatusCode::NOT_FOUND)
     }
 
@@ -1197,11 +1272,20 @@ mod tests {
         State(state): State<Arc<TestRemnawaveState>>,
         headers: HeaderMap,
         AxumPath(account_id): AxumPath<String>,
-        Json(patch): Json<serde_json::Value>,
+        Json(body): Json<serde_json::Value>,
     ) -> Result<StatusCode, StatusCode> {
         if !authorized(&headers, &state.expected_token) {
             return Err(StatusCode::UNAUTHORIZED);
         }
+        let body = body.as_object().ok_or(StatusCode::BAD_REQUEST)?;
+        if body.len() != 1 {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        let patch = body
+            .get("metadata")
+            .filter(|value| value.is_object())
+            .cloned()
+            .ok_or(StatusCode::BAD_REQUEST)?;
         state
             .metadata
             .lock()
@@ -1220,7 +1304,7 @@ mod tests {
             .route("/api/users/resolve", post(resolve_user))
             .route("/api/users/{account_id}", get(get_user))
             .route(
-                "/api/users/{account_id}/metadata",
+                "/api/metadata/user/{account_id}",
                 get(get_metadata).put(put_metadata),
             )
             .with_state(state)
@@ -1331,6 +1415,7 @@ mod tests {
                     base_url: Some(remnawave_base_url),
                     api_token: Some(remnawave_api_token.to_owned()),
                     request_timeout_ms: 500,
+                    api_profile: RemnawaveApiProfileArg::Target3_4_1,
                 },
                 "sig-ok".to_owned(),
             )?,
@@ -1558,7 +1643,7 @@ mod tests {
         let payload = json!({
             "event_id": "evt-1",
             "event_type": "subscription.updated",
-            "account_id": "acct-1",
+            "account_id": "42",
             "occurred_at_unix": now,
             "payload": { "plan": "pro" }
         });
@@ -1729,6 +1814,7 @@ mod tests {
                     base_url: Some(remnawave_base_url),
                     api_token: Some("rw-token".to_owned()),
                     request_timeout_ms: 500,
+                    api_profile: RemnawaveApiProfileArg::Target3_4_1,
                 },
                 "sig-ok".to_owned(),
             )

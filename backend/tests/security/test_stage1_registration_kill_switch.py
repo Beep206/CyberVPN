@@ -79,6 +79,7 @@ def _mobile_user() -> MagicMock:
     user.telegram_subject = "telegram-subject"
     user.auth_realm_id = None
     user.remnawave_uuid = None
+    user.remnawave_user_id = None
     user.totp_enabled = False
     user.totp_secret = None
     user.is_email_verified = True
@@ -314,8 +315,6 @@ async def test_telegram_bot_bootstrap_allowlist_can_create_beta_user_when_paused
     monkeypatch.setattr(telegram_routes.settings, "telegram_bot_bootstrap_usernames", "@sasha_beep_kz")
 
     auth_service = _auth_service()
-    remnawave_adapter = AsyncMock()
-
     response = await telegram_routes.create_or_bootstrap_bot_user(
         TelegramBotUserCreateRequest(
             telegram_id=42424242,
@@ -326,14 +325,12 @@ async def test_telegram_bot_bootstrap_allowlist_can_create_beta_user_when_paused
         telegram_bot_secret="test",
         db=AsyncMock(),
         auth_service=auth_service,
-        remnawave_adapter=remnawave_adapter,
     )
 
     assert response.telegram_id == 42424242
     assert response.username == "Sasha_Beep_KZ"
     assert response.first_name == "Sasha"
     assert response.language_code == "ru"
-    remnawave_adapter.create_user.assert_awaited_once()
 
 
 @pytest.mark.asyncio
@@ -351,14 +348,6 @@ async def test_telegram_bot_update_refreshes_user_before_response(monkeypatch):
         async def update(self, model):
             return model
 
-    class FakeRemnawaveUserGateway:
-        def __init__(self, client):
-            self.client = client
-
-        async def get_by_telegram_id(self, telegram_id):
-            assert telegram_id == user.telegram_id
-            return None
-
     class FakeEntitlementsUseCase:
         def __init__(self, db):
             self.db = db
@@ -366,8 +355,12 @@ async def test_telegram_bot_update_refreshes_user_before_response(monkeypatch):
         async def execute(self, user_id):
             return {}
 
+    mobile_user = SimpleNamespace(id=uuid4())
+
     async def fake_ensure_mobile_user(*args, **kwargs):
-        return SimpleNamespace(id=uuid4())
+        return mobile_user
+
+    exact_remnawave_user = AsyncMock(return_value=None)
 
     async def refresh(instance, *, attribute_names=None):
         assert "updated_at" in (attribute_names or [])
@@ -377,8 +370,12 @@ async def test_telegram_bot_update_refreshes_user_before_response(monkeypatch):
     db.refresh.side_effect = refresh
 
     monkeypatch.setattr(telegram_routes, "AdminUserRepository", FakeAdminUserRepository)
-    monkeypatch.setattr(telegram_routes, "RemnawaveUserGateway", FakeRemnawaveUserGateway)
     monkeypatch.setattr(telegram_routes, "_ensure_mobile_user", fake_ensure_mobile_user)
+    monkeypatch.setattr(
+        telegram_routes,
+        "_get_exact_remnawave_user_for_mobile",
+        exact_remnawave_user,
+    )
     monkeypatch.setattr(telegram_routes, "GetCurrentEntitlementsUseCase", FakeEntitlementsUseCase)
     monkeypatch.setattr(telegram_routes, "_require_telegram_bot_secret", lambda secret: None)
 
@@ -396,6 +393,10 @@ async def test_telegram_bot_update_refreshes_user_before_response(monkeypatch):
     )
 
     db.refresh.assert_awaited_once()
+    exact_remnawave_user.assert_awaited_once()
+    assert exact_remnawave_user.await_args.kwargs["db"] is db
+    assert exact_remnawave_user.await_args.kwargs["mobile_user"] is mobile_user
+    assert exact_remnawave_user.await_args.kwargs["remnawave_client"] is not None
     assert response.telegram_id == user.telegram_id
     assert response.username == "Sasha_Beep"
     assert response.first_name == "Sasha"
@@ -435,7 +436,6 @@ async def test_telegram_bot_bootstrap_allowlist_keeps_unknown_user_blocked_when_
             telegram_bot_secret="test",
             db=AsyncMock(),
             auth_service=_auth_service(),
-            remnawave_adapter=AsyncMock(),
         )
 
     assert exc_info.value.status_code == 403

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-01T10:22:23.0473052+00:00",
+  "scope": "Offline pin verification for the immutable sing-geoip and sing-geosite assets used by the desktop fail-closed routing updater. No production, staging, credentials, or live VPN endpoints were used.",
+  "maximumAssetBytes": 8388608,
+  "assets": [
+    {
+      "repository": "SagerNet/sing-geoip",
+      "releaseTag": "20260812",
+      "asset": "geoip.db",
+      "assetUrl": "https://github.com/SagerNet/sing-geoip/releases/download/20260812/geoip.db",
+      "publishedChecksumUrl": "https://github.com/SagerNet/sing-geoip/releases/download/20260812/geoip.db.sha256sum",
+      "sizeBytes": 3947343,
+      "pinnedSha256": "d8f4d22abee199b73c019df267e8dc649e868da3b130753640aa9b05d11040c0",
+      "downloadedSha256": "d8f4d22abee199b73c019df267e8dc649e868da3b130753640aa9b05d11040c0",
+      "publishedChecksum": "d8f4d22abee199b73c019df267e8dc649e868da3b130753640aa9b05d11040c0",
+      "passed": true
+    },
+    {
+      "repository": "SagerNet/sing-geosite",
+      "releaseTag": "20260831141734",
+      "asset": "geosite.db",
+      "assetUrl": "https://github.com/SagerNet/sing-geosite/releases/download/20260831141734/geosite.db",
+      "publishedChecksumUrl": "https://github.com/SagerNet/sing-geosite/releases/download/20260831141734/geosite.db.sha256sum",
+      "sizeBytes": 3761959,
+      "pinnedSha256": "dfed5b0ca5a439bbb64561b5760434bd15ab10f9765f5e9cf7ba05d7d93205cb",
+      "downloadedSha256": "dfed5b0ca5a439bbb64561b5760434bd15ab10f9765f5e9cf7ba05d7d93205cb",
+      "publishedChecksum": "dfed5b0ca5a439bbb64561b5760434bd15ab10f9765f5e9cf7ba05d7d93205cb",
+      "passed": true
+    }
+  ],
+  "regressionTests": {
+    "command": "cargo test --locked --manifest-path apps/desktop-client/src-tauri/Cargo.toml engine::provision::tests -- --nocapture",
+    "workingDirectory": "<repo>",
+    "exitCode": 0,
+    "result": "13 passed; immutable pins, bounded downloads, cached runtime integrity, cross-process locking, concurrent rollback isolation, wrong digest, and oversized payload all pass; failure cases preserve both known-good files"
+  },
+  "limitations": [
+    "This verifies release bytes, published checksum assets, bounded validation, and local transactional replacement behavior; it is not live-connect evidence.",
+    "Future database updates require an intentional source change to a new immutable tag and checksum pin."
+  ]
+}

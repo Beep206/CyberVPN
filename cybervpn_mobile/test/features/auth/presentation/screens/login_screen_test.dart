@@ -20,7 +20,7 @@ void main() {
     return buildTestableAuthScreen(
       child: const LoginScreen(),
       path: '/login',
-      overrides: authOverrides(mockAuthRepo),
+      overrides: authOverrides(mockAuthRepo, telegramLoginAvailable: true),
     );
   }
 
@@ -110,8 +110,7 @@ void main() {
         await tester.tap(findLoginButton());
         await tester.pumpAndSettle();
 
-        expect(
-            find.text('Please enter a valid email address'), findsOneWidget);
+        expect(find.text('Please enter a valid email address'), findsOneWidget);
       });
 
       testWidgets('short password shows validation error', (tester) async {
@@ -124,8 +123,10 @@ void main() {
         await tester.tap(findLoginButton());
         await tester.pumpAndSettle();
 
-        expect(find.text('Password must be at least 8 characters'),
-            findsOneWidget);
+        expect(
+          find.text('Password must be at least 8 characters'),
+          findsOneWidget,
+        );
       });
     });
 
@@ -142,11 +143,13 @@ void main() {
         await tester.tap(findLoginButton());
         await tester.pumpAndSettle();
 
-        verify(() => mockAuthRepo.login(
-              email: kValidEmail,
-              password: kValidPassword,
-              device: any(named: 'device'),
-            )).called(1);
+        verify(
+          () => mockAuthRepo.login(
+            email: kValidEmail,
+            password: kValidPassword,
+            device: any(named: 'device'),
+          ),
+        ).called(1);
       });
 
       testWidgets('navigates to /connection on success', (tester) async {
@@ -166,8 +169,7 @@ void main() {
     });
 
     group('failed login', () {
-      testWidgets('API error shows error message in SnackBar',
-          (tester) async {
+      testWidgets('API error shows error message in SnackBar', (tester) async {
         ignoreOverflowErrors();
         stubLoginFailure(mockAuthRepo, message: 'Invalid credentials');
 
@@ -184,8 +186,9 @@ void main() {
     });
 
     group('navigation', () {
-      testWidgets('tapping Register link navigates to /register',
-          (tester) async {
+      testWidgets('tapping Register link navigates to /register', (
+        tester,
+      ) async {
         ignoreOverflowErrors();
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();

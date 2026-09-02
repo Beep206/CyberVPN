@@ -110,7 +110,7 @@ groups:
           stage: s1
         annotations:
           summary: "Stage 1 Remnawave node metrics are unavailable"
-          description: "Remnawave is reachable, but node metrics are missing. Verify Remnawave 2.8.0 scrape output and node connectivity before expanding XHTTP rollout."
+          description: "Remnawave is reachable, but node metrics are missing. Verify Remnawave 3.4.x scrape output and node connectivity before expanding XHTTP rollout."
           dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
           runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
 
@@ -294,6 +294,104 @@ groups:
           description: "Worker task error ratio is above 5% for 10 minutes."
           dashboard_path: "/d/stage1-controlled-public-beta/stage-1-controlled-public-beta"
           runbook_path: "docs/runbooks/STAGE1_OBSERVABILITY_ALERT_RUNBOOK.md"
+
+      - alert: Stage1RemnawaveStreamPendingStalled
+        expr: sum(cybervpn_remnawave_stream_pending_current) > 0
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave-streams
+          stage: s1
+        annotations:
+          summary: "Remnawave stream entries remain pending"
+          description: "One or more export entries have remained pending for ten minutes; inspect reclaim and backend ingestion."
+          dashboard_path: "/d/remnawave-streams/remnawave-redis-streams"
+          runbook_path: "docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md"
+
+      - alert: Stage1RemnawaveStreamConsumerStale
+        expr: max by (stream) (time() - cybervpn_remnawave_stream_last_consumed_unixtime) > 900
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave-streams
+          stage: s1
+        annotations:
+          summary: "Remnawave stream consumer is stale"
+          description: "No terminal stream entry has been consumed for more than fifteen minutes. Confirm export traffic, worker health, and the canonical consumer group before replay."
+          dashboard_path: "/d/remnawave-streams/remnawave-redis-streams"
+          runbook_path: "docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md"
+
+      - alert: Stage1RemnawaveStreamLagHigh
+        expr: histogram_quantile(0.95, sum by (le, stream) (rate(cybervpn_remnawave_stream_message_lag_seconds_bucket[15m]))) > 300
+        for: 10m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave-streams
+          stage: s1
+        annotations:
+          summary: "Remnawave stream event lag is high"
+          description: "The fifteen-minute p95 event age is above five minutes. Inspect consumer throughput, pending entries, and PostgreSQL commit latency."
+          dashboard_path: "/d/remnawave-streams/remnawave-redis-streams"
+          runbook_path: "docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md"
+
+      - alert: Stage1RemnawaveStreamParseFailure
+        expr: sum(increase(cybervpn_remnawave_stream_parse_failures_total[15m])) > 0
+        for: 0m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave-streams
+          stage: s1
+        annotations:
+          summary: "Remnawave stream schema validation failed"
+          description: "At least one entry failed bounded schema validation. Inspect only the stable reason label and redacted DLQ metadata."
+          dashboard_path: "/d/remnawave-streams/remnawave-redis-streams"
+          runbook_path: "docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md"
+
+      - alert: Stage1RemnawaveStreamReclaimSpike
+        expr: sum(increase(cybervpn_remnawave_stream_reclaimed_total[15m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave-streams
+          stage: s1
+        annotations:
+          summary: "Remnawave stream reclaim volume is high"
+          description: "More than one hundred pending entries were reclaimed in fifteen minutes. Check failover churn and verify the single-consumer-group invariant."
+          dashboard_path: "/d/remnawave-streams/remnawave-redis-streams"
+          runbook_path: "docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md"
+
+      - alert: Stage1RemnawaveStreamDeadLetterCreated
+        expr: sum(increase(cybervpn_remnawave_stream_dead_letters_total[15m])) > 0
+        for: 0m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave-streams
+          stage: s1
+        annotations:
+          summary: "Remnawave stream entry was dead-lettered"
+          description: "A redacted dead-letter was committed. Inspect the stable reason and schema metrics without exposing payload data."
+          dashboard_path: "/d/remnawave-streams/remnawave-redis-streams"
+          runbook_path: "docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md"
+
+      - alert: Stage1RemnawaveStreamRetentionBacklog
+        expr: cybervpn_remnawave_stream_retention_backlog > 0
+        for: 15m
+        labels:
+          severity: warning
+          priority: p1
+          service: remnawave-streams
+          stage: s1
+        annotations:
+          summary: "Remnawave telemetry retention backlog remains"
+          description: "The bounded PostgreSQL cleanup hit its batch cap or could not make progress."
+          dashboard_path: "/d/remnawave-streams/remnawave-redis-streams"
+          runbook_path: "docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md"
 
       - alert: Stage1RedisRejectedConnections
         expr: increase(redis_rejected_connections_total[5m]) > 0

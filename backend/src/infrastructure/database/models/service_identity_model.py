@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, UniqueConstraint, Uuid
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Index, String, UniqueConstraint, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.database.session import Base
@@ -22,6 +22,13 @@ class ServiceIdentityModel(Base):
             "identity_scope",
             "subscription_key",
             name="uq_service_identities_scope_subscription",
+        ),
+        Index(
+            "uq_service_identities_remnawave_numeric_subscription",
+            "provider_name",
+            "provider_numeric_subject_id",
+            unique=True,
+            postgresql_where=text("provider_numeric_subject_id IS NOT NULL AND identity_scope = 'subscription'"),
         ),
     )
 
@@ -57,6 +64,12 @@ class ServiceIdentityModel(Base):
     )
     subscription_key: Mapped[str | None] = mapped_column(String(220), nullable=True, index=True)
     provider_subject_ref: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    provider_numeric_subject_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        nullable=True,
+        index=True,
+        comment="Canonical numeric provider id; provider_subject_ref is the legacy rollback reference",
+    )
     identity_status: Mapped[str] = mapped_column(
         String(20),
         nullable=False,

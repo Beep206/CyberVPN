@@ -16,12 +16,13 @@ from src.presentation.api.v1.provisioning_profiles.schemas import ProvisioningPr
 
 
 class CreateServiceIdentityRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     customer_account_id: UUID
     auth_realm_id: UUID
     provider_name: str = Field(..., min_length=1, max_length=40)
     source_order_id: UUID | None = None
     origin_storefront_id: UUID | None = None
-    provider_subject_ref: str | None = Field(default=None, min_length=1, max_length=160)
     service_context: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -38,6 +39,7 @@ class ServiceIdentityResponse(BaseModel):
     identity_scope: str = "account"
     subscription_key: str | None = None
     provider_subject_ref: str | None = None
+    provider_numeric_subject_id: int | None = None
     identity_status: ServiceIdentityStatus
     service_context: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime

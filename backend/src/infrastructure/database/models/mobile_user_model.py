@@ -8,7 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, String, Uuid
+from sqlalchemy import JSON, BigInteger, Boolean, CheckConstraint, DateTime, ForeignKey, Index, String, Uuid, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.domain.value_objects.public_uid import generate_public_uid_candidate
@@ -32,6 +32,12 @@ class MobileUserModel(Base):
         CheckConstraint(
             "referred_by_user_id IS NULL OR referred_by_user_id <> id",
             name="ck_mobile_users_no_self_referral",
+        ),
+        Index(
+            "uq_mobile_users_remnawave_user_id_not_null",
+            "remnawave_user_id",
+            unique=True,
+            postgresql_where=text("remnawave_user_id IS NOT NULL"),
         ),
     )
 
@@ -108,6 +114,18 @@ class MobileUserModel(Base):
         unique=True,
         nullable=True,
         index=True,
+    )
+    remnawave_user_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        nullable=True,
+        comment="Canonical Remnawave 3.x numeric user id; UUID remains rollback-only",
+    )
+    subscription_auto_renew_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="CyberVPN-owned renewal opt-in; migrated from the 2.8 inventory when present",
     )
     subscription_url: Mapped[str | None] = mapped_column(
         String(512),

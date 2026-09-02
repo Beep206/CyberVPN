@@ -244,11 +244,14 @@ async fn handle_unexpected_runtime_exit(app_handle: &AppHandle, reason: &str) {
         );
     }
 
-    if let Ok(mut store_data) = crate::engine::store::load_store(app_handle) {
-        if store_data.active_profile_id.is_some() {
-            store_data.active_profile_id = None;
-            let _ = crate::engine::store::save_store(app_handle, &store_data);
-        }
+    if let Err(error) = crate::engine::store::clear_active_profile_with_retry(app_handle) {
+        let _ = crate::engine::diagnostics::record_event(
+            app_handle,
+            crate::engine::diagnostics::DiagnosticLevel::Warn,
+            "vpn.process",
+            "Could not clear persisted active profile after runtime exit",
+            serde_json::json!({ "error": error.to_string() }),
+        );
     }
 }
 

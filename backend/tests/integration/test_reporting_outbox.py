@@ -22,6 +22,7 @@ from tests.helpers.realm_auth import (
     initialize_realm_test_database,
     override_realm_test_db,
 )
+from tests.helpers.remnawave_identity import seed_exact_mobile_user_mapping
 from tests.integration.test_order_attribution_resolution import _create_quote_checkout, _make_admin_token
 from tests.integration.test_order_commit import _make_customer_access_token, _seed_order_context
 
@@ -59,6 +60,15 @@ async def test_reporting_outbox_tracks_domain_events_and_publication_lifecycle(
             with sessionmaker() as db:
                 realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
+                customer = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
+                assert customer is not None
+                seed_exact_mobile_user_mapping(
+                    db,
+                    customer,
+                    numeric_user_id=500_651,
+                    legacy_uuid=uuid.UUID("00000000-0000-0000-0000-000000000651"),
+                    source="reporting_outbox_fixture",
+                )
 
                 partner_owner = MobileUserModel(
                     id=uuid.uuid4(),

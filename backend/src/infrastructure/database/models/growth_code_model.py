@@ -12,12 +12,14 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -557,6 +559,15 @@ class GrowthCodeReservationModel(Base):
 
 class GrowthCodeRedemptionModel(Base):
     __tablename__ = "growth_code_redemptions"
+    __table_args__ = (
+        Index(
+            "uq_growth_code_redemptions_redeemed_gift",
+            "growth_code_id",
+            unique=True,
+            postgresql_where=text("code_type = 'gift' AND status = 'redeemed'"),
+            sqlite_where=text("code_type = 'gift' AND status = 'redeemed'"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     growth_code_id: Mapped[uuid.UUID] = mapped_column(

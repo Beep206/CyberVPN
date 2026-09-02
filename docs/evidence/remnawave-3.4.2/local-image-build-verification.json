@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-01T06:17:47+05:00",
+  "scope": "local-build-verification-only",
+  "promotion_eligible": false,
+  "promotion_blockers": [
+    "Images have not been pushed to the release registry.",
+    "No registry-backed provenance, SBOM, signature or vulnerability-scan attestation was produced in this local run.",
+    "Production-like staging, canary, soak and rollback rehearsal evidence is absent."
+  ],
+  "local_scout_quickview": {
+    "tool_version": "Docker Scout 1.20.4",
+    "panel_backend_frontend": {
+      "packages_indexed": 633,
+      "critical": 2,
+      "high": 2,
+      "medium": 4,
+      "low": 40,
+      "unspecified": 3
+    },
+    "node": {
+      "packages_indexed": 413,
+      "critical": 3,
+      "high": 8,
+      "medium": 7,
+      "low": 28,
+      "unspecified": 5
+    },
+    "subscription_page": {
+      "packages_indexed": 409,
+      "critical": 2,
+      "high": 6,
+      "medium": 7,
+      "low": 49,
+      "unspecified": 6
+    },
+    "node_ssh_proxy": {
+      "packages_indexed": 230,
+      "critical": 4,
+      "high": 21,
+      "medium": 14,
+      "low": 0,
+      "unspecified": 23
+    },
+    "release_disposition": "accepted_risk_per_owner_instruction",
+    "blocks_promotion": false,
+    "interpretation": "The owner explicitly accepted these local Critical/High findings as non-blocking. Quickview remains diagnostic only and is not a signed vulnerability-scan attestation.",
+    "critical_high_packages": [
+      {
+        "package": "Debian perl-base 5.40.1-6",
+        "applies_to": ["panel_backend_frontend", "node"],
+        "findings": "2 Critical and 2 High",
+        "scanner_fix_state": "No fixed trixie package reported by Docker Scout; perl-base is an essential base package and was not removed."
+      },
+      {
+        "package": "Go stdlib 1.26.5",
+        "applies_to": ["node"],
+        "findings": "1 Critical and 5 High",
+        "scanner_fix_state": "Fixed in Go 1.26.6; remediation requires a reviewed upstream node/Xray binary rebuild."
+      },
+      {
+        "package": "golang.org/x/crypto 0.54.0",
+        "applies_to": ["node"],
+        "findings": "1 High",
+        "scanner_fix_state": "Fixed in 0.55.0; remediation requires a reviewed upstream node/Xray binary rebuild."
+      }
+    ]
+  },
+  "artifacts": {
+    "panel_backend_frontend": {
+      "image": "cybervpn/remnawave-backend:3.4.2-raw-vision-flow.2",
+      "local_manifest_list_digest": "sha256:6418f623a11c0b474cdbd2f15847201b126e5c7931bf24de8babb6774a8f4697",
+      "upstream_image": "remnawave/backend:3.4.2@sha256:cef199b732c365ef01c3a907f56cc019733b8b1041d4b6161f5f7904e515a9ee",
+      "backend_commit": "fca29680290f6f010bae1100ff0f5a14ad4a3196",
+      "frontend_commit": "ca22544c8082c497f57119b245990ee8f24d5c7a",
+      "frontend_asset_digest": "sha256:b348f4e032bb0ba0394e05dcbbcb86313fe85b0e683e26916c0bc61309834b95",
+      "verified": [
+        "exact upstream source and frontend metadata",
+        "upstream 3.4.2 concurrent-HWID advisory-lock/status/event fix",
+        "nestjs-zod nullable OpenAPI anyOf patches",
+        "VLESS RAW Vision per-client flow with XHTTP exclusion",
+        "upstream lint and production build",
+        "generated OpenAPI contains no array-valued type fields",
+        "native Node SSH controller and WebSocket authorization path disabled; only scoped CyberVPN broker remains"
+      ]
+    },
+    "node": {
+      "image": "cybervpn/remnawave-node:3.4.1-verified.1",
+      "local_manifest_list_digest": "sha256:89a2ff0961936032fb20afe41df0d2d549073ef417d7253831da7e0da9ed8879",
+      "upstream_image": "remnawave/node:3.4.1@sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e",
+      "source_commit": "44912631321664dbd5822e9bf8d96766ccff7c93",
+      "verified": [
+        "exact upstream source",
+        "Zod 4.5.4 with zod/compile enabled in runtime bundle",
+        "node-plugins 0.8.2 in runtime bundle",
+        "credential-change IP capture before old UUID removal",
+        "scoped connection drop before user re-add"
+      ]
+    },
+    "subscription_page": {
+      "image": "remnawave/subscription-page:8.0.0@sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac",
+      "verified": [
+        "registry OCI index digest resolved",
+        "linux/amd64 child manifest present"
+      ]
+    },
+    "node_ssh_proxy": {
+      "image": "cybervpn/node-ssh-proxy:2.11.4-mirror",
+      "local_manifest_list_digest": "sha256:f7d85950bdde35dca4802f195e95c0a40561d7be45de56098f0a1cc968dfffec",
+      "verified": [
+        "local mirror identity resolved",
+        "local Docker Scout quickview recorded"
+      ]
+    }
+  },
+  "commands": [
+    "node --test infra/remnawave-backend-compat/test/*.test.mjs",
+    "docker build --pull --progress=plain --tag cybervpn/remnawave-backend:3.4.2-raw-vision-flow.2 infra/remnawave-backend-compat",
+    "node --test infra/remnawave-node-mirror/test/*.test.mjs",
+    "docker build --pull --progress=plain --tag cybervpn/remnawave-node:3.4.1-verified.1 infra/remnawave-node-mirror",
+    "docker buildx imagetools inspect remnawave/subscription-page:8.0.0@sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac",
+    "docker image inspect cybervpn/remnawave-backend:3.4.2-raw-vision-flow.2 cybervpn/remnawave-node:3.4.1-verified.1 remnawave/subscription-page:8.0.0 cybervpn/node-ssh-proxy:2.11.4-mirror",
+    "docker scout quickview local://cybervpn/remnawave-backend:3.4.2-raw-vision-flow.2",
+    "docker scout quickview local://cybervpn/remnawave-node:3.4.1-verified.1",
+    "docker scout quickview local://remnawave/subscription-page@sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac",
+    "docker scout quickview local://cybervpn/node-ssh-proxy:2.11.4-mirror"
+  ]
+}

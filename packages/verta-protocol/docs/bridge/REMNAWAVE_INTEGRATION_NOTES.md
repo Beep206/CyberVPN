@@ -19,6 +19,21 @@ This note is operational guidance for the Rust workspace. Normative behavior rem
 - Do not treat Remnawave payloads as trusted runtime state until normalized.
 - Do not invent new public Bridge fields or credential formats without checking the frozen `/v0` contract first.
 
+## Remnawave 3.4.1 Adapter Contract
+
+The maintained HTTP adapter defaults to `target-3.4.1`:
+
+- numeric user `id` is the canonical `account_id` (stored as its decimal string at the private Bridge boundary)
+- resolve sends `{ "shortUuid": "..." }` and accepts only `{ "response": { "id", "username", "shortUuid" } }`
+- user reads use `GET /api/users/{id}`
+- metadata uses `/api/metadata/user/{id}`, unwraps `{ "response": { "metadata" } }`, and wraps writes as `{ "metadata": patch }`
+- account-scoped verified webhook reconciliation rejects UUID references in the target profile
+- removed UUID-only or malformed shapes fail closed
+
+`verta-bridge --remnawave-api-profile legacy-2.8-rollback` is retained only for an operator-coordinated rollback. It uses UUID identity and never activates automatically after a target error. See `docs/adr/0003-remnawave-3-4-1-numeric-user-identity.md`.
+
+The repository carries deterministic `3.4.1` fixtures and tests. They are not a claim that a live staging, production, or public upstream environment was contacted by this change.
+
 ## Authority Split
 
 | Domain | Authority | Initial implementation note |
@@ -205,13 +220,14 @@ Milestone 47 advances `Phase I` with the first supported-upstream verification h
   - optional: `VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_REQUEST_TIMEOUT_MS`
   - optional: `VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_MAX_SNAPSHOT_AGE_SECONDS`
   - optional: `VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_EXPECTED_ACCOUNT_ID`
+  - optional: `VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_SOURCE_VERSION`
   - optional: `VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_WEBHOOK_EVENT_TYPE`
   - optional: `VERTA_REMNAWAVE_SUPPORTED_UPSTREAM_SUMMARY_PATH`
 
 The supported-upstream harness proves:
 
 - the current `HttpRemnawaveAdapter` can resolve a configured supported upstream environment
-- the observed upstream version meets the current supported floor of `2.7.0+`
+- the target/explicitly supplied upstream version meets the current supported floor of `3.4.1`
 - the maintained bridge path can complete manifest bootstrap, device registration, token exchange, refresh manifest fetch, and verified webhook ingress over that adapter boundary
 - operator-facing failures are explicit for missing environment, unsupported version, auth failure, timeout, response-shape drift, webhook-signature failure, stale snapshot state, and incompatible-contract conditions
 

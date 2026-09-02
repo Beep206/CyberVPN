@@ -147,9 +147,9 @@ def resolve_invite_expiry(
     if mode == INVITE_EXPIRY_NONE:
         return InviteExpiryResolution(expiry_mode=mode, expiry_days=None, expires_at=None)
     if mode == INVITE_EXPIRY_ABSOLUTE:
-        absolute = _coerce_utc(expires_at)
-        if absolute is None:
+        if expires_at is None:
             raise ValueError("expires_at is required for absolute invite expiry")
+        absolute = _coerce_utc(expires_at)
         return InviteExpiryResolution(expiry_mode=mode, expiry_days=None, expires_at=absolute)
     relative_days = positive_int_or_none(expiry_days)
     if relative_days is None:

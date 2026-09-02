@@ -41,12 +41,18 @@ const tProfileWithTelegram = Profile(
   id: 'user-1',
   email: 'test@example.com',
   username: 'testuser',
+  isEmailVerified: true,
   is2FAEnabled: false,
   linkedProviders: [OAuthProvider.telegram],
 );
 
 final tDevices = [
-  const Device(id: 'dev-1', name: 'iPhone 15', platform: 'iOS', isCurrent: true),
+  const Device(
+    id: 'dev-1',
+    name: 'iPhone 15',
+    platform: 'iOS',
+    isCurrent: true,
+  ),
   const Device(id: 'dev-2', name: 'Pixel 8', platform: 'Android'),
 ];
 
@@ -62,9 +68,7 @@ const tSetup2FAResult = Setup2FAResult(
 /// Creates a [ProviderContainer] with the mock repository injected.
 ProviderContainer createContainer(MockProfileRepository mockRepo) {
   return ProviderContainer(
-    overrides: [
-      profileRepositoryProvider.overrideWithValue(mockRepo),
-    ],
+    overrides: [profileRepositoryProvider.overrideWithValue(mockRepo)],
   );
 }
 
@@ -132,8 +136,12 @@ void main() {
   // ---------------------------------------------------------------------------
   group('ProfileNotifier build', () {
     test('loads profile and devices on initialization', () async {
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -151,7 +159,9 @@ void main() {
 
     test('sets error state when getProfile fails', () async {
       when(() => mockRepo.getProfile()).thenThrow(Exception('network error'));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => const Success(<Device>[]));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => const Success(<Device>[]));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -168,9 +178,15 @@ void main() {
   // ---------------------------------------------------------------------------
   group('ProfileNotifier setup2FA', () {
     test('calls use case and returns result', () async {
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
-      when(() => mockRepo.setup2FA()).thenAnswer((_) async => const Success(tSetup2FAResult));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.setup2FA(),
+      ).thenAnswer((_) async => const Success(tSetup2FAResult));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -191,17 +207,23 @@ void main() {
   // ---------------------------------------------------------------------------
   group('ProfileNotifier verify2FA', () {
     test('updates state when verification succeeds', () async {
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
-      when(() => mockRepo.verify2FA('123456')).thenAnswer((_) async => const Success(true));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.verify2FA('123456'),
+      ).thenAnswer((_) async => const Success(true));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
 
       // After verify, getProfile is called again to refresh state.
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) async => const Success(tProfileWith2FA));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfileWith2FA));
 
       final notifier = container.read(profileProvider.notifier);
       final success = await notifier.verify2FA('123456');
@@ -220,11 +242,15 @@ void main() {
   // ---------------------------------------------------------------------------
   group('ProfileNotifier disable2FA', () {
     test('updates state when disable succeeds', () async {
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) async => const Success(tProfileWith2FA));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
-      when(() => mockRepo.disable2FA('654321'))
-          .thenAnswer((_) async => const Success<void>(null));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfileWith2FA));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.disable2FA('654321'),
+      ).thenAnswer((_) async => const Success<void>(null));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -232,7 +258,9 @@ void main() {
       expect(container.read(profileProvider).value?.is2FAEnabled, isTrue);
 
       // After disable, getProfile returns profile without 2FA.
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
 
       final notifier = container.read(profileProvider.notifier);
       await notifier.disable2FA('654321');
@@ -249,10 +277,17 @@ void main() {
   // ---------------------------------------------------------------------------
   group('ProfileNotifier OAuth linking', () {
     test('getTelegramAuthUrl returns authorization URL', () async {
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
-      when(() => mockRepo.getOAuthAuthorizationUrl(OAuthProvider.telegram))
-          .thenAnswer((_) async => const Success('https://auth.example.com/telegram'));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.getOAuthAuthorizationUrl(OAuthProvider.telegram),
+      ).thenAnswer(
+        (_) async => const Success('https://auth.example.com/telegram'),
+      );
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -261,17 +296,23 @@ void main() {
       final url = await notifier.getTelegramAuthUrl();
 
       expect(url, 'https://auth.example.com/telegram');
-      verify(() => mockRepo.getOAuthAuthorizationUrl(OAuthProvider.telegram)).called(1);
+      verify(
+        () => mockRepo.getOAuthAuthorizationUrl(OAuthProvider.telegram),
+      ).called(1);
 
       container.dispose();
     });
 
     test('unlinkAccount removes provider and refreshes profile', () async {
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) async => const Success(tProfileWithTelegram));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
-      when(() => mockRepo.unlinkOAuth(OAuthProvider.telegram))
-          .thenAnswer((_) async => const Success<void>(null));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfileWithTelegram));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.unlinkOAuth(OAuthProvider.telegram),
+      ).thenAnswer((_) async => const Success<void>(null));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -282,7 +323,9 @@ void main() {
       );
 
       // After unlink, getProfile returns profile without telegram.
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
 
       final notifier = container.read(profileProvider.notifier);
       await notifier.unlinkAccount(OAuthProvider.telegram);
@@ -300,8 +343,12 @@ void main() {
   // ---------------------------------------------------------------------------
   group('ProfileNotifier refreshProfile', () {
     test('refreshes profile and devices', () async {
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => const Success(<Device>[]));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => const Success(<Device>[]));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -309,9 +356,12 @@ void main() {
       expect(container.read(profileProvider).value?.devices, isEmpty);
 
       // On refresh, return updated data.
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) async => const Success(tProfileWith2FA));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfileWith2FA));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
 
       final notifier = container.read(profileProvider.notifier);
       await notifier.refreshProfile();
@@ -324,8 +374,12 @@ void main() {
     });
 
     test('sets error state on refresh failure', () async {
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => const Success(<Device>[]));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => const Success(<Device>[]));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -346,9 +400,12 @@ void main() {
   // ---------------------------------------------------------------------------
   group('Derived providers', () {
     test('is2FAEnabledProvider returns correct value', () async {
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) async => const Success(tProfileWith2FA));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => const Success(<Device>[]));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfileWith2FA));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => const Success(<Device>[]));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -359,25 +416,29 @@ void main() {
     });
 
     test('linkedAccountsProvider returns correct list', () async {
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) async => const Success(tProfileWithTelegram));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => const Success(<Device>[]));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfileWithTelegram));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => const Success(<Device>[]));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
 
-      expect(
-        container.read(linkedAccountsProvider),
-        [OAuthProvider.telegram],
-      );
+      expect(container.read(linkedAccountsProvider), [OAuthProvider.telegram]);
       expect(container.read(linkedAccountsCountProvider), 1);
 
       container.dispose();
     });
 
     test('devicesListProvider returns device list', () async {
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => Success(tDevices));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => Success(tDevices));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -388,8 +449,12 @@ void main() {
     });
 
     test('userProfileProvider returns profile', () async {
-      when(() => mockRepo.getProfile()).thenAnswer((_) async => const Success(tProfile));
-      when(() => mockRepo.getDevices()).thenAnswer((_) async => const Success(<Device>[]));
+      when(
+        () => mockRepo.getProfile(),
+      ).thenAnswer((_) async => const Success(tProfile));
+      when(
+        () => mockRepo.getDevices(),
+      ).thenAnswer((_) async => const Success(<Device>[]));
 
       final container = createContainer(mockRepo);
       await waitForProvider(container);
@@ -403,10 +468,18 @@ void main() {
       // Container without overrides will have the provider in loading state
       // because the repository throws UnimplementedError.
       // Instead, test with a fresh container that has mock returning delayed.
-      when(() => mockRepo.getProfile())
-          .thenAnswer((_) => Future.delayed(const Duration(seconds: 10), () => const Success(tProfile)));
-      when(() => mockRepo.getDevices())
-          .thenAnswer((_) => Future.delayed(const Duration(seconds: 10), () => const Success(<Device>[])));
+      when(() => mockRepo.getProfile()).thenAnswer(
+        (_) => Future.delayed(
+          const Duration(seconds: 10),
+          () => const Success(tProfile),
+        ),
+      );
+      when(() => mockRepo.getDevices()).thenAnswer(
+        (_) => Future.delayed(
+          const Duration(seconds: 10),
+          () => const Success(<Device>[]),
+        ),
+      );
 
       final container = createContainer(mockRepo);
       // Read immediately before async completes.

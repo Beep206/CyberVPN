@@ -30,6 +30,28 @@ const BROWSER_ROUTE_BATCH_SIZE = readNumberOption(
   readNumberEnv('WEB_ROUTE_SMOKE_BROWSER_BATCH_SIZE', LIVE_API ? 20 : 0),
 );
 
+const PARTNER_SMOKE_WORKSPACE_UUID = '10000000-0000-4000-8000-000000000001';
+const PARTNER_SMOKE_PROFILE_UUID = '20000000-0000-4000-8000-000000000001';
+const PARTNER_SMOKE_INTEGRATION_UUID = '20000000-0000-4000-8000-000000000002';
+const PARTNER_SMOKE_MUTATION_ATTEMPT_UUID = '30000000-0000-4000-8000-000000000001';
+const PARTNER_SMOKE_ROLE_PERMISSIONS = Object.freeze([
+  'workspace_read',
+  'operations_write',
+  'membership_read',
+  'membership_write',
+  'codes_read',
+  'codes_write',
+  'earnings_read',
+  'payouts_read',
+  'payouts_write',
+  'traffic_read',
+  'traffic_write',
+  'integrations_read',
+  'integrations_write',
+  'remnawave_read',
+  'remnawave_write',
+]);
+
 const SURFACE_CONFIGS = {
   frontend: {
     workspace: 'frontend',
@@ -1326,8 +1348,8 @@ function buildPartnerSessionFixture() {
 
 function buildPartnerWorkspaceFixture() {
   return {
-    id: 'workspace-smoke',
-    workspace_id: 'workspace-smoke',
+    id: PARTNER_SMOKE_WORKSPACE_UUID,
+    workspace_id: PARTNER_SMOKE_WORKSPACE_UUID,
     slug: 'northstar-smoke',
     display_name: 'Northstar Smoke Workspace',
     status: 'active',
@@ -1339,7 +1361,7 @@ function buildPartnerWorkspaceFixture() {
     technical_readiness: 'ready',
     governance_state: 'clear',
     current_role_key: 'owner',
-    current_permission_keys: ['*'],
+    current_permission_keys: [...PARTNER_SMOKE_ROLE_PERMISSIONS],
     members: [
       {
         id: 'member-smoke-owner',
@@ -1350,7 +1372,7 @@ function buildPartnerWorkspaceFixture() {
         operator_login: 'partner-smoke',
         operator_email: 'partner-smoke@example.invalid',
         admin_user_id: 'smoke-partner',
-        permission_keys: ['workspace_read', 'membership_write'],
+        permission_keys: [...PARTNER_SMOKE_ROLE_PERMISSIONS],
       },
     ],
     created_at: '2026-06-03T00:00:00.000Z',
@@ -1717,6 +1739,67 @@ function partnerBootstrapFixture() {
     pending_tasks: [],
     blocked_reasons: [],
   };
+}
+
+function partnerRemnawaveResourceFixture(resourceType) {
+  const isProfile = resourceType === 'profile';
+  assert(isProfile || resourceType === 'integration', `Unsupported Partner Remnawave smoke resource: ${resourceType}`);
+  return {
+    workspace_id: PARTNER_SMOKE_WORKSPACE_UUID,
+    resource_type: resourceType,
+    resource_uuid: isProfile ? PARTNER_SMOKE_PROFILE_UUID : PARTNER_SMOKE_INTEGRATION_UUID,
+    effective_permissions: ['remnawave_read', 'remnawave_write'],
+    available_operations: ['inspect_assignment', 'mutate_resource'],
+    unavailable_operations: ['execute_resource'],
+    forbidden_operations: ['browser_ssh'],
+    provider_details_available: false,
+    safe_mutations: [isProfile ? 'profile_tags' : 'integration_metadata'],
+  };
+}
+
+function partnerRemnawaveResourceListFixture() {
+  return {
+    workspace_id: PARTNER_SMOKE_WORKSPACE_UUID,
+    items: [
+      partnerRemnawaveResourceFixture('profile'),
+      partnerRemnawaveResourceFixture('integration'),
+    ],
+    total: 2,
+    next_offset: null,
+    capabilities: {
+      inspect_assignment: true,
+      mutate_resource: true,
+      execute_resource: false,
+      browser_ssh: false,
+      mutation_unavailable_reason: 'limited_to_explicit_profile_and_integration_grants',
+      safe_mutations: ['profile_tags', 'integration_metadata'],
+    },
+  };
+}
+
+function partnerRemnawaveStatusFixture() {
+  return {
+    workspace_id: PARTNER_SMOKE_WORKSPACE_UUID,
+    capabilities: {
+      connections: true,
+      usage: true,
+      devices: true,
+    },
+    assigned_resources: 2,
+    degraded: false,
+    degraded_reason: null,
+  };
+}
+
+function parseFixtureRequestBody(postData) {
+  if (typeof postData !== 'string' || postData.length === 0) {
+    return null;
+  }
+  try {
+    return JSON.parse(postData);
+  } catch {
+    throw new Error('Route smoke received a non-JSON mutation body');
+  }
 }
 
 function paymentHistoryFixture() {
@@ -2317,7 +2400,7 @@ function partnerWorkspaceRolesFixture() {
       role_key: 'owner',
       display_name: 'Owner',
       description: 'Workspace owner',
-      permission_keys: ['workspace_read', 'membership_write'],
+      permission_keys: [...PARTNER_SMOKE_ROLE_PERMISSIONS],
       is_system: true,
       created_at: '2026-06-03T00:00:00.000Z',
       updated_at: '2026-06-03T00:00:00.000Z',
@@ -2610,11 +2693,12 @@ function listEnvelope(items = []) {
   };
 }
 
-function fixtureForApiRequest(rawUrl, method) {
+function fixtureForApiRequest(rawUrl, method, postData = null) {
   const url = new URL(rawUrl);
   const path = url.pathname.replace(/^\/api\/v1/, '').replace(/^\/api\/v3/, '');
   const lowerPath = path.toLowerCase();
   const normalizedMethod = method.toUpperCase();
+  const partnerRemnawaveBasePath = `/partner-workspaces/${PARTNER_SMOKE_WORKSPACE_UUID}/remnawave`;
   const sessionFixture =
     SURFACE === 'admin'
       ? API_ROUTE_FIXTURES.admin
@@ -2704,7 +2788,7 @@ function fixtureForApiRequest(rawUrl, method) {
   if (lowerPath.includes('/auth/logout')) {
     return { kind: 'json', data: { message: 'Signed out' } };
   }
-  if (lowerPath.includes('/users/me/profile') || lowerPath.includes('/profile')) {
+  if (lowerPath.includes('/users/me/profile') || lowerPath === '/profile') {
     return {
       kind: 'json',
       data: {
@@ -2823,13 +2907,89 @@ function fixtureForApiRequest(rawUrl, method) {
     return { kind: 'json', data: { email: true, in_app: true, payout_status_emails: true } };
   }
   if (lowerPath.includes('/partner-notifications')) {
-    return { kind: 'json', data: listEnvelope([]) };
+    return { kind: 'json', data: [] };
   }
   if (lowerPath.includes('/partner-application-drafts/current')) {
     return { kind: 'json', data: null };
   }
   if (lowerPath.includes('/partner-bots')) {
     return { kind: 'json', data: [] };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath.includes('/partner-workspaces/')
+    && [
+      '/reseller-voucher-batches',
+      '/analytics-metrics',
+      '/report-exports',
+      '/integration-credentials',
+      '/integration-delivery-logs',
+    ].some((suffix) => lowerPath.endsWith(suffix))
+  ) {
+    return { kind: 'json', data: [] };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === `/partner-workspaces/${PARTNER_SMOKE_WORKSPACE_UUID}/vpn-service-status`
+  ) {
+    return { kind: 'json', data: partnerRemnawaveStatusFixture() };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === `${partnerRemnawaveBasePath}/resources`
+  ) {
+    return { kind: 'json', data: partnerRemnawaveResourceListFixture() };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === `${partnerRemnawaveBasePath}/resources/profile/${PARTNER_SMOKE_PROFILE_UUID}`
+  ) {
+    return { kind: 'json', data: partnerRemnawaveResourceFixture('profile') };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === `${partnerRemnawaveBasePath}/resources/integration/${PARTNER_SMOKE_INTEGRATION_UUID}`
+  ) {
+    return { kind: 'json', data: partnerRemnawaveResourceFixture('integration') };
+  }
+  if (
+    normalizedMethod === 'PATCH'
+    && lowerPath === `${partnerRemnawaveBasePath}/resources/profile/${PARTNER_SMOKE_PROFILE_UUID}/tags`
+  ) {
+    const body = parseFixtureRequestBody(postData);
+    assert(
+      JSON.stringify(body) === JSON.stringify({ tags: ['EDGE:RU', 'VISION'] }),
+      'Partner profile-tags smoke must submit only the expected bounded tag list',
+    );
+    return {
+      kind: 'json',
+      data: {
+        resource_uuid: PARTNER_SMOKE_PROFILE_UUID,
+        tags: body.tags,
+      },
+      status: 200,
+    };
+  }
+  if (
+    normalizedMethod === 'PATCH'
+    && lowerPath === `${partnerRemnawaveBasePath}/resources/integration/${PARTNER_SMOKE_INTEGRATION_UUID}/metadata`
+  ) {
+    const body = parseFixtureRequestBody(postData);
+    assert(
+      JSON.stringify(body) === JSON.stringify({ name: 'Route Smoke Metrics' }),
+      'Partner integration-metadata smoke must submit only the expected bounded display name',
+    );
+    return {
+      kind: 'json',
+      data: {
+        attempt_id: PARTNER_SMOKE_MUTATION_ATTEMPT_UUID,
+        state: 'reconciliation_required',
+        resource_type: 'integration',
+        resource_uuid: PARTNER_SMOKE_INTEGRATION_UUID,
+        requires_reconciliation: true,
+      },
+      status: 202,
+    };
   }
 
   if (lowerPath.includes('/admin/audit-log')) {
@@ -3147,6 +3307,128 @@ function fixtureForApiRequest(rawUrl, method) {
   ) {
     return { kind: 'json', data: [] };
   }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === '/admin/remnawave/capabilities-and-streams'
+  ) {
+    return {
+      kind: 'json',
+      data: {
+        panel_version: '3.4.3',
+        target_panel_version: '3.4.3',
+        target_node_version: '3.4.1',
+        contract_version: '3.4.13',
+        capabilities: {
+          numeric_user_ids: true,
+          connections: true,
+          geo_check: true,
+          node_integrations: true,
+          shared_lists: true,
+          node_ssh: true,
+          tags: true,
+          host_mapper: true,
+          root_snippets: true,
+          redis_stream_export: true,
+        },
+        streams: [],
+        degraded_reason: null,
+      },
+    };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && /^\/admin\/remnawave-operator\/tags\/[^/]+$/.test(lowerPath)
+  ) {
+    return {
+      kind: 'json',
+      data: {
+        resource: lowerPath.split('/').at(-1),
+        tags: ['EDGE_EU', 'EDGE_RU'],
+      },
+    };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === '/admin/remnawave-operator/node-integrations'
+  ) {
+    return {
+      kind: 'json',
+      data: {
+        total: 1,
+        items: [
+          {
+            uuid: '550e8400-e29b-41d4-a716-446655440000',
+            name: 'route-smoke-metrics',
+            description: 'Redacted route-smoke integration',
+            config: {
+              endpoint: 'https://example.invalid/metrics',
+              token: '<redacted>',
+            },
+          },
+        ],
+      },
+    };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === '/admin/remnawave-operator/shared-lists/by-name'
+  ) {
+    return {
+      kind: 'json',
+      data: {
+        name: url.searchParams.get('name') ?? 'route-smoke-routing',
+        config: { type: 'cidr', items: ['192.0.2.0/24'] },
+      },
+    };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === '/admin/remnawave-operator/shared-lists'
+  ) {
+    return {
+      kind: 'json',
+      data: {
+        total: 1,
+        items: [{ name: 'route-smoke-routing', type: 'cidr', itemsCount: 1 }],
+      },
+    };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && lowerPath === '/admin/remnawave-operator/snippets'
+  ) {
+    return {
+      kind: 'json',
+      data: {
+        total: 1,
+        items: [
+          {
+            name: 'route-smoke-headers',
+            snippet: [{ name: 'X-Route-Smoke', value: '<redacted>' }],
+          },
+        ],
+      },
+    };
+  }
+  if (
+    normalizedMethod === 'GET'
+    && /^\/admin\/remnawave-operator\/geocheck\/jobs\/[^/]+$/.test(lowerPath)
+  ) {
+    return {
+      kind: 'json',
+      data: {
+        isCompleted: true,
+        isFailed: false,
+        result: {
+          success: true,
+          nodeUuid: '550e8400-e29b-41d4-a716-446655440001',
+          image: null,
+          rawReport: { status: 'ok' },
+          message: 'Deterministic route-smoke result',
+        },
+      },
+    };
+  }
   if (lowerPath.includes('/config-profiles') || lowerPath.includes('/hosts') || lowerPath.includes('/inbounds') || lowerPath.includes('/servers') || lowerPath.includes('/snippets') || lowerPath.includes('/squads/') || lowerPath.includes('/squads/internal') || lowerPath.includes('/squads/external') || lowerPath.includes('/helix/admin/nodes')) {
     return { kind: 'json', data: [] };
   }
@@ -3213,6 +3495,239 @@ function installBrowserMocksSource() {
       close() { this.readyState = 2; }
     };
   `;
+}
+
+function isPartnerDashboardRoute(route) {
+  return SURFACE === 'partner'
+    && !LIVE_API
+    && route.group === 'dashboard'
+    && /\/dashboard\/?$/.test(new URL(route.url).pathname);
+}
+
+async function clickPartnerRemnawaveResource(client, sessionId, resourceUuid) {
+  const resourceUuidLiteral = JSON.stringify(resourceUuid);
+  await waitForExpression(
+    client,
+    sessionId,
+    `Array.from(document.querySelectorAll('code')).some((item) => item.textContent?.trim() === ${resourceUuidLiteral})`,
+    ASSERTION_TIMEOUT_MS,
+    `Partner Remnawave resource did not render: ${resourceUuid}`,
+  );
+  const clicked = await evaluate(
+    client,
+    sessionId,
+    `
+      (() => {
+        const resource = Array.from(document.querySelectorAll('code'))
+          .find((item) => item.textContent?.trim() === ${resourceUuidLiteral});
+        const button = resource?.closest('li')?.querySelector('button');
+        if (!(button instanceof HTMLButtonElement) || button.disabled) return false;
+        button.click();
+        return true;
+      })()
+    `,
+  );
+  assert(clicked, `Partner Remnawave inspect control was unavailable for ${resourceUuid}`);
+}
+
+async function setPartnerRemnawaveInput(client, sessionId, inputId, value) {
+  const inputIdLiteral = JSON.stringify(inputId);
+  const valueLiteral = JSON.stringify(value);
+  try {
+    await waitForExpression(
+      client,
+      sessionId,
+      `document.getElementById(${inputIdLiteral}) instanceof HTMLInputElement`,
+      ASSERTION_TIMEOUT_MS,
+      `Partner Remnawave mutation input did not render: ${inputId}`,
+    );
+  } catch (error) {
+    const renderedContext = await evaluate(
+      client,
+      sessionId,
+      `
+        JSON.stringify({
+          inputs: Array.from(document.querySelectorAll('input')).map((item) => item.id).filter(Boolean),
+          remnawaveSection: document.getElementById('partner-remnawave-resources-title')
+            ?.closest('section')
+            ?.innerText
+            ?.replace(/\\s+/g, ' ')
+            .trim()
+            .slice(0, 1600) ?? null,
+        })
+      `,
+    );
+    throw new Error(`${error instanceof Error ? error.message : String(error)} Context: ${renderedContext}`);
+  }
+  const changed = await evaluate(
+    client,
+    sessionId,
+    `
+      (() => {
+        const input = document.getElementById(${inputIdLiteral});
+        const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        if (!(input instanceof HTMLInputElement) || !valueSetter || input.disabled) return false;
+        valueSetter.call(input, ${valueLiteral});
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        return input.value === ${valueLiteral};
+      })()
+    `,
+  );
+  assert(changed, `Partner Remnawave mutation input could not be changed: ${inputId}`);
+  await sleep(100);
+}
+
+async function submitPartnerRemnawaveForm(client, sessionId, inputId) {
+  const inputIdLiteral = JSON.stringify(inputId);
+  const submitted = await evaluate(
+    client,
+    sessionId,
+    `
+      (() => {
+        const input = document.getElementById(${inputIdLiteral});
+        const form = input?.closest('form');
+        const button = form?.querySelector('button[type="submit"]');
+        if (!(form instanceof HTMLFormElement) || !(button instanceof HTMLButtonElement) || button.disabled) return false;
+        form.requestSubmit(button);
+        return true;
+      })()
+    `,
+  );
+  assert(submitted, `Partner Remnawave mutation form could not be submitted: ${inputId}`);
+}
+
+async function runPartnerRemnawaveDashboardInteractions(client, sessionId, diagnostics) {
+  const workspace = API_ROUTE_FIXTURES.workspace;
+  assert(!workspace.current_permission_keys.includes('*'), 'Partner Remnawave smoke role must never use wildcard permissions');
+  assert(
+    workspace.current_permission_keys.includes('remnawave_read')
+      && workspace.current_permission_keys.includes('remnawave_write'),
+    'Partner Remnawave smoke role must explicitly include remnawave_read and remnawave_write',
+  );
+  assert(
+    !workspace.current_permission_keys.includes('remnawave_execute')
+      && !workspace.current_permission_keys.includes('remnawave_ssh'),
+    'Partner Remnawave safe-mutation smoke must not inherit execute or SSH permissions',
+  );
+
+  await clickPartnerRemnawaveResource(client, sessionId, PARTNER_SMOKE_PROFILE_UUID);
+  const profileInputId = `profile-tags-${PARTNER_SMOKE_PROFILE_UUID}`;
+  await setPartnerRemnawaveInput(client, sessionId, profileInputId, 'EDGE:RU, VISION');
+  await submitPartnerRemnawaveForm(client, sessionId, profileInputId);
+  await waitForExpression(
+    client,
+    sessionId,
+    `
+      document.getElementById(${JSON.stringify(profileInputId)})
+        ?.closest('form')
+        ?.querySelector('[role="status"]')
+        ?.textContent
+        ?.includes('Scoped mutation confirmed') === true
+    `,
+    ASSERTION_TIMEOUT_MS,
+    'Partner profile-tags mutation did not render its verified 200 outcome',
+  );
+
+  await clickPartnerRemnawaveResource(client, sessionId, PARTNER_SMOKE_INTEGRATION_UUID);
+  const integrationInputId = `integration-name-${PARTNER_SMOKE_INTEGRATION_UUID}`;
+  await setPartnerRemnawaveInput(client, sessionId, integrationInputId, 'Route Smoke Metrics');
+  await submitPartnerRemnawaveForm(client, sessionId, integrationInputId);
+  await waitForExpression(
+    client,
+    sessionId,
+    `
+      (() => {
+        const input = document.getElementById(${JSON.stringify(integrationInputId)});
+        const status = input?.closest('form')?.querySelector('[role="status"]');
+        return input instanceof HTMLInputElement
+          && input.disabled
+          && status?.textContent?.includes('Mutation requires reconciliation') === true;
+      })()
+    `,
+    ASSERTION_TIMEOUT_MS,
+    'Partner integration-metadata mutation did not render and lock its 202 reconciliation outcome',
+  );
+
+  const boundary = await evaluate(
+    client,
+    sessionId,
+    `
+      (() => {
+        const interactive = Array.from(document.querySelectorAll('a[href], button, [role="button"], input[type="submit"]'))
+          .map((item) => ({
+            label: (item.getAttribute('aria-label') || item.textContent || '').replace(/\\s+/g, ' ').trim(),
+            href: item instanceof HTMLAnchorElement ? item.getAttribute('href') : null,
+          }));
+        const forbiddenLabel = /(?:\\b(?:open|launch|connect|manage|configure)\\s+(?:browser\\s+)?ssh\\b|\\bnode\\s+ssh\\b|\\bglobal(?:\\s+remnawave)?\\s+(?:settings|controls|configuration)\\b|\\bplatform\\s+tokens?\\b)/i;
+        const forbiddenHref = /(?:^|\\/)(?:admin|node-ssh|browser-ssh)(?:\\/|$)/i;
+        return {
+          sshBoundaryRendered: document.body?.innerText?.toLowerCase().includes('browser ssh prohibited') === true,
+          forbiddenInteractiveControls: interactive.filter((item) => (
+            forbiddenLabel.test(item.label) || (typeof item.href === 'string' && forbiddenHref.test(item.href))
+          )),
+        };
+      })()
+    `,
+  );
+  assert(boundary.sshBoundaryRendered, 'Partner dashboard did not render the explicit browser SSH prohibition');
+  assert(
+    boundary.forbiddenInteractiveControls.length === 0,
+    `Partner dashboard exposed SSH/global interactive controls: ${JSON.stringify(boundary.forbiddenInteractiveControls)}`,
+  );
+
+  const profilePath = `/api/v1/partner-workspaces/${PARTNER_SMOKE_WORKSPACE_UUID}/remnawave/resources/profile/${PARTNER_SMOKE_PROFILE_UUID}/tags`;
+  const integrationPath = `/api/v1/partner-workspaces/${PARTNER_SMOKE_WORKSPACE_UUID}/remnawave/resources/integration/${PARTNER_SMOKE_INTEGRATION_UUID}/metadata`;
+  const capturedMutations = diagnostics.partnerRemnawaveMutationRequests;
+  assert(capturedMutations.length === 2, `Expected exactly two Partner Remnawave PATCH requests, received ${capturedMutations.length}`);
+  assert(
+    capturedMutations.every((request) => request.idempotencyKeyPresent),
+    'Every Partner Remnawave safe mutation must carry a bounded Idempotency-Key',
+  );
+  const profileResponse = diagnostics.apiResponses.find((response) => (
+    response.method === 'PATCH' && response.path === profilePath
+  ));
+  const integrationResponse = diagnostics.apiResponses.find((response) => (
+    response.method === 'PATCH' && response.path === integrationPath
+  ));
+  assert(profileResponse?.status === 200, 'Partner profile-tags PATCH did not complete with HTTP 200');
+  assert(integrationResponse?.status === 202, 'Partner integration-metadata PATCH did not complete with HTTP 202');
+  const forbiddenApiRequests = diagnostics.apiRequests.filter((request) => (
+    request.path.includes('/ssh')
+    || request.path.includes('/node-ssh')
+    || request.path.startsWith('/api/v1/admin/remnawave')
+  ));
+  assert(
+    forbiddenApiRequests.length === 0,
+    `Partner dashboard issued forbidden SSH/global API requests: ${JSON.stringify(forbiddenApiRequests)}`,
+  );
+
+  return {
+    status: 'passed',
+    rolePermissions: [...workspace.current_permission_keys],
+    wildcardPermission: false,
+    objectGrants: partnerRemnawaveResourceListFixture().items.map((resource) => ({
+      resourceType: resource.resource_type,
+      resourceUuid: resource.resource_uuid,
+      effectivePermissions: resource.effective_permissions,
+      safeMutations: resource.safe_mutations,
+      browserSsh: false,
+    })),
+    mutations: capturedMutations.map((request) => ({
+      method: request.method,
+      path: request.path,
+      status: diagnostics.apiResponses.find((response) => (
+        response.method === request.method && response.path === request.path
+      ))?.status ?? null,
+      body: request.body,
+      idempotencyKeyPresent: request.idempotencyKeyPresent,
+    })),
+    renderedOutcomes: ['Scoped mutation confirmed', 'Mutation requires reconciliation'],
+    boundary: {
+      sshProhibitionRendered: true,
+      forbiddenInteractiveControlCount: 0,
+      forbiddenApiRequestCount: 0,
+    },
+  };
 }
 
 async function setAuthCookies(client, sessionId, urls, liveCookieJar = null) {
@@ -3338,6 +3853,26 @@ function sanitizedApiPath(rawUrl) {
   return `${url.pathname}${queryKeys.length > 0 ? `?${queryKeys.map((key) => `${key}=<redacted>`).join('&')}` : ''}`;
 }
 
+function capturePartnerRemnawaveMutationRequest(request) {
+  const path = sanitizedApiPath(request.url);
+  if (
+    request.method.toUpperCase() !== 'PATCH'
+    || !path.includes('/remnawave/resources/')
+  ) {
+    return null;
+  }
+  const idempotencyKey = Object.entries(request.headers ?? {}).find(
+    ([name]) => name.toLowerCase() === 'idempotency-key',
+  )?.[1];
+  return {
+    method: 'PATCH',
+    path,
+    body: parseFixtureRequestBody(request.postData),
+    idempotencyKeyPresent: typeof idempotencyKey === 'string'
+      && /^[A-Za-z0-9._:-]{16,160}$/.test(idempotencyKey),
+  };
+}
+
 function apiStatusBucket(status) {
   if (status >= 500) return '5xx';
   if (status >= 400) return '4xx';
@@ -3416,6 +3951,7 @@ async function runBrowserRouteBatch(routes, liveCookieJar = null, routeOffset = 
         apiResponses: [],
         apiFailures: [],
         apiStatusCounts: {},
+        partnerRemnawaveMutationRequests: [],
         consoleErrors: [],
         pageErrors: [],
         failedRequests: [],
@@ -3493,7 +4029,11 @@ async function runBrowserRouteBatch(routes, liveCookieJar = null, routeOffset = 
           const { requestId, request } = message.params;
 
           try {
-            const fixture = fixtureForApiRequest(request.url, request.method);
+            const partnerMutationRequest = capturePartnerRemnawaveMutationRequest(request);
+            if (partnerMutationRequest) {
+              diagnostics.partnerRemnawaveMutationRequests.push(partnerMutationRequest);
+            }
+            const fixture = fixtureForApiRequest(request.url, request.method, request.postData);
             if (fixture.kind === 'empty') {
               await fulfillNoContent(client, sessionId, requestId);
               return;
@@ -3507,6 +4047,7 @@ async function runBrowserRouteBatch(routes, liveCookieJar = null, routeOffset = 
       ];
       const startedAt = Date.now();
       const routeNumber = routeOffset + index + 1;
+      let interactionEvidence = null;
       logVerbose(`route ${routeNumber}/${totalRouteCount} start ${route.path} (${relative(REPO_ROOT, route.pageFile).replace(/\\/g, '/')})`);
       try {
         await client.send('Page.enable', {}, sessionId);
@@ -3556,6 +4097,20 @@ async function runBrowserRouteBatch(routes, liveCookieJar = null, routeOffset = 
           Math.min(ASSERTION_TIMEOUT_MS, 5_000),
           `Route body did not render enough text before snapshot: ${route.url}`,
         ).catch(() => undefined);
+
+        if (isPartnerDashboardRoute(route)) {
+          try {
+            interactionEvidence = await runPartnerRemnawaveDashboardInteractions(
+              client,
+              sessionId,
+              diagnostics,
+            );
+          } catch (error) {
+            diagnostics.pageErrors.push(
+              `Partner Remnawave dashboard interaction failed: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }
 
         const snapshot = await evaluate(
           client,
@@ -3636,6 +4191,7 @@ async function runBrowserRouteBatch(routes, liveCookieJar = null, routeOffset = 
           apiRequestCount: diagnostics.apiRequests.length,
           apiStatusCounts: diagnostics.apiStatusCounts,
           apiResponses: diagnostics.apiResponses,
+          interactionEvidence,
           status: failedReasons.length === 0 ? 'passed' : 'failed',
           failedReasons,
           diagnostics: failedReasons.length > 0 ? diagnostics : undefined,
@@ -3713,6 +4269,9 @@ function summarizeResults(discovery, routeResults, localeRedirects, liveAuthSumm
     LIVE_API && ROUTE_FILTERS.length > 0
       ? true
       : localeRedirects.every((item) => item.status === 'passed');
+  const partnerRemnawaveDashboardSmoke = routeResults
+    .map((route) => route.interactionEvidence)
+    .find(Boolean) ?? null;
 
   return {
     status: failedRoutes.length === 0 && localeRedirectStatus && missingExpectedApi.length === 0 ? 'passed' : 'failed',
@@ -3733,6 +4292,7 @@ function summarizeResults(discovery, routeResults, localeRedirects, liveAuthSumm
     byTag,
     localeRedirects,
     liveAuth: liveAuthSummary,
+    partnerRemnawaveDashboardSmoke,
     expectedApiCoverage,
     missingExpectedApi,
     apiStatusCounts,

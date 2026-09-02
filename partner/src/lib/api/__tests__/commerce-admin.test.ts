@@ -223,7 +223,7 @@ describe('addonsApi admin operations', () => {
 });
 
 describe('subscriptionsApi admin operations', () => {
-  it('creates a subscription template with config data', async () => {
+  it('creates a subscription template with the exact Remnawave 3.4 body', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
@@ -232,30 +232,26 @@ describe('subscriptionsApi admin operations', () => {
 
         return HttpResponse.json({
           uuid: 'sub_001',
+          viewPosition: 1,
           name: 'VLESS Vision',
-          templateType: 'vless',
-          hostUuid: 'host_001',
-          inboundTag: 'vless-in',
-          flow: 'xtls-rprx-vision',
-          configData: { security: 'reality' },
-        });
+          tags: [],
+          templateType: 'XRAY_JSON',
+          templateJson: null,
+          encodedTemplateYaml: null,
+        }, { status: 201 });
       }),
     );
 
     const response = await subscriptionsApi.create({
       name: 'VLESS Vision',
-      template_type: 'vless',
-      host_uuid: 'host_001',
-      inbound_tag: 'vless-in',
-      flow: 'xtls-rprx-vision',
-      config_data: { security: 'reality' },
+      templateType: 'XRAY_JSON',
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(response.data.uuid).toBe('sub_001');
     expect(capturedBody).toMatchObject({
-      template_type: 'vless',
-      inbound_tag: 'vless-in',
+      name: 'VLESS Vision',
+      templateType: 'XRAY_JSON',
     });
   });
 
@@ -265,13 +261,13 @@ describe('subscriptionsApi admin operations', () => {
     server.use(
       http.delete(MATCH_ANY_API_ORIGIN.subscriptionById, ({ request }) => {
         deletedUuid = new URL(request.url).pathname.split('/').at(-1) ?? '';
-        return HttpResponse.json({ ok: true });
+        return new HttpResponse(null, { status: 204 });
       }),
     );
 
     const response = await subscriptionsApi.remove('sub_001');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(204);
     expect(deletedUuid).toBe('sub_001');
   });
 });

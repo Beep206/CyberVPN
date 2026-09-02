@@ -31,6 +31,7 @@ import {
   isReferralProgramEnabled,
   useClientCapabilities,
 } from '@/features/client-capabilities/useClientCapabilities';
+import { CustomerConnectionsAvailability } from '@/features/client-capabilities/components/customer-connections-availability';
 import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
 import {
   DEFAULT_SERVICE_STATE_REQUEST,
@@ -39,6 +40,7 @@ import {
   growthNotificationsApi,
   profileApi,
   referralApi,
+  remnawaveStatusApi,
   serviceAccessApi,
   trialApi,
   vpnApi,
@@ -174,6 +176,37 @@ function SkeletonCard() {
       aria-hidden="true"
       className="min-h-36 animate-pulse rounded-2xl border border-grid-line/30 bg-terminal-surface/40"
     />
+  );
+}
+
+function CustomerCapabilityStatus({
+  available,
+  availableLabel,
+  label,
+  unavailableLabel,
+}: {
+  available: boolean;
+  availableLabel: string;
+  label: string;
+  unavailableLabel: string;
+}) {
+  const Icon = available ? CheckCircle2 : AlertTriangle;
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-xl border border-grid-line/30 bg-black/20 px-4 py-3">
+      <span className="font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </span>
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[11px] ${
+          available
+            ? 'border-matrix-green/30 bg-matrix-green/10 text-matrix-green'
+            : 'border-amber-400/30 bg-amber-400/10 text-amber-200'
+        }`}
+      >
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        {available ? availableLabel : unavailableLabel}
+      </span>
+    </li>
   );
 }
 
@@ -489,6 +522,7 @@ function SyncStatusPanel({
 export function CustomerCabinetDashboard() {
   const locale = useLocale();
   const t = useTranslations('Dashboard.cabinet');
+  const vpnT = useTranslations('Dashboard.vpnServiceStatus');
   const { selectedSubscriptionKey } = useCustomerSubscriptions();
   const { data: capabilities } = useClientCapabilities();
   const referralUiEnabled = isReferralProgramEnabled(capabilities);
@@ -574,6 +608,13 @@ export function CustomerCabinetDashboard() {
     staleTime: LIVE_REFETCH_MS,
   });
 
+  const vpnServiceStatusQuery = useQuery({
+    queryFn: () => remnawaveStatusApi.getCustomerStatus(),
+    queryKey: ['customer-cabinet', 'vpn-service-status'],
+    refetchInterval: visiblePolling(LIVE_REFETCH_MS),
+    staleTime: LIVE_REFETCH_MS,
+  });
+
   const trialQuery = useQuery({
     queryFn: async () => (await trialApi.getStatus()).data,
     queryKey: ['customer-cabinet', 'trial-status'],
@@ -588,6 +629,7 @@ export function CustomerCabinetDashboard() {
   const notifications = notificationQuery.data;
   const latestNotifications = notificationListQuery.data ?? [];
   const serviceState = serviceStateQuery.data;
+  const vpnServiceStatus = vpnServiceStatusQuery.data;
   const trial = trialQuery.data;
   const usageIsAvailable = isUsageAvailable(usage);
 
@@ -651,8 +693,12 @@ export function CustomerCabinetDashboard() {
     serviceState?.service_identity?.identity_status,
     t('pendingProvisioning'),
   );
-  const profileKey =
-    serviceState?.provisioning_profile?.profile_key ?? t('pendingProvisioning');
+  const profileStatus = serviceState?.provisioning_profile
+    ? t('stage1States.provisioning.ready.title')
+    : t('pendingProvisioning');
+  const vpnStatusIsDegraded = serviceStateQuery.isError
+    || vpnServiceStatusQuery.isError
+    || vpnServiceStatus?.degraded === true;
   const healthIcon =
     health === 'healthy'
       ? CheckCircle2
@@ -875,6 +921,17 @@ export function CustomerCabinetDashboard() {
       },
     },
     {
+      dataUpdatedAt: vpnServiceStatusQuery.dataUpdatedAt,
+      id: 'vpnServiceStatus',
+      isError: vpnServiceStatusQuery.isError,
+      isFetching: vpnServiceStatusQuery.isFetching,
+      isPending: vpnServiceStatusQuery.isPending,
+      label: vpnT('title'),
+      retry: () => {
+        void vpnServiceStatusQuery.refetch();
+      },
+    },
+    {
       dataUpdatedAt: trialQuery.dataUpdatedAt,
       id: 'trial',
       isError: trialQuery.isError,
@@ -926,6 +983,7 @@ export function CustomerCabinetDashboard() {
     void notificationQuery.refetch();
     void notificationListQuery.refetch();
     void serviceStateQuery.refetch();
+    void vpnServiceStatusQuery.refetch();
     void trialQuery.refetch();
   }
 
@@ -1189,22 +1247,33 @@ export function CustomerCabinetDashboard() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-full border border-matrix-green/30 bg-matrix-green/10 px-4 py-2 font-mono text-xs text-matrix-green">
-                {serviceStateQuery.isError
-                  ? t('readiness.degraded')
+              <div
+                role="status"
+                aria-live="polite"
+                className={`rounded-full border px-4 py-2 font-mono text-xs ${
+                  vpnStatusIsDegraded
+                    ? 'border-amber-400/30 bg-amber-400/10 text-amber-200'
+                    : 'border-matrix-green/30 bg-matrix-green/10 text-matrix-green'
+                }`}
+              >
+                {vpnStatusIsDegraded
+                  ? vpnT('degraded')
                   : serviceStatus}
               </div>
-              {serviceStateQuery.isError && (
+              {(serviceStateQuery.isError || vpnServiceStatusQuery.isError) && (
                 <button
                   type="button"
                   onClick={() => {
                     void serviceStateQuery.refetch();
+                    void vpnServiceStatusQuery.refetch();
                   }}
                   className="inline-flex min-h-9 items-center gap-2 rounded-full border border-amber-400/35 bg-amber-400/10 px-4 py-1 font-mono text-xs text-amber-200 transition hover:bg-amber-400/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-terminal-bg"
                 >
                   <RefreshCw
                     className={`h-3.5 w-3.5 ${
-                      serviceStateQuery.isFetching ? 'animate-spin' : ''
+                      serviceStateQuery.isFetching || vpnServiceStatusQuery.isFetching
+                        ? 'animate-spin'
+                        : ''
                     }`}
                     aria-hidden="true"
                   />
@@ -1228,7 +1297,7 @@ export function CustomerCabinetDashboard() {
                 {t('readiness.profile')}
               </p>
               <p className="mt-2 text-lg font-display text-white">
-                {profileKey}
+                {profileStatus}
               </p>
             </div>
             <div className="rounded-2xl border border-grid-line/30 bg-black/20 p-4">
@@ -1248,6 +1317,42 @@ export function CustomerCabinetDashboard() {
               </p>
             </div>
           </div>
+
+          {vpnServiceStatusQuery.isPending ? (
+            <div role="status" aria-live="polite" className="mt-4 grid gap-3 md:grid-cols-3">
+              <span className="sr-only">{vpnT('loading')}</span>
+              {Array.from({ length: 3 }, (_, index) => (
+                <div
+                  key={index}
+                  aria-hidden="true"
+                  className="h-14 animate-pulse rounded-xl border border-grid-line/30 bg-black/20"
+                />
+              ))}
+            </div>
+          ) : null}
+
+          {vpnServiceStatus ? (
+            <ul className="mt-4 grid gap-3 md:grid-cols-3" aria-label={vpnT('title')}>
+              <CustomerCapabilityStatus
+                label={vpnT('connections')}
+                available={vpnServiceStatus.connections_available}
+                availableLabel={vpnT('available')}
+                unavailableLabel={vpnT('unavailable')}
+              />
+              <CustomerCapabilityStatus
+                label={vpnT('usage')}
+                available={vpnServiceStatus.usage_available}
+                availableLabel={vpnT('available')}
+                unavailableLabel={vpnT('unavailable')}
+              />
+              <CustomerCapabilityStatus
+                label={vpnT('devices')}
+                available={vpnServiceStatus.devices_available}
+                availableLabel={vpnT('available')}
+                unavailableLabel={vpnT('unavailable')}
+              />
+            </ul>
+          ) : null}
 
           <div className="mt-6">
             <ProgressBar
@@ -1329,6 +1434,13 @@ export function CustomerCabinetDashboard() {
           )}
         </article>
       </section>
+
+      <CustomerConnectionsAvailability
+        surface="dashboard"
+        status={vpnServiceStatus}
+        isPending={vpnServiceStatusQuery.isPending}
+        isError={vpnServiceStatusQuery.isError}
+      />
 
       <section
         id="cabinet-notifications"

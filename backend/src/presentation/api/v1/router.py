@@ -11,7 +11,12 @@ from src.presentation.api.v1.admin.invites import router as invites_router
 from src.presentation.api.v1.admin.mobile_users import router as admin_mobile_users_router
 from src.presentation.api.v1.admin.payment_attempts import router as admin_payment_attempts_router
 from src.presentation.api.v1.admin.pricebooks import router as admin_pricebooks_router
+from src.presentation.api.v1.admin.remnawave_create_attempts.routes import (
+    router as admin_remnawave_create_attempts_router,
+)
 from src.presentation.api.v1.admin.remnawave_diagnostics import router as admin_remnawave_diagnostics_router
+from src.presentation.api.v1.admin.remnawave_grants import router as admin_remnawave_grants_router
+from src.presentation.api.v1.admin.remnawave_node_ssh import router as admin_remnawave_node_ssh_router
 from src.presentation.api.v1.admin.routes import router as admin_router
 from src.presentation.api.v1.admin.system_config import router as admin_system_config_router
 from src.presentation.api.v1.admin.vpn_tester import router as admin_vpn_tester_router
@@ -44,6 +49,7 @@ from src.presentation.api.v1.growth_rewards.routes import router as growth_rewar
 from src.presentation.api.v1.helix.routes import router as helix_router
 from src.presentation.api.v1.hosts.routes import router as hosts_router
 from src.presentation.api.v1.inbounds.routes import router as inbounds_router
+from src.presentation.api.v1.internal_remnawave.routes import router as internal_remnawave_router
 from src.presentation.api.v1.invites.routes import admin_router as invite_admin_router
 from src.presentation.api.v1.invites.routes import (
     invite_batch_admin_router,
@@ -69,6 +75,7 @@ from src.presentation.api.v1.partner_attribution.routes import router as partner
 from src.presentation.api.v1.partner_bots.routes import router as partner_bots_router
 from src.presentation.api.v1.partner_payout_accounts.routes import router as partner_payout_accounts_router
 from src.presentation.api.v1.partner_realtime.routes import router as partner_realtime_router
+from src.presentation.api.v1.partner_remnawave.routes import router as partner_remnawave_router
 from src.presentation.api.v1.partner_statements.routes import router as partner_statements_router
 from src.presentation.api.v1.partners.routes import router as partners_router
 from src.presentation.api.v1.payment_attempts.routes import router as payment_attempts_router
@@ -92,6 +99,9 @@ from src.presentation.api.v1.quotes.routes import router as quotes_router
 from src.presentation.api.v1.realms.routes import router as realms_router
 from src.presentation.api.v1.referral.routes import router as referral_router
 from src.presentation.api.v1.refunds.routes import router as refunds_router
+from src.presentation.api.v1.remnawave_connections.routes import router as remnawave_connections_router
+from src.presentation.api.v1.remnawave_operator.routes import router as remnawave_operator_router
+from src.presentation.api.v1.remnawave_status.routes import router as remnawave_status_router
 from src.presentation.api.v1.renewal_orders.routes import router as renewal_orders_router
 from src.presentation.api.v1.reporting.routes import router as reporting_router
 from src.presentation.api.v1.reserves.routes import router as reserves_router
@@ -210,6 +220,9 @@ api_router.include_router(profile_router)
 api_router.include_router(notifications_router)
 api_router.include_router(servers_router)
 api_router.include_router(subscriptions_router)
+api_router.include_router(internal_remnawave_router)
+api_router.include_router(remnawave_connections_router)
+api_router.include_router(remnawave_status_router)
 api_router.include_router(plans_router)
 api_router.include_router(addons_router)
 api_router.include_router(offers_router)
@@ -246,6 +259,7 @@ api_router.include_router(earning_holds_router)
 api_router.include_router(partner_bots_router)
 api_router.include_router(partner_statements_router)
 api_router.include_router(partner_payout_accounts_router)
+api_router.include_router(partner_remnawave_router)
 api_router.include_router(payouts_router)
 api_router.include_router(settlement_periods_router)
 api_router.include_router(reserves_router)
@@ -293,6 +307,10 @@ api_router.include_router(admin_mobile_users_router)
 api_router.include_router(admin_payment_attempts_router)
 api_router.include_router(admin_pricebooks_router)
 api_router.include_router(admin_remnawave_diagnostics_router)
+api_router.include_router(admin_remnawave_create_attempts_router)
+api_router.include_router(admin_remnawave_node_ssh_router)
+api_router.include_router(admin_remnawave_grants_router)
+api_router.include_router(remnawave_operator_router)
 api_router.include_router(admin_vpn_tester_router)
 api_router.include_router(admin_customer_support_router)
 api_router.include_router(admin_customer_operations_router)

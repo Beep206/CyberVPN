@@ -1,13 +1,21 @@
 """Use case for canceling user's subscription."""
 
 import logging
-from datetime import UTC, datetime
-from uuid import UUID
+from datetime import datetime
 
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.subscription_client import CachedSubscriptionClient
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
 logger = logging.getLogger(__name__)
+
+
+class SubscriptionCancellationNotFoundError(ValueError):
+    """The reconciled numeric user no longer exists upstream."""
+
+
+class SubscriptionCancellationIdentityConflictError(ValueError):
+    """The upstream response does not match the reconciled numeric identity."""
 
 
 class CancelSubscriptionUseCase:
@@ -27,11 +35,11 @@ class CancelSubscriptionUseCase:
         self.user_gateway = user_gateway
         self.subscription_client = subscription_client
 
-    async def execute(self, user_id: UUID) -> None:
+    async def execute(self, user_ref: RemnawaveUserRef) -> datetime:
         """Cancel the user's active subscription.
 
         Args:
-            user_id: UUID of the admin user (also used as Remnawave UUID)
+            user_ref: Exact, reconciled Remnawave 3.x numeric identity.
 
         Raises:
             ValueError: If user not found in Remnawave
@@ -41,22 +49,39 @@ class CancelSubscriptionUseCase:
             - Invalidates cached subscription data
             - Does not throw error if subscription is already canceled
         """
-        # Check if user exists in Remnawave
-        user = await self.user_gateway.get_by_uuid(user_id)
+        numeric_user_id = user_ref.require_numeric_id()
+        user = await self.user_gateway.get_by_ref(user_ref)
         if not user:
-            raise ValueError(f"User {user_id} not found in VPN backend")
+            raise SubscriptionCancellationNotFoundError("User not found in VPN backend")
+        if user.remnawave_id != numeric_user_id:
+            raise SubscriptionCancellationIdentityConflictError(
+                "VPN backend returned a different numeric user identity"
+            )
 
-        # Set subscription revocation timestamp
-        now = datetime.now(UTC)
-        await self.user_gateway.update(
-            uuid=user_id,
-            subRevokedAt=now.isoformat(),  # Remnawave expects camelCase
+        # Repeated cancellation is a read-only success. Do not rotate credentials
+        # or emit another upstream mutation for an already-revoked subscription.
+        if user.sub_revoked_at is not None:
+            await self.subscription_client.invalidate(user_ref)
+            logger.info(
+                "Subscription cancellation already applied",
+                extra={"numeric_identity": True, "already_canceled": True},
+            )
+            return user.sub_revoked_at
+
+        updated_user = await self.user_gateway.revoke_subscription(
+            user_ref,
         )
+        if updated_user.remnawave_id != numeric_user_id:
+            raise SubscriptionCancellationIdentityConflictError(
+                "VPN backend mutation returned a different numeric user identity"
+            )
+        if updated_user.sub_revoked_at is None:
+            raise SubscriptionCancellationIdentityConflictError("VPN backend has not confirmed subscription revocation")
 
-        # Invalidate cached subscription data
-        await self.subscription_client.invalidate(str(user_id))
+        await self.subscription_client.invalidate(user_ref)
 
         logger.info(
             "Subscription canceled",
-            extra={"user_id": str(user_id), "revoked_at": now.isoformat()},
+            extra={"numeric_identity": True, "already_canceled": False},
         )
+        return updated_user.sub_revoked_at

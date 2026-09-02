@@ -2,22 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/widgets/notification_badge.dart';
 
+class _UnreadCountNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void setCount(int count) => state = count;
+}
+
+final _testUnreadCountProvider = NotifierProvider<_UnreadCountNotifier, int>(
+  _UnreadCountNotifier.new,
+);
+
 void main() {
+  late ProviderContainer container;
+
+  setUp(() {
+    container = ProviderContainer(
+      overrides: [
+        unreadCountProvider.overrideWith(
+          (ref) => ref.watch(_testUnreadCountProvider),
+        ),
+      ],
+    );
+  });
+
+  tearDown(() => container.dispose());
+
   /// Helper to build widget under test with a mocked [unreadCountProvider].
   Widget buildTestWidget({required int unreadCount}) {
-    return ProviderScope(
-      overrides: [
-        unreadCountProvider.overrideWith((ref) => unreadCount),
-      ],
+    container.read(_testUnreadCountProvider.notifier).setCount(unreadCount);
+
+    return UncontrolledProviderScope(
+      container: container,
       child: const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: NotificationBadge(),
-          ),
-        ),
+        home: Scaffold(body: Center(child: NotificationBadge())),
       ),
     );
   }
@@ -95,8 +117,9 @@ void main() {
       expect(text.style?.fontSize, equals(11));
     });
 
-    testWidgets('animates when count changes from 0 to non-zero',
-        (tester) async {
+    testWidgets('animates when count changes from 0 to non-zero', (
+      tester,
+    ) async {
       // Start with count 0
       await tester.pumpWidget(buildTestWidget(unreadCount: 0));
 
@@ -114,7 +137,7 @@ void main() {
       expect(animatedScaleAfter.scale, equals(1.0));
 
       // Verify animation duration and curve
-      expect(animatedScaleAfter.duration, equals(const Duration(milliseconds: 250)));
+      expect(animatedScaleAfter.duration, equals(AnimDurations.medium));
       expect(animatedScaleAfter.curve, equals(Curves.easeInOut));
 
       // Pump animation to completion
@@ -124,8 +147,9 @@ void main() {
       expect(find.text('3'), findsOneWidget);
     });
 
-    testWidgets('animates when count changes from non-zero to 0',
-        (tester) async {
+    testWidgets('animates when count changes from non-zero to 0', (
+      tester,
+    ) async {
       // Start with count 7
       await tester.pumpWidget(buildTestWidget(unreadCount: 7));
 

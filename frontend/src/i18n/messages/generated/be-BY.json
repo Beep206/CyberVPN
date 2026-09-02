@@ -460,7 +460,17 @@
     "serverStatus": "СТАТУС СЕРВЕРА",
     "statusLabel": "СТАТУС СІСТЭМЫ:",
     "statusValue": "АПТЫМАЛЬНЫ",
-    "title": "КАМАНДНЫ ЦЭНТР VPN"
+    "title": "КАМАНДНЫ ЦЭНТР VPN",
+    "vpnServiceStatus": {
+      "available": "Даступна",
+      "connections": "Падключэнні",
+      "degraded": "Часткова абмежавана",
+      "devices": "Прылады",
+      "loading": "Загрузка стану VPN-сэрвісу",
+      "title": "Даступнасць VPN-сэрвісу",
+      "unavailable": "Недаступна",
+      "usage": "Выкарыстанне"
+    }
   },
   "DeleteAccount": {
     "contact": {

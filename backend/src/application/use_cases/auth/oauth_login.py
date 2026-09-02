@@ -63,7 +63,6 @@ class OAuthLoginUseCase:
         self._oauth_repo = oauth_repo
         self._auth_service = auth_service
         self._session = session
-        self._remnawave_gateway = remnawave_gateway
         self._allow_new_users = allow_new_users
         self._session_issuer = AuthSessionIssuer(auth_service=auth_service, session=session)
 
@@ -181,6 +180,8 @@ class OAuthLoginUseCase:
             # Telegram auth data does not prove ownership of a CyberVPN email.
             user = None
             if is_telegram:
+                if telegram_user_id is None:
+                    raise ValueError("Invalid Telegram user id")
                 user = await self._user_repo.get_by_telegram_id(telegram_user_id)
             elif email:
                 user = await self._user_repo.get_by_email(email, realm_id=auth_realm_id)
@@ -249,25 +250,6 @@ class OAuthLoginUseCase:
                     "Created new user from OAuth login",
                     extra={"provider": provider, "user_id": str(user.id), "login": login},
                 )
-
-                # Create user in Remnawave VPN backend (best-effort)
-                if self._remnawave_gateway:
-                    try:
-                        await self._remnawave_gateway.create_user(
-                            username=login,
-                            email=email or "",
-                            telegram_id=telegram_user_id if is_telegram else None,
-                        )
-                        logger.info(
-                            "Remnawave user created for OAuth registration",
-                            extra={"provider": provider, "user_id": str(user.id), "login": login},
-                        )
-                    except Exception as e:
-                        logger.exception(
-                            "Failed to create Remnawave user during OAuth registration: %s",
-                            e,
-                            extra={"provider": provider, "user_id": str(user.id), "login": login},
-                        )
 
             # Create OAuth account link
             oauth_account = OAuthAccount(

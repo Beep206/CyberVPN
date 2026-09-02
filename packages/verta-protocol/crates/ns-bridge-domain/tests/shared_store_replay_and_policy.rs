@@ -118,7 +118,7 @@ fn cleanup_sqlite_store_path(path: &Path) {
 
 fn active_snapshot() -> AccountSnapshot {
     AccountSnapshot {
-        account_id: "acct-1".to_owned(),
+        account_id: "42".to_owned(),
         bootstrap_subjects: vec![BootstrapSubject::ShortUuid("sub-1".to_owned())],
         lifecycle: AccountLifecycle::Active,
         verta_access: VertaAccess {
@@ -133,7 +133,7 @@ fn active_snapshot() -> AccountSnapshot {
         },
         metadata: None,
         observed_at_unix: 1_700_000_000,
-        source_version: Some("2.7.4".to_owned()),
+        source_version: Some("3.4.1".to_owned()),
     }
 }
 
@@ -180,7 +180,7 @@ async fn duplicate_verified_webhook_is_rejected_across_bridge_instances() {
         active_snapshot(),
     );
     adapter.push_webhook_effect(AdapterWebhookEffect::ReconcileAccount {
-        account_id: "acct-1".to_owned(),
+        account_id: "42".to_owned(),
         reason: "duplicate-check".to_owned(),
     });
 
@@ -325,7 +325,7 @@ async fn revoked_device_blocks_token_exchange_after_reopen() {
     let store = SqliteBridgeStore::open(&path).expect("sqlite bridge store should initialize");
     store
         .upsert_device(StoredDeviceRecord {
-            account_id: "acct-1".to_owned(),
+            account_id: "42".to_owned(),
             device_id: device_id.clone(),
             status: StoredDeviceStatus::Revoked,
         })
@@ -335,7 +335,7 @@ async fn revoked_device_blocks_token_exchange_after_reopen() {
         .store_refresh_credential(
             "rfr_revoked_device",
             RefreshCredentialRecord {
-                account_id: "acct-1".to_owned(),
+                account_id: "42".to_owned(),
                 device_id: device_id.clone(),
                 manifest_id: manifest_id.clone(),
                 revoked: false,
@@ -390,7 +390,7 @@ async fn refresh_credential_manifest_binding_survives_reopen() {
     let store = SqliteBridgeStore::open(&path).expect("sqlite bridge store should initialize");
     store
         .upsert_device(StoredDeviceRecord {
-            account_id: "acct-1".to_owned(),
+            account_id: "42".to_owned(),
             device_id: device_id.clone(),
             status: StoredDeviceStatus::Active,
         })
@@ -400,7 +400,7 @@ async fn refresh_credential_manifest_binding_survives_reopen() {
         .store_refresh_credential(
             "rfr_manifest_bound",
             RefreshCredentialRecord {
-                account_id: "acct-1".to_owned(),
+                account_id: "42".to_owned(),
                 device_id: device_id.clone(),
                 manifest_id: stored_manifest_id,
                 revoked: false,

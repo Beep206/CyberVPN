@@ -751,7 +751,7 @@ mod tests {
 
     fn sample_snapshot() -> AccountSnapshot {
         AccountSnapshot {
-            account_id: "acct-1".to_owned(),
+            account_id: "42".to_owned(),
             bootstrap_subjects: vec![BootstrapSubject::ShortUuid("sub-1".to_owned())],
             lifecycle: AccountLifecycle::Active,
             verta_access: VertaAccess {
@@ -766,7 +766,7 @@ mod tests {
             },
             metadata: None,
             observed_at_unix: 1_700_000_000,
-            source_version: Some("2.7.4".to_owned()),
+            source_version: Some("3.4.1".to_owned()),
         }
     }
 
@@ -864,7 +864,7 @@ mod tests {
             sample_snapshot(),
         );
         adapter.push_webhook_effect(AdapterWebhookEffect::ReconcileAccount {
-            account_id: "acct-1".to_owned(),
+            account_id: "42".to_owned(),
             reason: "fixture".to_owned(),
         });
 
@@ -1026,7 +1026,7 @@ mod tests {
         let payload = json!({
             "event_id": "evt-1",
             "event_type": "subscription.updated",
-            "account_id": "acct-1",
+            "account_id": "42",
             "occurred_at_unix": fixed_now().unix_timestamp(),
             "payload": { "plan": "pro" }
         });

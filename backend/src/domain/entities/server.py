@@ -6,16 +6,23 @@ from src.domain.enums import ServerStatus
 
 
 @dataclass(frozen=True)
+class ServerIp:
+    ip: str
+    status: str
+
+
+@dataclass(frozen=True)
 class Server:
     uuid: UUID
     name: str
     address: str
-    port: int
+    port: int | None
     is_connected: bool
     is_disabled: bool
     is_connecting: bool
     created_at: datetime
     updated_at: datetime
+    id: int | None = None
     country_code: str | None = None
     traffic_limit_bytes: int | None = None
     used_traffic_bytes: int | None = None
@@ -25,6 +32,8 @@ class Server:
     node_version: str | None = None
     vpn_protocol: str | None = None
     active_plugin_uuid: UUID | None = None
+    ips: tuple[ServerIp, ...] = ()
+    integration_uuids: tuple[UUID, ...] = ()
 
     @property
     def status(self) -> ServerStatus:

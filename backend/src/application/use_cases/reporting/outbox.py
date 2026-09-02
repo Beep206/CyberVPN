@@ -143,8 +143,11 @@ class MarkOutboxPublicationPublishedUseCase:
             published_at=datetime.now(UTC),
             publication_payload=publication_payload,
         )
+        published_at = item.published_at
+        if published_at is None:
+            raise RuntimeError("Published outbox item has no publication timestamp")
         lag_seconds = max(
-            (_normalize_utc(item.published_at) - _normalize_utc(outbox_event.occurred_at)).total_seconds(),
+            (_normalize_utc(published_at) - _normalize_utc(outbox_event.occurred_at)).total_seconds(),
             0.0,
         )
         observe_partner_outbox_event_published(

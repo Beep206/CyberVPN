@@ -92,7 +92,12 @@ cp inventories/staging/group_vars/remnawave_edge_staging/vault.yml.example \
 ansible-vault encrypt inventories/staging/group_vars/remnawave_edge_staging/vault.yml
 ```
 
-`vault_remnawave_edge_secret_key` must match the `SECRET_KEY` you would otherwise copy from the Remnawave panel node payload.
+`vault_remnawave_edge_secret_key` must be the exact existing base64 certificate
+payload. Set `vault_remnawave_edge_preupgrade_secret_key_sha256` to the
+lowercase SHA-256 recorded by the sanitized read-only baseline. Deployment
+fails before rendering when the secret is a placeholder, malformed, or does
+not match that fingerprint. Production uses the corresponding per-host
+`*_sha256` vault variables.
 
 2. Verify `remnawave_edge_node_port` in:
 
@@ -101,8 +106,9 @@ ansible-vault encrypt inventories/staging/group_vars/remnawave_edge_staging/vaul
 It must match the node port configured in the Remnawave panel.
 Restrict this port in cloud firewall rules to the panel IP or CIDR only.
 
-Also keep the Remnawave edge image aligned with the control-plane version.
-Current baseline: panel/backend `2.7.4` and edge node `2.7.4`.
+Keep the Remnawave edge image on its independently versioned compatibility
+line. Current target: custom panel/backend/frontend `3.4.3` first, then edge
+node `3.4.1`; both promotion paths require OCI digests.
 
 3. Run the rollout:
 
@@ -315,7 +321,7 @@ ansible-vault encrypt inventories/staging/group_vars/edge_staging/vault.yml
 - keep generated Prometheus target snapshots as derived artifacts and do not commit them;
 - keep `alloy_agent_http_port` aligned with the Terraform edge metrics port and open it only to monitoring CIDRs;
 - keep Alloy rollout manual and operator-approved; do not auto-apply it from merge-triggered workflows;
-- keep control-plane internal images pinned in environment `release.yml` files by digest, not by mutable tags or ad-hoc host builds;
+- keep the custom Remnawave panel and all control-plane internal images pinned in environment `release.yml` files by digest, not by mutable tags or ad-hoc host builds;
 - keep control-plane API and metrics ports loopback-bound unless a reviewed ingress layer is introduced explicitly;
 - keep `backup_restore` dumps under `/var/backups/cybervpn/postgres` and collect config snapshots before restore drills;
 - use the post-deploy checklist in `docs/runbooks/EDGE_POST_DEPLOY_VERIFICATION_CHECKLIST.md`.
@@ -391,18 +397,43 @@ inventory and vault files exist.
 
 Phase 8 turns control-plane rollout into a manifest-driven promotion flow.
 
-1. Publish digest-pinned images for `backend`, `task-worker`, and `helix-adapter`.
+1. Publish all seven digest-pinned images with the protected
+   `.github/workflows/control-plane-images.yml`: custom Remnawave,
+   `backend`, `task-worker`, `helix-adapter`, node mirror, and subscription-page
+   and Node SSH proxy mirrors. Each digest needs GitHub-signed SLSA, a validated
+   SPDX-2.3 SBOM, and a signed scan predicate with exact Critical/High counts
+   and raw-report SHA-256. Findings require a separately reviewed decision under
+   `infra/ansible/policies/control-plane-accepted-risks/` that conforms to
+   `infra/ansible/policies/control-plane-accepted-risk.schema.json`.
 
 2. Update the release manifest:
 
 ```bash
 cd /home/beep/projects/VPNBussiness/infra
 make control-plane-release-staging \
+  REMNAWAVE_IMAGE=ghcr.io/<owner>/<repo>/remnawave-backend@sha256:<digest> \
   BACKEND_IMAGE=ghcr.io/<owner>/<repo>/backend@sha256:<digest> \
   WORKER_IMAGE=ghcr.io/<owner>/<repo>/task-worker@sha256:<digest> \
   HELIX_ADAPTER_IMAGE=ghcr.io/<owner>/<repo>/helix-adapter@sha256:<digest> \
-  SOURCE_COMMIT=<git-sha>
+  NODE_IMAGE=ghcr.io/<owner>/<repo>/remnawave-node@sha256:<digest> \
+  SUBSCRIPTION_PAGE_IMAGE=ghcr.io/<owner>/<repo>/subscription-page@sha256:<digest> \
+  NODE_SSH_PROXY_IMAGE=ghcr.io/<owner>/<repo>/node-ssh-proxy@sha256:<digest> \
+  REMNAWAVE_AUTH_SECRET_SHA256=<baseline-sha256> \
+  SOURCE_COMMIT=<40-character-git-sha> \
+  SOURCE_RUN_URL=https://github.com/Beep206/CyberVPN/actions/runs/<id> \
+  EVIDENCE_MANIFEST=<downloaded-supply-chain-evidence.json> \
+  ACCEPTED_RISK_DECISION=<protected-branch-decision-path-if-findings>
 ```
+
+The helper first performs live `gh attestation verify` checks against the fixed
+CyberVPN repository/workflow/main-branch policy. The rollout role repeats those
+checks on the Ansible controller before any remote state mutation; evidence JSON
+booleans are audit metadata and cannot authorize an image.
+When scans contain findings, the evidence must embed the exact protected-branch
+accepted-risk decision. Missing, stale, extra, omitted, or mismatched digest,
+count, report hash, signer, source-commit, or policy data fails before remote
+state mutation. The local Docker Scout exception remains diagnostic and does
+not replace registry-backed signed evidence.
 
 3. Bootstrap the vault from a structured source file:
 
@@ -411,6 +442,22 @@ cd /home/beep/projects/VPNBussiness/infra
 make control-plane-vault-bootstrap-staging \
   SECRETS_SOURCE=/secure/path/control-plane-staging.yml
 ```
+
+The structured source must include two independently generated keys of at
+least 32 characters: `backend.remnawave_stream_ip_hmac_secret` for stream
+privacy and `backend.remnawave_connection_drop_hmac_secret` for backend-only
+connection-drop mutation receipts. Both must be unequal to every
+backend/worker/panel credential; the applications and rollout role reject reuse
+before rendering the stack. The receipt key is a stable identity-domain key:
+keep it unchanged across deployments and do not rotate it until every durable
+`outcome_unknown` receipt has been reconciled. The backend fails closed when
+active receipts were created under another key, preventing an ambiguous
+provider mutation from being repeated blindly. Do not expose the receipt key
+to worker or scheduler containers.
+It must also include `subscription_page.remnawave_api_token`, issued only with
+the Remnawave read scopes required for metadata, subscription lookup, and
+subscription-page configuration. Reusing the backend, worker, Helix, or panel
+secret fails the rollout before any release file is rendered.
 
 4. Keep registry credentials vaulted if GHCR pulls are private:
 
@@ -425,5 +472,23 @@ make ansible-control-plane-rollout-staging
 make ansible-control-plane-verify-staging
 make ansible-control-plane-backup-staging
 ```
+
+The rendered release contains a component-only, digest-pinned 7.2.6 fallback.
+After an authorized write-freeze/rollback decision, it can replace only the
+subscription page while panel and node remain on their current versions:
+
+```bash
+cd /opt/cybervpn/control-plane/current
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.subscription-page-rollback.yml \
+  up -d --no-deps --force-recreate remnawave-subscription-page
+docker exec remnawave-subscription-page \
+  curl -fsS -o /dev/null http://127.0.0.1:3010/internal/health
+```
+
+Reapplying the base compose restores the promoted 8.0.0 digest. This fallback
+does not authorize production use by itself; capture the normal change-window,
+image-identity, health, and legacy-link evidence.
 
 See `docs/runbooks/CONTROL_PLANE_RELEASE_PROMOTION_RUNBOOK.md` for the full operator procedure.

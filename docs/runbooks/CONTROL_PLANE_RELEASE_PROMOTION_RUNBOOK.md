@@ -1,104 +1,135 @@
-# Control Plane Release Promotion
+# Control-plane release promotion
 
-This runbook covers the Phase 8 release-promotion and secrets-hardening flow for
-the control-plane stack.
+This runbook prepares a digest-pinned release artifact for staging or production.
+It does not authorize or perform a production rollout.
 
-## Preconditions
+## Fixed trust policy
 
-1. A staging or production control-plane inventory already exists.
-2. Private GHCR pulls are allowed and the host can receive registry credentials.
-3. The target environment keeps manual approval enabled in GitHub Environments for
-   production promotions.
+All seven release images must be built by the default-branch `Control Plane Images`
+workflow in `Beep206/CyberVPN`:
 
-## Build and publish images
+- custom Remnawave panel/backend/frontend;
+- CyberVPN backend;
+- task-worker;
+- Helix adapter;
+- Remnawave node mirror;
+- subscription-page mirror;
+- CyberVPN-scoped node SSH proxy mirror.
 
-Use the `Control Plane Images` workflow or an equivalent local pipeline to publish:
+Each component is bound to its exact repository under
+`ghcr.io/beep206/cybervpn/`: `remnawave-backend`, `backend`, `task-worker`,
+`helix-adapter`, `remnawave-node`, `remnawave-subscription-page`, and
+`node-ssh-proxy`
+respectively. Swapping two component refs, using another repository, or reusing
+one digest for two components fails before any attestation or remote-state step.
 
-- `backend`
-- `task-worker`
-- `helix-adapter`
+For every digest, the repository requires GitHub-signed SLSA provenance, a
+schema-valid SPDX-2.3 SBOM attestation, and a CyberVPN vulnerability-scan
+attestation containing the exact Critical/High counts and SHA-256 of the raw
+report. A clean scan uses `result=pass`. A nonzero scan uses `result=findings`
+and is non-blocking only when a protected-branch decision under
+`infra/ansible/policies/control-plane-accepted-risks/` matches every finding
+component's image digest, scanner, counts and report hash. The decision is also
+bound to the fixed signer workflow, source commit and
+`cybervpn-control-plane-supply-chain/v2` policy. The trusted repository, signer
+workflow, and `refs/heads/main` source ref are fixed in
+`infra/ansible/scripts/verify_control_plane_attestations.py`; inventory variables
+cannot override them.
 
-Each publish must yield a digest ref in the form:
+There is no equivalent local signing pipeline. A local build may be used for
+development, but it cannot be promoted by the reviewed release path.
 
-```text
-ghcr.io/<owner>/<repo>/<image>@sha256:<64-hex>
-```
+## Build and promotion artifact
 
-Do not promote mutable tags such as `latest`, `staging`, or branch tags.
+1. Run `.github/workflows/control-plane-images.yml` for the exact 40-character
+   source commit on `main`.
+2. Record all seven OCI refs in `registry/path@sha256:<64-hex>` form and the workflow
+   run URL.
+3. If any signed scan reports findings, add and review one decision conforming
+   to `infra/ansible/policies/control-plane-accepted-risk.schema.json`, then pass
+   its protected-branch path as `accepted_risk_decision_path`. Do not copy a
+   decision across digests or changed reports. A clean release must not provide
+   a stale decision.
+4. Run `.github/workflows/control-plane-promote.yml`. For production, keep the
+   GitHub Environment approval in place and obtain explicit production rollout
+   authorization separately.
+5. Download the generated `control-plane-release-<environment>` artifact. The
+   workflow is read-only: it does not push a branch or modify an inventory.
+6. Review the artifact's `release.yml`, `supply-chain-evidence.json`, saved
+   verification outputs before copying the release manifest into the target
+   inventory.
 
-## Update the release manifest
+Raw Trivy reports and SPDX documents remain attached to the image-build run for
+90 days. Promotion retains the signed verification outputs, exact counts,
+report hashes and normalized decision for 90 days. The previously recorded
+local Docker Scout findings remain owner-accepted diagnostics, but local output
+cannot substitute for these registry-backed signed facts.
 
-You can promote images locally:
+The evidence JSON is audit metadata, not the deployment trust boundary. Forging
+its `verified` fields cannot authorize an image.
+
+## Deployment-controller prerequisite
+
+The Ansible controller must have:
+
+- Python 3;
+- GitHub CLI (`gh`) authenticated to read the private GHCR artifacts and their
+  attestations;
+- network access to GitHub and GHCR;
+- registry credentials for the target hosts where private pulls are required.
+
+Immediately before the role creates or changes remote state, Ansible runs the
+fixed verifier against all 21 component/predicate combinations. Missing `gh`,
+authentication failure, an untrusted signer/source, absent or malformed
+provenance/SBOM/scan attestation, an unapproved or mismatched High/Critical
+finding, a stale decision, or a digest mismatch stops the rollout before remote
+mutation. Approved findings retain their exact counts and report hash in the
+release manifest rather than being rewritten as a clean scan.
+
+The local `make control-plane-release-{staging,production}` helpers perform the
+same cryptographic verification before rendering a manifest; they are not an
+offline bypass.
+
+## Secrets and inventory
+
+Start from `infra/ansible/examples/control-plane-vault-source.yml.example` and
+render an encrypted environment vault. Never store plaintext production values
+in the repository. If GHCR pulls are private, populate the registry username and
+token in the vault.
+
+The release manifest paths are:
+
+- `infra/ansible/inventories/staging/group_vars/control_plane_staging/release.yml`;
+- `infra/ansible/inventories/production/group_vars/control_plane_production/release.yml`.
+
+Before staging rollout, confirm the read-only baseline guard, backup location,
+pre-upgrade `APP_SECRET` fingerprint, numeric-ID reconciliation report, and exact
+rollback digests. Production uses a separately reviewed copy of staging evidence;
+it is never inferred from available credentials.
+
+## Staging rollout
+
+From `infra/`:
 
 ```bash
-cd /home/beep/projects/VPNBussiness/infra
-make control-plane-release-staging \
-  BACKEND_IMAGE=ghcr.io/<owner>/<repo>/backend@sha256:<digest> \
-  WORKER_IMAGE=ghcr.io/<owner>/<repo>/task-worker@sha256:<digest> \
-  HELIX_ADAPTER_IMAGE=ghcr.io/<owner>/<repo>/helix-adapter@sha256:<digest> \
-  SOURCE_COMMIT=<git-sha>
-```
-
-Or use the `Control Plane Promote Release` workflow, which creates a promotion
-branch with the updated `release.yml`.
-
-Environment-specific manifest paths:
-
-- `infra/ansible/inventories/staging/group_vars/control_plane_staging/release.yml`
-- `infra/ansible/inventories/production/group_vars/control_plane_production/release.yml`
-
-## Bootstrap vaulted secrets from a structured source file
-
-Start from:
-
-```text
-infra/ansible/examples/control-plane-vault-source.yml.example
-```
-
-Render the target vault file:
-
-```bash
-cd /home/beep/projects/VPNBussiness/infra
-make control-plane-vault-bootstrap-staging \
-  SECRETS_SOURCE=/secure/path/control-plane-staging.yml
-```
-
-To encrypt immediately:
-
-```bash
-cd /home/beep/projects/VPNBussiness/infra
-make control-plane-vault-bootstrap-staging \
-  SECRETS_SOURCE=/secure/path/control-plane-staging.yml \
-  ENCRYPT_VAULT=1 \
-  VAULT_PASSWORD_FILE=/secure/path/.vault-pass.txt
-```
-
-If GHCR pulls are private, populate:
-
-- `vault_control_plane_registry_username`
-- `vault_control_plane_registry_password`
-
-The control-plane rollout logs in to the configured registry before `docker compose`
-pulls the release images.
-
-## Roll out the target environment
-
-```bash
-cd /home/beep/projects/VPNBussiness/infra
+make ansible-control-plane-backup-staging
 make ansible-control-plane-rollout-staging
 make ansible-control-plane-verify-staging
-make ansible-control-plane-backup-staging
 ```
 
-For production, keep the same flow but use the `*_production` targets and require
-an approved promotion branch before merge and rollout.
+Keep the native panel bound to loopback/private ingress. Browser SSH remains
+disabled until its dedicated private proxy, trusted-admin/node allowlists,
+passkey step-up, one-time ticket path, and audit tests all pass in staging.
 
-## Evidence to collect
+## Production boundary
 
-Capture and attach:
+Do not run the production target without explicit authorization for the precise
+release and window. When authorized, follow the panel-first, node-canary order in
+the Remnawave production runbook and obey its stop conditions. Record:
 
-- commit SHA that produced the digests
-- CI run URL or build evidence URL
-- final `release.yml`
-- rollout verification output
-- backup evidence path under `/var/backups/cybervpn/`
+- source commit, build and promotion run URLs;
+- all seven digests and the immutable `release.yml` hash;
+- attestation-verifier output;
+- backup/restore evidence and rollback digests;
+- rollout/health output and timestamps;
+- the operator and approval record.

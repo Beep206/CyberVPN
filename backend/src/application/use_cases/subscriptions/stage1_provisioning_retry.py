@@ -9,6 +9,8 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import UUID, uuid4
 
+from httpx import HTTPStatusError, RequestError
+
 from src.application.use_cases.subscriptions.stage1_paid_provisioning import (
     Stage1PaidProvisioningGateway,
     Stage1PaidProvisioningRequest,
@@ -18,6 +20,10 @@ from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningGateway,
     Stage1TrialProvisioningRequest,
     Stage1TrialProvisioningResult,
+)
+from src.infrastructure.remnawave.user_gateway import (
+    RemnawaveIdentityBindingError,
+    RemnawaveMutationAcceptedPending,
 )
 from src.presentation.api.shared.stage1_contract import (
     JsonScalar,
@@ -46,6 +52,7 @@ class Stage1ProvisioningRetryJobState(StrEnum):
     RETRYING = "retrying"
     SUCCEEDED = "succeeded"
     DEAD_LETTER = "dead_letter"
+    RECONCILIATION_REQUIRED = "reconciliation_required"
 
 
 class Stage1ProvisioningRetryReason(StrEnum):
@@ -270,6 +277,26 @@ class Stage1ProvisioningRetryService:
             result = await action()
         except Exception as exc:  # noqa: BLE001 - gateway boundaries differ by HTTP client.
             now = _ensure_aware_utc(self._now())
+            if _requires_non_retryable_reconciliation(exc):
+                reconciliation_job = _build_reconciliation_required_job(
+                    operation=operation,
+                    customer_account_id=customer_account_id,
+                    correlation_id=correlation_id,
+                    request_payload=request_payload,
+                    payment_state=payment_state,
+                    failed_at=now,
+                    policy=self._policy,
+                    error=exc,
+                )
+                saved_job = await self._queue.save_retry_job(reconciliation_job)
+                return Stage1ProvisioningRetryDecision(
+                    provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
+                    payment_state=payment_state,
+                    support_state=Stage1SupportState.OPS_ESCALATION,
+                    retry_job=saved_job,
+                    queued_for_retry=False,
+                    completed=False,
+                )
             retry_job = _build_retry_job(
                 operation=operation,
                 customer_account_id=customer_account_id,
@@ -306,11 +333,40 @@ class Stage1ProvisioningRetryService:
         action: Callable[[], Awaitable[Stage1ProvisioningRetryResult]],
         payment_state: Stage1PaymentState | None,
     ) -> Stage1ProvisioningRetryDecision:
+        if job.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED:
+            return Stage1ProvisioningRetryDecision(
+                provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
+                payment_state=payment_state,
+                support_state=Stage1SupportState.OPS_ESCALATION,
+                retry_job=job,
+                queued_for_retry=False,
+                completed=False,
+            )
         try:
             result = await action()
         except Exception as exc:  # noqa: BLE001 - gateway boundaries differ by HTTP client.
             failed_at = _ensure_aware_utc(self._now())
             next_attempt_count = job.attempt_count + 1
+            if _requires_non_retryable_reconciliation(exc):
+                updated_job = replace(
+                    job,
+                    state=Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED,
+                    attempt_count=next_attempt_count,
+                    provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
+                    support_state=Stage1SupportState.OPS_ESCALATION,
+                    last_error_code=exc.__class__.__name__,
+                    last_error_message="Provisioning outcome is ambiguous; reconciliation is required.",
+                    completed_at=failed_at,
+                )
+                saved_job = await self._queue.save_retry_job(updated_job)
+                return Stage1ProvisioningRetryDecision(
+                    provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
+                    payment_state=payment_state,
+                    support_state=Stage1SupportState.OPS_ESCALATION,
+                    retry_job=saved_job,
+                    queued_for_retry=False,
+                    completed=False,
+                )
             if next_attempt_count >= job.max_attempts:
                 updated_job = replace(
                     job,
@@ -405,6 +461,54 @@ def _build_retry_job(
     )
 
 
+def _build_reconciliation_required_job(
+    *,
+    operation: Stage1ProvisioningRetryOperation,
+    customer_account_id: UUID,
+    correlation_id: str,
+    request_payload: dict[str, JsonScalar],
+    payment_state: Stage1PaymentState | None,
+    failed_at: datetime,
+    policy: Stage1ProvisioningRetryPolicy,
+    error: Exception,
+) -> Stage1ProvisioningRetryJob:
+    return Stage1ProvisioningRetryJob(
+        operation=operation,
+        customer_account_id=customer_account_id,
+        correlation_id=correlation_id,
+        request_payload=request_payload,
+        queued_at=failed_at,
+        next_attempt_at=policy.next_attempt_at(failed_at=failed_at, attempt_count=1),
+        attempt_count=1,
+        max_attempts=policy.max_attempts,
+        reason=Stage1ProvisioningRetryReason.PROVISIONING_FAILED,
+        error_code=Stage1ErrorCode.REMNAWAVE_UNAVAILABLE,
+        provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
+        support_state=Stage1SupportState.OPS_ESCALATION,
+        payment_state=payment_state,
+        state=Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED,
+        last_error_code=error.__class__.__name__,
+        last_error_message="Provisioning outcome is ambiguous; reconciliation is required.",
+        completed_at=failed_at,
+    )
+
+
+def _requires_non_retryable_reconciliation(exc: Exception) -> bool:
+    # Once a mutation was accepted without a body, or transport failed after
+    # dispatch, repeating it would be a blind mutation. Known numeric targets
+    # are reconciled by an authoritative read outside this retry queue; new
+    # identities require operator reconciliation because no safe lookup key
+    # exists yet.
+    # An HTTP error returned by a mutation endpoint is terminal for this
+    # request.  A 5xx can be emitted after the provider committed the create,
+    # while a 4xx requires corrected operator/customer input.  Neither is a
+    # safe signal to replay the original mutation.
+    return isinstance(
+        exc,
+        RemnawaveMutationAcceptedPending | RemnawaveIdentityBindingError | RequestError | HTTPStatusError,
+    )
+
+
 def _safe_paid_request_payload(request: Stage1PaidProvisioningRequest) -> dict[str, JsonScalar]:
     return {
         "customer_account_id": str(request.customer_account_id),
@@ -417,6 +521,7 @@ def _safe_paid_request_payload(request: Stage1PaidProvisioningRequest) -> dict[s
         "source_provider": request.source_provider,
         "has_existing_remnawave_uuid": request.existing_remnawave_uuid is not None,
         "existing_remnawave_uuid": request.existing_remnawave_uuid,
+        "existing_remnawave_user_id": request.existing_remnawave_user_id,
     }
 
 
@@ -429,6 +534,7 @@ def _safe_trial_request_payload(request: Stage1TrialProvisioningRequest) -> dict
         "device_limit": request.device_limit,
         "has_existing_remnawave_uuid": request.existing_remnawave_uuid is not None,
         "existing_remnawave_uuid": request.existing_remnawave_uuid,
+        "existing_remnawave_user_id": request.existing_remnawave_user_id,
     }
 
 

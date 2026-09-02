@@ -4,6 +4,7 @@ import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/apple_sign_in_service.dart';
 import 'package:cybervpn_mobile/features/auth/domain/usecases/google_sign_in_service.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/screens/login_screen.dart';
+import 'package:cybervpn_mobile/features/profile/domain/entities/oauth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,15 +26,6 @@ class MockSecureStorageWrapper extends Mock implements SecureStorageWrapper {}
 // ---------------------------------------------------------------------------
 // Test Helpers
 // ---------------------------------------------------------------------------
-
-void ignoreOverflowErrors() {
-  FlutterError.onError = (details) {
-    final isOverflow = details.toString().contains('overflowed');
-    if (!isOverflow) {
-      FlutterError.dumpErrorToConsole(details);
-    }
-  };
-}
 
 Widget buildTestableLoginScreen({
   required MockGoogleSignInService mockGoogleService,
@@ -62,8 +54,8 @@ Widget buildTestableLoginScreen({
       googleSignInServiceProvider.overrideWithValue(mockGoogleService),
       appleSignInServiceProvider.overrideWithValue(mockAppleService),
       secureStorageProvider.overrideWithValue(mockSecureStorage),
-      // Note: These tests verify OAuth service integration.
-      // For full end-to-end OAuth flow testing, use E2E tests.
+      // Keep every external boundary deterministic while proving that the
+      // disabled provider policy cannot accidentally invoke it.
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -125,10 +117,8 @@ void main() {
     ).thenAnswer((_) async {});
   });
 
-  group('LoginScreen - Google OAuth Flow', () {
-    testWidgets('test_google_button_visible', (tester) async {
-      ignoreOverflowErrors();
-
+  group('LoginScreen - disabled OAuth entry points', () {
+    testWidgets('does not render disabled provider buttons', (tester) async {
       await tester.pumpWidget(
         buildTestableLoginScreen(
           mockGoogleService: mockGoogleService,
@@ -139,197 +129,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(findGoogleButton(), findsOneWidget);
-    });
-
-    testWidgets('test_facebook_button_visible', (tester) async {
-      ignoreOverflowErrors();
-
-      await tester.pumpWidget(
-        buildTestableLoginScreen(
-          mockGoogleService: mockGoogleService,
-          mockAppleService: mockAppleService,
-          mockSecureStorage: mockSecureStorage,
-          fakeApiClient: fakeApiClient,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(findFacebookButton(), findsOneWidget);
-    });
-
-    testWidgets('test_google_sign_in_calls_native_sdk', (tester) async {
-      ignoreOverflowErrors();
-
-      // Arrange: Mock Google Sign-In to return null (user cancelled)
-      when(() => mockGoogleService.signIn()).thenAnswer((_) async => null);
-
-      await tester.pumpWidget(
-        buildTestableLoginScreen(
-          mockGoogleService: mockGoogleService,
-          mockAppleService: mockAppleService,
-          mockSecureStorage: mockSecureStorage,
-          fakeApiClient: fakeApiClient,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Act: Tap Google button
-      await tester.ensureVisible(findGoogleButton());
-      await tester.tap(findGoogleButton());
-      await tester.pumpAndSettle();
-
-      // Assert: Verify Google Sign-In service was called
-      verify(() => mockGoogleService.signIn()).called(1);
-    });
-
-    testWidgets('test_google_sign_in_user_cancellation_no_error', (
-      tester,
-    ) async {
-      ignoreOverflowErrors();
-
-      // Arrange: User cancels Google Sign-In
-      when(() => mockGoogleService.signIn()).thenAnswer((_) async => null);
-
-      await tester.pumpWidget(
-        buildTestableLoginScreen(
-          mockGoogleService: mockGoogleService,
-          mockAppleService: mockAppleService,
-          mockSecureStorage: mockSecureStorage,
-          fakeApiClient: fakeApiClient,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Act: Tap Google button
-      await tester.ensureVisible(findGoogleButton());
-      await tester.tap(findGoogleButton());
-      await tester.pumpAndSettle();
-
-      // Assert: No error snackbar shown
-      expect(find.byType(SnackBar), findsNothing);
-      // Still on login screen
-      expect(find.byType(LoginScreen), findsOneWidget);
-    });
-
-    testWidgets('test_google_sign_in_shows_error_on_exception', (tester) async {
-      ignoreOverflowErrors();
-
-      // Arrange: Google Sign-In throws exception
-      when(
-        () => mockGoogleService.signIn(),
-      ).thenThrow(Exception('Google Sign-In failed'));
-
-      await tester.pumpWidget(
-        buildTestableLoginScreen(
-          mockGoogleService: mockGoogleService,
-          mockAppleService: mockAppleService,
-          mockSecureStorage: mockSecureStorage,
-          fakeApiClient: fakeApiClient,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Act: Tap Google button
-      await tester.ensureVisible(findGoogleButton());
-      await tester.tap(findGoogleButton());
-      await tester.pumpAndSettle();
-
-      // Assert: Error snackbar shown
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.byType(LoginScreen), findsOneWidget);
-    });
-
-    testWidgets('test_google_sign_in_no_server_auth_code_shows_error', (
-      tester,
-    ) async {
-      ignoreOverflowErrors();
-
-      // Arrange: Google Sign-In returns result without serverAuthCode
-      when(() => mockGoogleService.signIn()).thenAnswer(
-        (_) async => GoogleSignInResult(
-          serverAuthCode: null, // Missing server auth code
-          email: 'test@example.com',
-        ),
-      );
-
-      await tester.pumpWidget(
-        buildTestableLoginScreen(
-          mockGoogleService: mockGoogleService,
-          mockAppleService: mockAppleService,
-          mockSecureStorage: mockSecureStorage,
-          fakeApiClient: fakeApiClient,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Act: Tap Google button
-      await tester.ensureVisible(findGoogleButton());
-      await tester.tap(findGoogleButton());
-      await tester.pumpAndSettle();
-
-      // Assert: Error snackbar shown
-      expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.byType(LoginScreen), findsOneWidget);
-    });
-  });
-
-  group('LoginScreen - Apple OAuth Visibility', () {
-    testWidgets('test_apple_button_hidden_even_on_ios_builds', (tester) async {
-      ignoreOverflowErrors();
-
-      await tester.pumpWidget(
-        buildTestableLoginScreen(
-          mockGoogleService: mockGoogleService,
-          mockAppleService: mockAppleService,
-          mockSecureStorage: mockSecureStorage,
-          fakeApiClient: fakeApiClient,
-        ),
-      );
-      await tester.pumpAndSettle();
-
+      expect(findGoogleButton(), findsNothing);
+      expect(findFacebookButton(), findsNothing);
       expect(findAppleButton(), findsNothing);
+      verifyNever(() => mockGoogleService.signIn());
       verifyNever(() => mockAppleService.signIn());
     });
-  });
 
-  group('LoginScreen - OAuth Integration Flow', () {
-    testWidgets('test_google_oauth_full_flow_success', (tester) async {
-      ignoreOverflowErrors();
-
-      // This test verifies the OAuth flow structure but cannot fully test
-      // the integration without a real OAuthRemoteDataSource mock setup.
-      // For comprehensive integration testing, use E2E tests.
-
-      // Arrange: Mock successful Google Sign-In
-      when(() => mockGoogleService.signIn()).thenAnswer(
-        (_) async => GoogleSignInResult(
-          serverAuthCode: 'mock-server-auth-code',
-          email: 'test@example.com',
-          displayName: 'Test User',
-        ),
-      );
-
-      await tester.pumpWidget(
-        buildTestableLoginScreen(
-          mockGoogleService: mockGoogleService,
-          mockAppleService: mockAppleService,
-          mockSecureStorage: mockSecureStorage,
-          fakeApiClient: fakeApiClient,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Act: Tap Google button
-      await tester.ensureVisible(findGoogleButton());
-      await tester.tap(findGoogleButton());
-      await tester.pumpAndSettle();
-
-      // Assert: Google Sign-In service was called
-      verify(() => mockGoogleService.signIn()).called(1);
-
-      // Note: Full OAuth backend flow verification (getAuthorizeUrl, loginCallback)
-      // requires more complex setup or E2E tests.
+    test('provider policy keeps inactive mobile OAuth entries disabled', () {
+      expect(OAuthProvider.google.isMobileAuthEntryEnabled, isFalse);
+      expect(OAuthProvider.facebook.isMobileAuthEntryEnabled, isFalse);
+      expect(OAuthProvider.apple.isMobileAuthEntryEnabled, isFalse);
     });
   });
 }

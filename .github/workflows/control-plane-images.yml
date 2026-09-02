@@ -9,6 +9,10 @@ on:
       - 'backend/**'
       - 'services/task-worker/**'
       - 'services/helix-adapter/**'
+      - 'infra/remnawave-backend-compat/**'
+      - 'infra/remnawave-node-mirror/**'
+      - 'infra/remnawave-subscription-page-mirror/**'
+      - 'infra/node-ssh-proxy-mirror/**'
       - '.github/workflows/control-plane-images.yml'
   workflow_dispatch:
 
@@ -17,12 +21,14 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  attestations: write
   contents: read
+  id-token: write
   packages: write
 
 jobs:
-  build-and-publish:
-    name: Build and publish ${{ matrix.component.name }}
+  build-scan-attest:
+    name: Build, scan and attest ${{ matrix.component.name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -32,46 +38,185 @@ jobs:
             context: backend
             dockerfile: backend/Dockerfile
             image_name: backend
-          - name: task-worker
+            platforms: linux/amd64
+          - name: worker
             context: services/task-worker
             dockerfile: services/task-worker/Dockerfile
             image_name: task-worker
-          - name: helix-adapter
+            platforms: linux/amd64
+          - name: helix_adapter
             context: services/helix-adapter
             dockerfile: services/helix-adapter/Dockerfile
             image_name: helix-adapter
+            platforms: linux/amd64
+          - name: remnawave
+            context: infra/remnawave-backend-compat
+            dockerfile: infra/remnawave-backend-compat/Dockerfile
+            image_name: remnawave-backend
+            platforms: linux/amd64
+          - name: node
+            context: infra/remnawave-node-mirror
+            dockerfile: infra/remnawave-node-mirror/Dockerfile
+            image_name: remnawave-node
+            # Keep the release single-platform until every architecture has an
+            # exact-child-digest scan, SBOM, and verified aggregate attestation.
+            platforms: linux/amd64
+          - name: subscription_page
+            context: infra/remnawave-subscription-page-mirror
+            dockerfile: infra/remnawave-subscription-page-mirror/Dockerfile
+            image_name: remnawave-subscription-page
+            platforms: linux/amd64
+          - name: node_ssh_proxy
+            context: infra/node-ssh-proxy-mirror
+            dockerfile: infra/node-ssh-proxy-mirror/Dockerfile
+            image_name: node-ssh-proxy
+            platforms: linux/amd64
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Normalize image repository path
-        run: |
-          echo "IMAGE_REPOSITORY=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+        shell: bash
+        run: echo "IMAGE_REPOSITORY=${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push immutable image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: ${{ matrix.component.context }}
           file: ${{ matrix.component.dockerfile }}
+          platforms: ${{ matrix.component.platforms }}
           push: true
-          provenance: mode=max
-          sbom: true
-          tags: |
-            ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}:sha-${{ github.sha }}
+          provenance: false
+          sbom: false
+          tags: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}:sha-${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.component.image_name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.component.image_name }}
+
+      - name: Scan release image and retain high/critical findings
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}@${{ steps.build.outputs.digest }}
+          format: json
+          output: ${{ runner.temp }}/${{ matrix.component.name }}-trivy.json
+          # Findings are facts, not an implicit waiver. Promotion requires an
+          # exact digest/count/report-hash accepted-risk decision when nonzero.
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: HIGH,CRITICAL
+          scanners: vuln
+
+      - name: Generate SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output: ${{ runner.temp }}/${{ matrix.component.name }}-sbom.spdx.json
+          exit-code: '0'
+          scanners: vuln
+
+      - name: Validate reports and create policy-bound scan predicate
+        env:
+          COMPONENT: ${{ matrix.component.name }}
+          IMAGE_NAME: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          report_path = Path(os.environ["RUNNER_TEMP"]) / f"{os.environ['COMPONENT']}-trivy.json"
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          if report.get("SchemaVersion") != 2 or not isinstance(report.get("Results"), list):
+              raise SystemExit("Trivy report is missing or does not match schema version 2")
+          counts = {"HIGH": 0, "CRITICAL": 0}
+          for result in report["Results"]:
+              if not isinstance(result, dict):
+                  raise SystemExit("Trivy result entry is malformed")
+              findings = result.get("Vulnerabilities")
+              if findings is None:
+                  continue
+              if not isinstance(findings, list):
+                  raise SystemExit("Trivy vulnerabilities entry is malformed")
+              for finding in findings:
+                  if not isinstance(finding, dict):
+                      raise SystemExit("Trivy vulnerability entry is malformed")
+                  severity = finding.get("Severity")
+                  if not isinstance(severity, str):
+                      raise SystemExit("Trivy vulnerability severity is malformed")
+                  severity = severity.upper()
+                  if severity in counts:
+                      counts[severity] += 1
+
+          sbom_path = Path(os.environ["RUNNER_TEMP"]) / f"{os.environ['COMPONENT']}-sbom.spdx.json"
+          sbom = json.loads(sbom_path.read_text(encoding="utf-8"))
+          if (
+              sbom.get("spdxVersion") != "SPDX-2.3"
+              or sbom.get("SPDXID") != "SPDXRef-DOCUMENT"
+              or not isinstance(sbom.get("packages"), list)
+          ):
+              raise SystemExit("generated SBOM is not a valid SPDX-2.3 document")
+
+          report_sha256 = hashlib.sha256(report_path.read_bytes()).hexdigest()
+          image_digest = os.environ["IMAGE_DIGEST"]
+          if not re.fullmatch(r"sha256:[a-f0-9]{64}", image_digest):
+              raise SystemExit("build output is not a sha256 digest")
+          subject = f"{os.environ['IMAGE_NAME']}@{image_digest}"
+          predicate = {
+              "schema_version": 2,
+              "policy_id": "cybervpn-control-plane-supply-chain/v2",
+              "result": "pass" if not any(counts.values()) else "findings",
+              "high": counts["HIGH"],
+              "critical": counts["CRITICAL"],
+              "scanner": "trivy",
+              "report_format": "trivy-json",
+              "report_sha256": report_sha256,
+              "subject": subject,
+          }
+          output = Path(os.environ["RUNNER_TEMP"]) / f"{os.environ['COMPONENT']}-scan-predicate.json"
+          output.write_text(json.dumps(predicate, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          PY
+
+      - name: Attest SLSA provenance
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest SPDX SBOM
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: ${{ runner.temp }}/${{ matrix.component.name }}-sbom.spdx.json
+          push-to-registry: true
+
+      - name: Attest vulnerability scan result
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-name: ghcr.io/${{ env.IMAGE_REPOSITORY }}/${{ matrix.component.image_name }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          predicate-type: https://cybervpn.dev/attestations/vulnerability-scan/v1
+          predicate-path: ${{ runner.temp }}/${{ matrix.component.name }}-scan-predicate.json
+          push-to-registry: true
 
       - name: Write image manifest
         env:
@@ -80,8 +225,9 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
           SOURCE_COMMIT: ${{ github.sha }}
           SOURCE_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          PLATFORMS: ${{ matrix.component.platforms }}
+        shell: bash
         run: |
-          mkdir -p out
           python - <<'PY'
           import json
           import os
@@ -97,20 +243,29 @@ jobs:
               ),
               "source_commit": os.environ["SOURCE_COMMIT"],
               "source_run_url": os.environ["SOURCE_RUN_URL"],
+              "platforms": os.environ["PLATFORMS"].split(","),
+              "required_attestations": [
+                  "https://slsa.dev/provenance/v1",
+                  "https://spdx.dev/Document/v2.3",
+                  "https://cybervpn.dev/attestations/vulnerability-scan/v1",
+              ],
+              "supply_chain_policy_id": "cybervpn-control-plane-supply-chain/v2",
           }
-          Path("out").mkdir(parents=True, exist_ok=True)
-          Path(f"out/{payload['image_name']}.json").write_text(
-              json.dumps(payload, indent=2, sort_keys=True),
-              encoding="utf-8",
-          )
+          output = Path(os.environ["RUNNER_TEMP"]) / f"{payload['component']}-image-manifest.json"
+          output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
           PY
 
-      - name: Upload image manifest
-        uses: actions/upload-artifact@v4
+      - name: Upload build evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: control-plane-image-${{ matrix.component.image_name }}
-          path: out/${{ matrix.component.image_name }}.json
-          retention-days: 14
+          name: control-plane-image-${{ matrix.component.name }}
+          path: |
+            ${{ runner.temp }}/${{ matrix.component.name }}-image-manifest.json
+            ${{ runner.temp }}/${{ matrix.component.name }}-trivy.json
+            ${{ runner.temp }}/${{ matrix.component.name }}-sbom.spdx.json
+            ${{ runner.temp }}/${{ matrix.component.name }}-scan-predicate.json
+          retention-days: 90
+          if-no-files-found: error
 
       - name: Write summary
         env:
@@ -118,4 +273,11 @@ jobs:
         run: |
           echo "## ${DIGEST_REF}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Use this digest ref in the promotion workflow or in \`infra/ansible/inventories/*/group_vars/control_plane_*/release.yml\`." >> "$GITHUB_STEP_SUMMARY"
+          critical=$(jq -r '.critical' "$RUNNER_TEMP/${{ matrix.component.name }}-scan-predicate.json")
+          high=$(jq -r '.high' "$RUNNER_TEMP/${{ matrix.component.name }}-scan-predicate.json")
+          report_sha=$(jq -r '.report_sha256' "$RUNNER_TEMP/${{ matrix.component.name }}-scan-predicate.json")
+          echo "Signed provenance and validated SPDX-2.3 SBOM were published." >> "$GITHUB_STEP_SUMMARY"
+          echo "Scan facts: critical=${critical}, high=${high}, report_sha256=${report_sha}." >> "$GITHUB_STEP_SUMMARY"
+          if [ "$critical" -gt 0 ] || [ "$high" -gt 0 ]; then
+            echo "Promotion requires a schema-valid accepted-risk decision bound to this digest and report." >> "$GITHUB_STEP_SUMMARY"
+          fi

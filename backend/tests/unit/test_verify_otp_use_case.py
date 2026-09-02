@@ -51,7 +51,9 @@ def mock_session():
 def mock_remnawave():
     """Create mock Remnawave gateway."""
     gateway = AsyncMock()
-    gateway.create_user.return_value = {"uuid": str(uuid4()), "username": "testuser"}
+    gateway.create_user.side_effect = AssertionError(
+        "OTP verification must not provision a Remnawave user",
+    )
     return gateway
 
 
@@ -119,20 +121,16 @@ class TestVerifyOtpSuccess:
         assert result.refresh_token == "refresh_token_456"
         assert result.token_type == "bearer"
 
-    async def test_verify_otp_creates_remnawave_user(
+    async def test_verify_otp_does_not_create_untracked_remnawave_user(
         self, verify_use_case, mock_user_repo, mock_otp_service, mock_remnawave, test_user
     ):
-        """Test that successful verification creates user in Remnawave."""
+        """Auth verification must leave VPN provisioning to MobileUser flows."""
         mock_user_repo.get_by_email.return_value = test_user
         mock_otp_service.validate_otp.return_value = OtpVerificationResult(success=True)
 
         await verify_use_case.execute(email="test@example.com", code="123456")
 
-        mock_remnawave.create_user.assert_called_once_with(
-            username=test_user.login,
-            email=test_user.email,
-            telegram_id=test_user.telegram_id,
-        )
+        mock_remnawave.create_user.assert_not_called()
 
     async def test_verify_otp_continues_on_remnawave_error(
         self, verify_use_case, mock_user_repo, mock_otp_service, mock_remnawave, test_user
@@ -146,6 +144,7 @@ class TestVerifyOtpSuccess:
 
         assert result.success is True
         assert result.access_token is not None
+        mock_remnawave.create_user.assert_not_called()
 
 
 class TestVerifyOtpFailure:

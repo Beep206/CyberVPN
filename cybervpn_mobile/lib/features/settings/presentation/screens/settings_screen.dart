@@ -173,7 +173,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ResponsiveLayout.isAtLeastMediumOf(context);
 
   /// Navigate to a detail page: push on phone, select pane on tablet.
-  void _navigateToDetail(BuildContext context, _SettingsDetail detail, String route) {
+  void _navigateToDetail(
+    BuildContext context,
+    _SettingsDetail detail,
+    String route,
+  ) {
     if (_isWide(context)) {
       setState(() => _selectedDetail = detail);
     } else {
@@ -187,18 +191,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _SettingsDetail.vpn => const VpnSettingsScreen(embedded: true),
       _SettingsDetail.appearance => const AppearanceScreen(embedded: true),
       _SettingsDetail.language => const LanguageScreen(embedded: true),
-      _SettingsDetail.notifications => const NotificationPrefsScreen(embedded: true),
-      _SettingsDetail.account => const _DetailPlaceholder(icon: Icons.security_outlined),
+      _SettingsDetail.notifications => const NotificationPrefsScreen(
+        embedded: true,
+      ),
+      _SettingsDetail.account => const _DetailPlaceholder(
+        icon: Icons.security_outlined,
+      ),
       _SettingsDetail.other => const OtherSettingsScreen(embedded: true),
       _SettingsDetail.debug => const DebugScreen(embedded: true),
       null => Center(
-          child: Text(
-            AppLocalizations.of(context).settingsSelectCategory,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+        child: Text(
+          AppLocalizations.of(context).settingsSelectCategory,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
+      ),
     };
   }
 
@@ -215,13 +223,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     Widget searchAction() => IconButton(
-          icon: const Icon(Icons.search),
-          tooltip: l10n.settingsSearchHint,
-          onPressed: () => showSearch(
-            context: context,
-            delegate: SettingsSearchDelegate(l10n),
-          ),
-        );
+      icon: const Icon(Icons.search),
+      tooltip: l10n.settingsSearchHint,
+      onPressed: () =>
+          showSearch(context: context, delegate: SettingsSearchDelegate(l10n)),
+    );
 
     if (isWide) {
       return Scaffold(
@@ -293,7 +299,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: l10n.settingsVpn,
               subtitle: _protocolLabel(settings.preferredProtocol),
               leading: const Icon(Icons.vpn_key_outlined),
-              onTap: () => _navigateToDetail(context, _SettingsDetail.vpn, '/settings/vpn'),
+              onTap: () => _navigateToDetail(
+                context,
+                _SettingsDetail.vpn,
+                '/settings/vpn',
+              ),
             ),
           ],
         ),
@@ -302,13 +312,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         SettingsSection(
           title: l10n.settingsAppearance,
           children: [
-            SettingsTile.navigation(
-              key: _appearanceTileKey,
-              title: l10n.settingsAppearance,
-              subtitle:
-                  '${_themeModeLabel(settings.themeMode)} / ${_brightnessLabel(settings.brightness)}',
-              leading: const Icon(Icons.palette_outlined),
-              onTap: () => _navigateToDetail(context, _SettingsDetail.appearance, '/settings/appearance'),
+            KeyedSubtree(
+              key: const Key('tile_appearance'),
+              child: SettingsTile.navigation(
+                key: _appearanceTileKey,
+                title: l10n.settingsAppearance,
+                subtitle:
+                    '${_themeModeLabel(settings.themeMode)} / ${_brightnessLabel(settings.brightness)}',
+                leading: const Icon(Icons.palette_outlined),
+                onTap: () => _navigateToDetail(
+                  context,
+                  _SettingsDetail.appearance,
+                  '/settings/appearance',
+                ),
+              ),
             ),
           ],
         ),
@@ -322,7 +339,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: l10n.language,
               subtitle: _localeName(settings.locale),
               leading: const Icon(Icons.language_outlined),
-              onTap: () => _navigateToDetail(context, _SettingsDetail.language, '/settings/language'),
+              onTap: () => _navigateToDetail(
+                context,
+                _SettingsDetail.language,
+                '/settings/language',
+              ),
             ),
           ],
         ),
@@ -335,9 +356,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               key: const Key('tile_notifications'),
               title: l10n.settingsNotifications,
               subtitle: l10n.settingsNotificationCountEnabled(
-                  _enabledNotificationCount(settings)),
+                _enabledNotificationCount(settings),
+              ),
               leading: const Icon(Icons.notifications_outlined),
-              onTap: () => _navigateToDetail(context, _SettingsDetail.notifications, '/settings/notifications'),
+              onTap: () => _navigateToDetail(
+                context,
+                _SettingsDetail.notifications,
+                '/settings/notifications',
+              ),
             ),
           ],
         ),
@@ -380,9 +406,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               key: const Key('tile_about_privacy'),
               title: l10n.privacyPolicy,
               leading: const Icon(Icons.privacy_tip_outlined),
-              onTap: () => _launchUrl(
-                '${EnvironmentConfig.webBaseUrl}/privacy-policy',
-              ),
+              onTap: () =>
+                  _launchUrl('${EnvironmentConfig.webBaseUrl}/privacy-policy'),
             ),
           ],
         ),
@@ -414,7 +439,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: l10n.settingsDebugAbout,
               subtitle: l10n.settingsDebugAboutSubtitle,
               leading: const Icon(Icons.bug_report_outlined),
-              onTap: () => _navigateToDetail(context, _SettingsDetail.debug, '/settings/debug'),
+              onTap: () => _navigateToDetail(
+                context,
+                _SettingsDetail.debug,
+                '/settings/debug',
+              ),
             ),
           ],
         ),
@@ -447,7 +476,11 @@ class _DetailPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Icon(icon, size: 48, color: Theme.of(context).colorScheme.outlineVariant),
+      child: Icon(
+        icon,
+        size: 48,
+        color: Theme.of(context).colorScheme.outlineVariant,
+      ),
     );
   }
 }

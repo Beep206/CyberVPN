@@ -95,7 +95,9 @@ class TestCompleteAuthFlow:
 
             # Step 2: Verify OTP (auto-login)
             mock_adapter = AsyncMock()
-            mock_adapter.create_user = AsyncMock(return_value={"uuid": "remna123"})
+            mock_adapter.create_user = AsyncMock(
+                side_effect=AssertionError("auth-time Remnawave provisioning must stay disabled"),
+            )
             app.dependency_overrides[get_remnawave_adapter] = lambda: mock_adapter
             try:
                 verify_response = await async_client.post(
@@ -104,6 +106,7 @@ class TestCompleteAuthFlow:
                 )
             finally:
                 app.dependency_overrides.pop(get_remnawave_adapter, None)
+            mock_adapter.create_user.assert_not_awaited()
 
             assert verify_response.status_code == 200
             verify_data = verify_response.json()
@@ -215,7 +218,9 @@ class TestCompleteAuthFlow:
             otp_code = otp_result.scalar_one().code
 
             mock_adapter = AsyncMock()
-            mock_adapter.create_user = AsyncMock(return_value={"uuid": "remna123"})
+            mock_adapter.create_user = AsyncMock(
+                side_effect=AssertionError("auth-time Remnawave provisioning must stay disabled"),
+            )
             app.dependency_overrides[get_remnawave_adapter] = lambda: mock_adapter
             try:
                 await async_client.post(
@@ -224,6 +229,7 @@ class TestCompleteAuthFlow:
                 )
             finally:
                 app.dependency_overrides.pop(get_remnawave_adapter, None)
+            mock_adapter.create_user.assert_not_awaited()
 
         # Now test login with password
         login_response = await async_client.post(

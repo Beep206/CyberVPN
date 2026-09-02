@@ -460,7 +460,17 @@
     "serverStatus": "وضعیت سرور",
     "statusLabel": "وضعیت سیستم:",
     "statusValue": "بهینه",
-    "title": "مرکز فرماندهی VPN"
+    "title": "مرکز فرماندهی VPN",
+    "vpnServiceStatus": {
+      "available": "در دسترس",
+      "connections": "اتصال‌ها",
+      "degraded": "تا حدی مختل",
+      "devices": "دستگاه‌ها",
+      "loading": "در حال بارگذاری وضعیت سرویس VPN",
+      "title": "دسترس‌پذیری سرویس VPN",
+      "unavailable": "در دسترس نیست",
+      "usage": "مصرف"
+    }
   },
   "DeleteAccount": {
     "contact": {

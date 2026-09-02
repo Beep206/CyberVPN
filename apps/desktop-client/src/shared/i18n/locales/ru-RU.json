@@ -672,6 +672,7 @@
   "subscriptions": {
     "fillAllFields": "Пожалуйста, заполните все поля",
     "createError": "Ошибка: {{error}}",
+    "secureStoreError": "Не удалось безопасно сохранить подписку.",
     "syncSuccess": "Подписка успешно синхронизирована",
     "syncError": "Ошибка синхронизации: {{error}}",
     "neverUpdated": "Никогда не обновлялась",

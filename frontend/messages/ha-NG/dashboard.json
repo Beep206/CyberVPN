@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Samuwar sabis na VPN",
+    "connections": "Haɗin kai",
+    "usage": "Amfani",
+    "devices": "Na’urori",
+    "available": "Akwai",
+    "unavailable": "Babu",
+    "loading": "Ana loda matsayin sabis na VPN",
+    "degraded": "An rage aiki a wani ɓangare"
   }
 }

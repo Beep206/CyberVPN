@@ -9,6 +9,10 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.entitlements_service import EntitlementsService
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.service_access.device_credentials import (
     CreateDeviceCredentialResult,
@@ -25,7 +29,12 @@ from src.application.use_cases.service_access.service_identities import (
 )
 from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
+
+
+class CurrentServiceIdentityConflict(ValueError):
+    """The current customer cannot be resolved to one exact provider identity."""
 
 
 def _default_provisioning_profile_key(channel_type: str) -> str:
@@ -236,6 +245,75 @@ class GetCurrentServiceStateUseCase:
         self._repo = ServiceAccessRepository(session)
         self._entitlements = EntitlementsService(session)
 
+    async def _resolve_current_service_identity(
+        self,
+        *,
+        customer: MobileUserModel,
+        current_realm: RealmResolution,
+        provider_name: str,
+    ) -> ServiceIdentityModel | None:
+        account_identity = await self._repo.get_service_identity_by_customer_realm_provider(
+            customer_account_id=customer.id,
+            auth_realm_id=current_realm.auth_realm.id,
+            provider_name=provider_name,
+        )
+        if provider_name != "remnawave":
+            return account_identity
+        if customer.remnawave_user_id is None:
+            if account_identity is not None:
+                raise CurrentServiceIdentityConflict("Current customer does not have a canonical Remnawave identity")
+            return None
+
+        try:
+            customer_ref = await resolve_exact_mapped_remnawave_ref(
+                self._session,
+                subject_type="mobile_user",
+                subject_id=customer.id,
+                numeric_user_id=customer.remnawave_user_id,
+                legacy_uuid_raw=customer.remnawave_uuid,
+            )
+        except RemnawaveIdentityAccessConflict as exc:
+            raise CurrentServiceIdentityConflict(
+                "Current customer Remnawave identity is not exactly reconciled"
+            ) from exc
+        if customer_ref is None:
+            return account_identity
+
+        try:
+            canonical_identity = await self._repo.get_service_identity_by_customer_realm_provider_numeric_subject(
+                customer_account_id=customer.id,
+                auth_realm_id=current_realm.auth_realm.id,
+                provider_name=provider_name,
+                provider_numeric_subject_id=customer_ref.require_numeric_id(),
+            )
+        except ValueError as exc:
+            raise CurrentServiceIdentityConflict("Current Remnawave service identity is ambiguous") from exc
+        if canonical_identity is None:
+            return None
+        if canonical_identity.identity_status != "active":
+            raise CurrentServiceIdentityConflict("Current service identity is not active")
+        try:
+            service_ref = await resolve_exact_mapped_remnawave_ref(
+                self._session,
+                subject_type="service_identity",
+                subject_id=canonical_identity.id,
+                numeric_user_id=canonical_identity.provider_numeric_subject_id,
+                legacy_uuid_raw=canonical_identity.provider_subject_ref,
+            )
+        except RemnawaveIdentityAccessConflict as exc:
+            raise CurrentServiceIdentityConflict("Current service identity is not exactly reconciled") from exc
+        if (
+            service_ref is None
+            or service_ref.require_numeric_id() != customer_ref.require_numeric_id()
+            or (
+                service_ref.legacy_uuid is not None
+                and customer_ref.legacy_uuid is not None
+                and service_ref.legacy_uuid != customer_ref.legacy_uuid
+            )
+        ):
+            raise CurrentServiceIdentityConflict("Current service identity does not match the customer identity")
+        return canonical_identity
+
     async def execute(
         self,
         *,
@@ -266,9 +344,9 @@ class GetCurrentServiceStateUseCase:
             auth_realm_id=current_realm.auth_realm.id,
             now=now,
         )
-        service_identity = await self._repo.get_service_identity_by_customer_realm_provider(
-            customer_account_id=customer_account_id,
-            auth_realm_id=current_realm.auth_realm.id,
+        service_identity = await self._resolve_current_service_identity(
+            customer=customer,
+            current_realm=current_realm,
             provider_name=provider_name,
         )
 
@@ -338,14 +416,11 @@ class ResolveCurrentAccessDeliveryChannelUseCase:
         provider_name: str,
         service_context: dict[str, Any],
     ) -> CreateServiceIdentityResult:
-        existing = await self._repo.get_service_identity_by_customer_realm_provider(
+        existing_account_identity = await self._repo.get_service_identity_by_customer_realm_provider(
             customer_account_id=customer_account_id,
             auth_realm_id=current_realm.auth_realm.id,
             provider_name=provider_name,
         )
-        if existing is not None:
-            return CreateServiceIdentityResult(created=False, service_identity=existing)
-
         customer = await self._session.get(MobileUserModel, customer_account_id)
         if customer is None:
             raise ValueError("Customer account not found")
@@ -353,9 +428,63 @@ class ResolveCurrentAccessDeliveryChannelUseCase:
             raise ValueError("Customer account does not belong to auth realm")
 
         provider_subject_ref: str | None = None
+        provider_numeric_subject_id: int | None = None
         if provider_name == "remnawave":
-            provider_subject_ref = customer.remnawave_uuid
-        if not provider_subject_ref:
+            provider_numeric_subject_id = customer.remnawave_user_id
+            if (
+                isinstance(provider_numeric_subject_id, bool)
+                or not isinstance(provider_numeric_subject_id, int)
+                or provider_numeric_subject_id <= 0
+            ):
+                raise ValueError("Current customer does not have a positive provider numeric identity")
+            try:
+                customer_ref = await resolve_exact_mapped_remnawave_ref(
+                    self._session,
+                    subject_type="mobile_user",
+                    subject_id=customer.id,
+                    numeric_user_id=provider_numeric_subject_id,
+                    legacy_uuid_raw=customer.remnawave_uuid,
+                )
+            except RemnawaveIdentityAccessConflict as exc:
+                raise ValueError("Current customer Remnawave identity is not exactly reconciled") from exc
+            if customer_ref is None:
+                raise ValueError("Current customer does not have a canonical Remnawave identity")
+
+            provider_subject_ref = str(customer_ref.legacy_uuid) if customer_ref.legacy_uuid is not None else None
+            provider_numeric_subject_id = customer_ref.require_numeric_id()
+            canonical_identity = await self._repo.get_service_identity_by_customer_realm_provider_numeric_subject(
+                customer_account_id=customer_account_id,
+                auth_realm_id=current_realm.auth_realm.id,
+                provider_name=provider_name,
+                provider_numeric_subject_id=provider_numeric_subject_id,
+            )
+            if canonical_identity is not None:
+                if canonical_identity.identity_status != "active":
+                    raise PermissionError("Current service identity is not active")
+                try:
+                    service_ref = await resolve_exact_mapped_remnawave_ref(
+                        self._session,
+                        subject_type="service_identity",
+                        subject_id=canonical_identity.id,
+                        numeric_user_id=canonical_identity.provider_numeric_subject_id,
+                        legacy_uuid_raw=canonical_identity.provider_subject_ref,
+                    )
+                except RemnawaveIdentityAccessConflict as exc:
+                    raise ValueError("Current service identity is not exactly reconciled") from exc
+                if (
+                    service_ref is None
+                    or service_ref.require_numeric_id() != provider_numeric_subject_id
+                    or (
+                        service_ref.legacy_uuid is not None
+                        and customer_ref.legacy_uuid is not None
+                        and service_ref.legacy_uuid != customer_ref.legacy_uuid
+                    )
+                ):
+                    raise ValueError("Current service identity does not match the customer identity")
+                return CreateServiceIdentityResult(created=False, service_identity=canonical_identity)
+        elif existing_account_identity is not None:
+            return CreateServiceIdentityResult(created=False, service_identity=existing_account_identity)
+        elif not provider_subject_ref:
             raise ValueError("Current customer does not have a provider subject reference")
 
         merged_context = dict(service_context or {})
@@ -365,6 +494,7 @@ class ResolveCurrentAccessDeliveryChannelUseCase:
             auth_realm_id=current_realm.auth_realm.id,
             provider_name=provider_name,
             provider_subject_ref=provider_subject_ref,
+            provider_numeric_subject_id=provider_numeric_subject_id,
             service_context=merged_context,
         )
 

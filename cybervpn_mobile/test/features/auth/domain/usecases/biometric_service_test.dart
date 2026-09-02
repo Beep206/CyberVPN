@@ -15,6 +15,13 @@ void main() {
 
   setUp(() {
     mockLocalAuth = MockLocalAuthentication();
+    when(() => mockLocalAuth.canCheckBiometrics).thenAnswer((_) async => false);
+    when(
+      () => mockLocalAuth.isDeviceSupported(),
+    ).thenAnswer((_) async => false);
+    when(
+      () => mockLocalAuth.getAvailableBiometrics(),
+    ).thenAnswer((_) async => const <BiometricType>[]);
     fakeSecureStorage = FakeSecureStorage();
     biometricService = BiometricService(
       localAuth: mockLocalAuth,
@@ -24,23 +31,29 @@ void main() {
 
   group('BiometricService', () {
     group('isBiometricAvailable', () {
-      test('returns true when biometrics can check and device is supported',
-          () async {
-        when(() => mockLocalAuth.canCheckBiometrics)
-            .thenAnswer((_) async => true);
-        when(() => mockLocalAuth.isDeviceSupported())
-            .thenAnswer((_) async => true);
+      test(
+        'returns true when biometrics can check and device is supported',
+        () async {
+          when(
+            () => mockLocalAuth.canCheckBiometrics,
+          ).thenAnswer((_) async => true);
+          when(
+            () => mockLocalAuth.isDeviceSupported(),
+          ).thenAnswer((_) async => true);
 
-        final result = await biometricService.isBiometricAvailable();
+          final result = await biometricService.isBiometricAvailable();
 
-        expect(result, isTrue);
-      });
+          expect(result, isTrue);
+        },
+      );
 
       test('returns false when biometrics cannot be checked', () async {
-        when(() => mockLocalAuth.canCheckBiometrics)
-            .thenAnswer((_) async => false);
-        when(() => mockLocalAuth.isDeviceSupported())
-            .thenAnswer((_) async => true);
+        when(
+          () => mockLocalAuth.canCheckBiometrics,
+        ).thenAnswer((_) async => false);
+        when(
+          () => mockLocalAuth.isDeviceSupported(),
+        ).thenAnswer((_) async => true);
 
         final result = await biometricService.isBiometricAvailable();
 
@@ -48,10 +61,12 @@ void main() {
       });
 
       test('returns false when device is not supported', () async {
-        when(() => mockLocalAuth.canCheckBiometrics)
-            .thenAnswer((_) async => true);
-        when(() => mockLocalAuth.isDeviceSupported())
-            .thenAnswer((_) async => false);
+        when(
+          () => mockLocalAuth.canCheckBiometrics,
+        ).thenAnswer((_) async => true);
+        when(
+          () => mockLocalAuth.isDeviceSupported(),
+        ).thenAnswer((_) async => false);
 
         final result = await biometricService.isBiometricAvailable();
 
@@ -59,10 +74,12 @@ void main() {
       });
 
       test('returns false when both checks fail', () async {
-        when(() => mockLocalAuth.canCheckBiometrics)
-            .thenAnswer((_) async => false);
-        when(() => mockLocalAuth.isDeviceSupported())
-            .thenAnswer((_) async => false);
+        when(
+          () => mockLocalAuth.canCheckBiometrics,
+        ).thenAnswer((_) async => false);
+        when(
+          () => mockLocalAuth.isDeviceSupported(),
+        ).thenAnswer((_) async => false);
 
         final result = await biometricService.isBiometricAvailable();
 
@@ -72,28 +89,40 @@ void main() {
 
     group('authenticate', () {
       test('returns true on successful authentication', () async {
-        when(() => mockLocalAuth.authenticate(
-              localizedReason: any<String>(named: 'localizedReason'),
-              biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).thenAnswer((_) async => true);
+        when(
+          () => mockLocalAuth.authenticate(
+            localizedReason: any<String>(named: 'localizedReason'),
+            biometricOnly: any<bool>(named: 'biometricOnly'),
+            persistAcrossBackgrounding: any<bool>(
+              named: 'persistAcrossBackgrounding',
+            ),
+          ),
+        ).thenAnswer((_) async => true);
 
         final result = await biometricService.authenticate();
 
         expect(result, isTrue);
-        verify(() => mockLocalAuth.authenticate(
-              localizedReason: 'Authenticate to continue',
-              biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).called(1);
+        verify(
+          () => mockLocalAuth.authenticate(
+            localizedReason: 'Authenticate to continue',
+            biometricOnly: any<bool>(named: 'biometricOnly'),
+            persistAcrossBackgrounding: any<bool>(
+              named: 'persistAcrossBackgrounding',
+            ),
+          ),
+        ).called(1);
       });
 
       test('returns false on failed authentication', () async {
-        when(() => mockLocalAuth.authenticate(
-              localizedReason: any<String>(named: 'localizedReason'),
-              biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).thenAnswer((_) async => false);
+        when(
+          () => mockLocalAuth.authenticate(
+            localizedReason: any<String>(named: 'localizedReason'),
+            biometricOnly: any<bool>(named: 'biometricOnly'),
+            persistAcrossBackgrounding: any<bool>(
+              named: 'persistAcrossBackgrounding',
+            ),
+          ),
+        ).thenAnswer((_) async => false);
 
         final result = await biometricService.authenticate();
 
@@ -102,43 +131,66 @@ void main() {
 
       test('passes custom reason to authenticate', () async {
         const customReason = 'Unlock CyberVPN';
-        when(() => mockLocalAuth.authenticate(
-              localizedReason: any<String>(named: 'localizedReason'),
-              biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).thenAnswer((_) async => true);
+        when(
+          () => mockLocalAuth.authenticate(
+            localizedReason: any<String>(named: 'localizedReason'),
+            biometricOnly: any<bool>(named: 'biometricOnly'),
+            persistAcrossBackgrounding: any<bool>(
+              named: 'persistAcrossBackgrounding',
+            ),
+          ),
+        ).thenAnswer((_) async => true);
 
         await biometricService.authenticate(reason: customReason);
 
-        verify(() => mockLocalAuth.authenticate(
-              localizedReason: customReason,
-              biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).called(1);
+        verify(
+          () => mockLocalAuth.authenticate(
+            localizedReason: customReason,
+            biometricOnly: any<bool>(named: 'biometricOnly'),
+            persistAcrossBackgrounding: any<bool>(
+              named: 'persistAcrossBackgrounding',
+            ),
+          ),
+        ).called(1);
       });
 
-      test('passes AuthenticationOptions with biometricOnly and stickyAuth', () async {
-        when(() => mockLocalAuth.authenticate(
+      test(
+        'passes AuthenticationOptions with biometricOnly and stickyAuth',
+        () async {
+          when(
+            () => mockLocalAuth.authenticate(
               localizedReason: any<String>(named: 'localizedReason'),
               biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).thenAnswer((_) async => true);
+              persistAcrossBackgrounding: any<bool>(
+                named: 'persistAcrossBackgrounding',
+              ),
+            ),
+          ).thenAnswer((_) async => true);
 
-        await biometricService.authenticate();
+          await biometricService.authenticate();
 
-        verify(() => mockLocalAuth.authenticate(
+          verify(
+            () => mockLocalAuth.authenticate(
               localizedReason: any<String>(named: 'localizedReason'),
               biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).called(1);
-      });
+              persistAcrossBackgrounding: any<bool>(
+                named: 'persistAcrossBackgrounding',
+              ),
+            ),
+          ).called(1);
+        },
+      );
 
       test('propagates exception from local_auth', () async {
-        when(() => mockLocalAuth.authenticate(
-              localizedReason: any<String>(named: 'localizedReason'),
-              biometricOnly: any<bool>(named: 'biometricOnly'),
-              persistAcrossBackgrounding: any<bool>(named: 'persistAcrossBackgrounding'),
-            )).thenThrow(Exception('Biometric hardware error'));
+        when(
+          () => mockLocalAuth.authenticate(
+            localizedReason: any<String>(named: 'localizedReason'),
+            biometricOnly: any<bool>(named: 'biometricOnly'),
+            persistAcrossBackgrounding: any<bool>(
+              named: 'persistAcrossBackgrounding',
+            ),
+          ),
+        ).thenThrow(Exception('Biometric hardware error'));
 
         expect(
           () => biometricService.authenticate(),
@@ -149,8 +201,7 @@ void main() {
 
     group('isBiometricEnabled', () {
       test('returns true when stored value is "true"', () async {
-        await fakeSecureStorage.write(
-            key: 'biometric_enabled', value: 'true');
+        await fakeSecureStorage.write(key: 'biometric_enabled', value: 'true');
 
         final result = await biometricService.isBiometricEnabled();
 
@@ -158,8 +209,7 @@ void main() {
       });
 
       test('returns false when stored value is "false"', () async {
-        await fakeSecureStorage.write(
-            key: 'biometric_enabled', value: 'false');
+        await fakeSecureStorage.write(key: 'biometric_enabled', value: 'false');
 
         final result = await biometricService.isBiometricEnabled();
 
@@ -177,16 +227,14 @@ void main() {
       test('stores "true" when enabled', () async {
         await biometricService.setBiometricEnabled(true);
 
-        final stored =
-            await fakeSecureStorage.read(key: 'biometric_enabled');
+        final stored = await fakeSecureStorage.read(key: 'biometric_enabled');
         expect(stored, equals('true'));
       });
 
       test('stores "false" when disabled', () async {
         await biometricService.setBiometricEnabled(false);
 
-        final stored =
-            await fakeSecureStorage.read(key: 'biometric_enabled');
+        final stored = await fakeSecureStorage.read(key: 'biometric_enabled');
         expect(stored, equals('false'));
       });
 
@@ -194,8 +242,7 @@ void main() {
         await biometricService.setBiometricEnabled(true);
         await biometricService.setBiometricEnabled(false);
 
-        final stored =
-            await fakeSecureStorage.read(key: 'biometric_enabled');
+        final stored = await fakeSecureStorage.read(key: 'biometric_enabled');
         expect(stored, equals('false'));
       });
     });

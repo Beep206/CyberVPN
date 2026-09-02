@@ -882,11 +882,11 @@ def _build_lane_tolerance_map(
         tolerance_map["direct_store"] = default_tolerance
 
     for item in lane_tolerances:
-        lane_key = _string_or_none(item.get("lane_key"))
+        tolerance_lane_key = _string_or_none(item.get("lane_key"))
         max_divergence_rate = _decimal_or_none(item.get("max_divergence_rate"))
-        if lane_key is None or max_divergence_rate is None:
+        if tolerance_lane_key is None or max_divergence_rate is None:
             continue
-        tolerance_map[lane_key] = max_divergence_rate
+        tolerance_map[tolerance_lane_key] = max_divergence_rate
     return tolerance_map
 
 

@@ -33,6 +33,7 @@ class Permission(StrEnum):
     PAYMENT_CREATE = "payment_create"
     # Monitoring
     MONITORING_READ = "monitoring_read"
+    NODE_SSH_EXECUTE = "node_ssh_execute"
     # Admin
     AUDIT_READ = "audit_read"
     WEBHOOK_READ = "webhook_read"
@@ -70,6 +71,7 @@ class Permission(StrEnum):
     GROWTH_ONBOARDING_RESET = "growth.onboarding.reset"
     # Subscriptions
     SUBSCRIPTION_CREATE = "subscription_create"
+    VPN_CREDENTIAL_READ = "vpn_credential_read"
     VPN_CREDENTIAL_REGENERATE = "vpn_credential_regenerate"
     # Analytics
     VIEW_ANALYTICS = "view_analytics"
@@ -161,6 +163,7 @@ ROLE_PERMISSIONS: dict[AdminRole, set[Permission]] = {
         Permission.PAYMENT_READ,
         Permission.PAYMENT_CREATE,
         Permission.MONITORING_READ,
+        Permission.NODE_SSH_EXECUTE,
         Permission.AUDIT_READ,
         Permission.WEBHOOK_READ,
         Permission.MANAGE_PLANS,

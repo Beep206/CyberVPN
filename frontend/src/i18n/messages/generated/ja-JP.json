@@ -460,7 +460,17 @@
     "serverStatus": "サーバーステータス",
     "statusLabel": "システムステータス:",
     "statusValue": "最適",
-    "title": "VPN コマンドセンター"
+    "title": "VPN コマンドセンター",
+    "vpnServiceStatus": {
+      "available": "利用可能",
+      "connections": "接続",
+      "degraded": "一部で障害",
+      "devices": "デバイス",
+      "loading": "VPNサービスの状態を読み込み中",
+      "title": "VPNサービスの可用性",
+      "unavailable": "利用不可",
+      "usage": "使用量"
+    }
   },
   "DeleteAccount": {
     "contact": {

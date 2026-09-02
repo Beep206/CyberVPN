@@ -460,7 +460,17 @@
     "serverStatus": "СТАТУС СЕРВЕРІВ",
     "statusLabel": "СТАТУС СИСТЕМИ:",
     "statusValue": "ОПТИМАЛЬНИЙ",
-    "title": "КОМАНДНИЙ ЦЕНТР VPN"
+    "title": "КОМАНДНИЙ ЦЕНТР VPN",
+    "vpnServiceStatus": {
+      "available": "Доступно",
+      "connections": "Підключення",
+      "degraded": "Частково обмежено",
+      "devices": "Пристрої",
+      "loading": "Завантаження стану VPN-сервісу",
+      "title": "Доступність VPN-сервісу",
+      "unavailable": "Недоступно",
+      "usage": "Використання"
+    }
   },
   "DeleteAccount": {
     "contact": {

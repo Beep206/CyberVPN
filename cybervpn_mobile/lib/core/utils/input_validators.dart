@@ -16,6 +16,15 @@ class InputValidators {
 
     final trimmed = value.trim();
 
+    // Check the Unicode domain before the ASCII-only syntax pattern below so
+    // mixed-script homographs receive the intentional security error instead
+    // of being collapsed into a generic format failure.
+    final separatorIndex = trimmed.lastIndexOf('@');
+    if (separatorIndex >= 0 &&
+        _containsMixedScripts(trimmed.substring(separatorIndex + 1))) {
+      return 'Email domain contains suspicious characters';
+    }
+
     // RFC 5322 simplified pattern
     final emailRegex = RegExp(
       r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$',
@@ -23,12 +32,6 @@ class InputValidators {
 
     if (!emailRegex.hasMatch(trimmed)) {
       return 'Please enter a valid email address';
-    }
-
-    // IDN homograph attack detection: reject emails with mixed-script characters
-    // that could impersonate legitimate domains (e.g. using Cyrillic 'а' for Latin 'a').
-    if (_containsMixedScripts(trimmed.split('@').last)) {
-      return 'Email domain contains suspicious characters';
     }
 
     return null;

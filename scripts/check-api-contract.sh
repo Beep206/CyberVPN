@@ -33,6 +33,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKEND_DIR="${REPO_ROOT}/backend"
 COMMITTED_SPEC="${BACKEND_DIR}/docs/api/openapi.json"
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 GENERATED_SPEC=""
 VERBOSE=0
 BREAKING=0
@@ -61,11 +62,26 @@ ok()    { printf "\033[0;32m[OK]\033[0m    %s\n" "$*"; }
 warn()  { printf "\033[0;33m[WARN]\033[0m  %s\n" "$*"; }
 fail()  { printf "\033[0;31m[FAIL]\033[0m  %s\n" "$*"; }
 
+is_wsl() {
+    [[ -r /proc/version ]] && grep -qi microsoft /proc/version
+}
+
+append_wslenv_entries() {
+    local entry
+    for entry in "$@"; do
+        case ":${WSLENV:-}:" in
+            *":${entry}:"*) ;;
+            *) WSLENV="${WSLENV:+${WSLENV}:}${entry}" ;;
+        esac
+    done
+    export WSLENV
+}
+
 # -------------------------------------------------------------------
 # Step 0: Validate prerequisites
 # -------------------------------------------------------------------
-if ! command -v python3 &>/dev/null; then
-    fail "python3 is not available on PATH"
+if ! command -v "${PYTHON_BIN}" &>/dev/null; then
+    fail "${PYTHON_BIN} is not available on PATH"
     exit 1
 fi
 
@@ -87,14 +103,38 @@ GENERATED_SPEC="${TMPDIR_CREATED}/openapi-generated.json"
 # validation. We provide safe dummy values so the FastAPI app object
 # can be constructed without a real database or services.
 export REMNAWAVE_TOKEN="${REMNAWAVE_TOKEN:-dummy_token_for_spec_generation_only}"
+export APP_SECRET="${APP_SECRET:-contract_check_dummy_app_secret_that_is_at_least_32_chars_long}"
 export JWT_SECRET="${JWT_SECRET:-contract_check_dummy_secret_that_is_at_least_32_chars_long}"
 export CRYPTOBOT_TOKEN="${CRYPTOBOT_TOKEN:-dummy_cryptobot_token}"
+export CYBERVPN_DEVICE_COOKIE_PEPPER="${CYBERVPN_DEVICE_COOKIE_PEPPER:-contract_check_dummy_device_cookie_pepper_that_is_at_least_32_chars}"
+export TOTP_ENCRYPTION_KEY="${TOTP_ENCRYPTION_KEY:-contract_check_dummy_totp_encryption_key_that_is_at_least_32_chars}"
+export OAUTH_TOKEN_ENCRYPTION_KEY="${OAUTH_TOKEN_ENCRYPTION_KEY:-contract_check_dummy_oauth_encryption_key_that_is_at_least_32_chars}"
 export SWAGGER_ENABLED="${SWAGGER_ENABLED:-true}"
 export DATABASE_URL="${DATABASE_URL:-postgresql+asyncpg://x:x@localhost:5432/x}"
 export REDIS_URL="${REDIS_URL:-redis://localhost:6379/0}"
+if [[ "${PYTHON_BIN}" == *.exe ]] && is_wsl; then
+    append_wslenv_entries \
+        REMNAWAVE_TOKEN \
+        APP_SECRET \
+        JWT_SECRET \
+        CRYPTOBOT_TOKEN \
+        CYBERVPN_DEVICE_COOKIE_PEPPER \
+        SWAGGER_ENABLED \
+        DATABASE_URL \
+        REDIS_URL \
+        OAUTH_TOKEN_ENCRYPTION_KEY \
+        TOTP_ENCRYPTION_KEY
+fi
 
-if ! python3 "${BACKEND_DIR}/scripts/export_openapi.py" \
-        --output "${GENERATED_SPEC}" 2>/dev/null; then
+OPENAPI_EXPORT_SCRIPT="${BACKEND_DIR}/scripts/export_openapi.py"
+OPENAPI_OUTPUT="${GENERATED_SPEC}"
+if [[ "${PYTHON_BIN}" == *.exe ]] && command -v wslpath >/dev/null 2>&1; then
+    OPENAPI_EXPORT_SCRIPT="$(wslpath -w "${OPENAPI_EXPORT_SCRIPT}")"
+    OPENAPI_OUTPUT="$(wslpath -w "${OPENAPI_OUTPUT}")"
+fi
+
+if ! "${PYTHON_BIN}" "${OPENAPI_EXPORT_SCRIPT}" \
+        --output "${OPENAPI_OUTPUT}" 2>/dev/null; then
     fail "Failed to regenerate OpenAPI spec. Check backend/scripts/export_openapi.py."
     exit 1
 fi
@@ -114,7 +154,14 @@ ok "OpenAPI spec regenerated successfully."
 # -------------------------------------------------------------------
 info "Comparing committed spec with regenerated spec..."
 
-python3 - "${COMMITTED_SPEC}" "${GENERATED_SPEC}" "${VERBOSE}" <<'PYTHON_SCRIPT'
+COMPARE_COMMITTED_SPEC="${COMMITTED_SPEC}"
+COMPARE_GENERATED_SPEC="${GENERATED_SPEC}"
+if [[ "${PYTHON_BIN}" == *.exe ]] && command -v wslpath >/dev/null 2>&1; then
+    COMPARE_COMMITTED_SPEC="$(wslpath -w "${COMPARE_COMMITTED_SPEC}")"
+    COMPARE_GENERATED_SPEC="$(wslpath -w "${COMPARE_GENERATED_SPEC}")"
+fi
+
+"${PYTHON_BIN}" - "${COMPARE_COMMITTED_SPEC}" "${COMPARE_GENERATED_SPEC}" "${VERBOSE}" <<'PYTHON_SCRIPT'
 import json
 import sys
 from pathlib import Path

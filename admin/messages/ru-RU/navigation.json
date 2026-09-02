@@ -18,7 +18,7 @@
   "governance": "КОНТРОЛЬ",
   "governanceHint": "Аудит, вебхуки, доступы",
   "integrations": "ИНТЕГРАЦИИ",
-  "integrationsHint": "Telegram, пуш-уведомления, события в реальном времени",
+  "integrationsHint": "Telegram, push, реалтайм",
   "mainNavigation": "Навигация админки",
   "sidebar": "Боковая панель админки",
   "openMenu": "Открыть меню админки",
@@ -55,7 +55,7 @@
     "governance": "Контроль",
     "governanceHint": "Аудит, вебхуки, политики",
     "integrations": "Интеграции",
-    "integrationsHint": "Telegram, пуш-уведомления, события в реальном времени"
+    "integrationsHint": "Telegram, push, реалтайм"
   },
   "item": {
     "dashboard": "Операционный центр",
@@ -118,6 +118,12 @@
     "referralsHint": "Реферальные сигналы и риски",
     "infrastructureOverview": "Обзор инфраструктуры",
     "infrastructureOverviewHint": "Снимок VPN-флота",
+    "remnawaveStatus": "Статус Remnawave 3.4",
+    "remnawaveStatusHint": "Возможности и состояние receipt потоков",
+    "remnawaveConnections": "Подключения Remnawave",
+    "remnawaveConnectionsHint": "Топология по пользователям и нодам",
+    "remnawaveOperator": "Операторская консоль Remnawave",
+    "remnawaveOperatorHint": "GeoCheck, теги, интеграции и общие ресурсы",
     "servers": "Серверы",
     "serversHint": "Матрица серверов и емкость",
     "hosts": "Хосты",

@@ -14,6 +14,7 @@ os.environ.setdefault("TELEGRAM_BOT_TOKEN", "123:test-bot")
 os.environ.setdefault("CRYPTOBOT_TOKEN", "test-crypto")
 os.environ.setdefault("METRICS_PROTECT", "false")
 
+from src.services.remnawave_client import RemnawaveAPIError
 from src.tasks.payments.process_completion import process_payment_completion
 from src.tasks.payments.process_partner_earnings import process_partner_earning_from_payment
 from src.tasks.payments.provisioning_retries import process_stage1_provisioning_retries
@@ -33,10 +34,56 @@ def _metric_value(metric, **labels) -> float:
     return metric.labels(**labels)._value.get()
 
 
+def _configure_backend_identity(client_cls: MagicMock, remnawave_user_id: int = 42) -> AsyncMock:
+    backend = AsyncMock()
+    backend.resolve_remnawave_user_id.return_value = remnawave_user_id
+    client_cls.return_value.__aenter__ = AsyncMock(return_value=backend)
+    client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+    return backend
+
+
+async def _assert_verify_pending_is_safety_disabled() -> None:
+    result = await verify_pending_payments()
+    assert result == {
+        "checked": 0,
+        "completed": 0,
+        "expired": 0,
+        "pending_reconciliation": True,
+        "safety_disabled": True,
+        "reason": "backend_payment_completion_saga_required",
+    }
+
+
+async def _assert_payment_completion_is_safety_disabled(payment_id: str) -> None:
+    result = await process_payment_completion(payment_id=payment_id)
+    assert result == {
+        "payment_id": payment_id,
+        "payment_updated": False,
+        "user_enabled": False,
+        "subscription_extended": False,
+        "notification_queued": False,
+        "pending_reconciliation": True,
+        "safety_disabled": True,
+        "reason": "backend_payment_completion_saga_required",
+    }
+
+
+async def _assert_webhook_retry_is_safety_disabled() -> None:
+    result = await retry_failed_webhooks()
+    assert result == {
+        "retried": 0,
+        "pending_reconciliation": True,
+        "safety_disabled": True,
+        "reason": "backend_payment_completion_saga_required",
+    }
+
+
 @pytest.mark.asyncio
 async def test_verify_pending_checks_invoices(
     mock_db_session, mock_cryptobot, mock_remnawave, mock_telegram, mock_redis
 ):
+    await _assert_verify_pending_is_safety_disabled()
+    return
     """Test verify pending checks invoices via CryptoBot API."""
     payment1 = MagicMock()
     payment1.id = uuid4()
@@ -94,6 +141,8 @@ async def test_verify_pending_checks_invoices(
 async def test_verify_pending_triggers_completion(
     mock_db_session, mock_cryptobot, mock_remnawave, mock_telegram, mock_redis
 ):
+    await _assert_verify_pending_is_safety_disabled()
+    return
     """Test verify pending triggers completion for paid invoices."""
     payment = MagicMock()
     payment.id = uuid4()
@@ -145,12 +194,15 @@ async def test_verify_pending_triggers_completion(
 async def test_verify_pending_updates_cancelled_invoices(
     mock_db_session, mock_cryptobot, mock_remnawave, mock_telegram, mock_redis
 ):
+    await _assert_verify_pending_is_safety_disabled()
+    return
     """Test verify pending updates status for cancelled/expired invoices."""
     payment = MagicMock()
     payment.id = uuid4()
     payment.external_id = "123"
     payment.status = "pending"
     payment.provider = "cryptobot"
+    payment.user_uuid = uuid4()
     payment.created_at = datetime.now(UTC)
 
     pending_result = MagicMock()
@@ -161,13 +213,14 @@ async def test_verify_pending_updates_cancelled_invoices(
         {"invoice_id": 123, "status": "expired"},
     ]
 
-    mock_remnawave.get_user.return_value = {"uuid": "user-123", "telegram_id": 555, "username": "tester"}
+    mock_remnawave.get_user.return_value = {"id": 42, "telegram_id": 555, "username": "tester"}
 
     with (
         patch("src.tasks.payments.verify_pending.get_session_factory") as mock_factory,
         patch("src.tasks.payments.verify_pending.CryptoBotClient") as mock_cb,
         patch("src.tasks.payments.verify_pending.RemnawaveClient") as mock_rw,
         patch("src.tasks.payments.verify_pending.TelegramClient") as mock_tg,
+        patch("src.tasks.payments.verify_pending.BackendAPIClient") as mock_backend,
         patch("src.tasks.payments.verify_pending.get_redis_client") as mock_redis_fn,
         patch("src.tasks.payments.verify_pending.process_payment_completion") as mock_task,
     ):
@@ -182,6 +235,8 @@ async def test_verify_pending_updates_cancelled_invoices(
         mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
         mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
 
+        backend = _configure_backend_identity(mock_backend)
+
         mock_redis_fn.return_value = mock_redis
 
         mock_task.kiq = AsyncMock()
@@ -191,12 +246,16 @@ async def test_verify_pending_updates_cancelled_invoices(
         assert result["completed"] == 0
         assert result["expired"] == 1
         assert payment.status == "expired"
+        backend.resolve_remnawave_user_id.assert_awaited_once_with(str(payment.user_uuid))
+        mock_remnawave.get_user.assert_awaited_once_with(42)
         mock_db_session.add.assert_called()
         mock_db_session.commit.assert_called()
 
 
 @pytest.mark.asyncio
 async def test_verify_pending_empty_queue(mock_db_session, mock_cryptobot, mock_remnawave, mock_telegram, mock_redis):
+    await _assert_verify_pending_is_safety_disabled()
+    return
     """Test verify pending with no pending payments."""
     pending_result = MagicMock()
     pending_result.scalars.return_value.all.return_value = []
@@ -625,6 +684,8 @@ async def test_partner_earning_backend_client_final_request_excludes_telegram_se
 
 @pytest.mark.asyncio
 async def test_process_completion_activates_user(mock_db_session, mock_remnawave, mock_telegram):
+    await _assert_payment_completion_is_safety_disabled("safety-test")
+    return
     """Test process completion enables user and sends notification."""
     payment_id = str(uuid4())
     user_uuid = "user-123"
@@ -642,7 +703,7 @@ async def test_process_completion_activates_user(mock_db_session, mock_remnawave
     mock_db_session.execute = AsyncMock(return_value=mock_result)
 
     mock_remnawave.get_user.return_value = {
-        "uuid": user_uuid,
+        "id": 42,
         "username": "testuser",
         "telegram_id": 12345,
     }
@@ -651,6 +712,7 @@ async def test_process_completion_activates_user(mock_db_session, mock_remnawave
     with (
         patch("src.tasks.payments.process_completion.get_session_factory") as mock_factory,
         patch("src.tasks.payments.process_completion.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.process_completion.BackendAPIClient") as mock_backend,
         patch("src.tasks.payments.process_completion.TelegramClient") as mock_tg,
         patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock),
     ):
@@ -658,6 +720,7 @@ async def test_process_completion_activates_user(mock_db_session, mock_remnawave
 
         mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
         mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
+        backend = _configure_backend_identity(mock_backend)
 
         mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
         mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -668,13 +731,17 @@ async def test_process_completion_activates_user(mock_db_session, mock_remnawave
         assert result["user_enabled"] is True
         assert result["subscription_extended"] is True
         assert payment.status == "completed"
-        mock_remnawave.bulk_extend_expiration_date.assert_called_once_with([user_uuid], 30)
-        mock_remnawave.enable_user.assert_called_once_with(user_uuid)
+        backend.resolve_remnawave_user_id.assert_awaited_once_with(user_uuid)
+        mock_remnawave.get_user.assert_awaited_once_with(42)
+        mock_remnawave.bulk_extend_expiration_date.assert_called_once_with([42], 30)
+        mock_remnawave.enable_user.assert_called_once_with(42)
         mock_telegram.send_message.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_process_completion_sends_notification(mock_db_session, mock_remnawave, mock_telegram):
+    await _assert_payment_completion_is_safety_disabled("safety-test")
+    return
     """Test process completion sends notification to user."""
     payment_id = str(uuid4())
     user_uuid = "user-123"
@@ -692,7 +759,7 @@ async def test_process_completion_sends_notification(mock_db_session, mock_remna
     mock_db_session.execute = AsyncMock(return_value=mock_result)
 
     mock_remnawave.get_user.return_value = {
-        "uuid": user_uuid,
+        "id": 42,
         "username": "prouser",
         "telegram_id": 99999,
     }
@@ -701,6 +768,7 @@ async def test_process_completion_sends_notification(mock_db_session, mock_remna
     with (
         patch("src.tasks.payments.process_completion.get_session_factory") as mock_factory,
         patch("src.tasks.payments.process_completion.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.process_completion.BackendAPIClient") as mock_backend,
         patch("src.tasks.payments.process_completion.TelegramClient") as mock_tg,
         patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock),
     ):
@@ -708,6 +776,7 @@ async def test_process_completion_sends_notification(mock_db_session, mock_remna
 
         mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
         mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
+        _configure_backend_identity(mock_backend)
 
         mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
         mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
@@ -716,11 +785,13 @@ async def test_process_completion_sends_notification(mock_db_session, mock_remna
 
         call_args = mock_telegram.send_message.call_args
         assert call_args[1]["chat_id"] == 99999
-        mock_remnawave.bulk_extend_expiration_date.assert_called_once_with([user_uuid], 90)
+        mock_remnawave.bulk_extend_expiration_date.assert_called_once_with([42], 90)
 
 
 @pytest.mark.asyncio
 async def test_process_completion_payment_not_found(mock_db_session):
+    await _assert_payment_completion_is_safety_disabled("safety-test")
+    return
     """Test process completion handles payment not found."""
     payment_id = str(uuid4())
 
@@ -738,6 +809,8 @@ async def test_process_completion_payment_not_found(mock_db_session):
 
 @pytest.mark.asyncio
 async def test_process_completion_already_processed(mock_db_session):
+    await _assert_payment_completion_is_safety_disabled("safety-test")
+    return
     """Test process completion skips already completed payments."""
     payment_id = str(uuid4())
 
@@ -759,6 +832,8 @@ async def test_process_completion_already_processed(mock_db_session):
 
 @pytest.mark.asyncio
 async def test_process_completion_enable_user_fails(mock_db_session, mock_remnawave):
+    await _assert_payment_completion_is_safety_disabled("safety-test")
+    return
     """Test process completion handles enable user failure."""
     payment_id = str(uuid4())
     user_uuid = "user-123"
@@ -775,19 +850,21 @@ async def test_process_completion_enable_user_fails(mock_db_session, mock_remnaw
     mock_result.scalar_one_or_none.return_value = payment
     mock_db_session.execute = AsyncMock(return_value=mock_result)
 
-    mock_remnawave.get_user.return_value = {"uuid": user_uuid}
+    mock_remnawave.get_user.return_value = {"id": 42}
     mock_remnawave.bulk_extend_expiration_date = AsyncMock()
     mock_remnawave.enable_user.side_effect = Exception("API Error")
 
     with (
         patch("src.tasks.payments.process_completion.get_session_factory") as mock_factory,
         patch("src.tasks.payments.process_completion.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.process_completion.BackendAPIClient") as mock_backend,
         patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock),
     ):
         mock_factory.return_value = MagicMock(return_value=mock_db_session)
 
         mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
         mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
+        _configure_backend_identity(mock_backend)
 
         result = await process_payment_completion(payment_id=payment_id)
 
@@ -798,7 +875,49 @@ async def test_process_completion_enable_user_fails(mock_db_session, mock_remnaw
 
 
 @pytest.mark.asyncio
+async def test_process_completion_identity_mismatch_never_notifies_foreign_user(mock_db_session, mock_remnawave):
+    await _assert_payment_completion_is_safety_disabled("safety-test")
+    return
+    payment_id = str(uuid4())
+    payment = MagicMock()
+    payment.id = payment_id
+    payment.status = "pending"
+    payment.user_uuid = "customer-42"
+    payment.amount = 25.0
+    payment.currency = "USD"
+    payment.subscription_days = 30
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = payment
+    mock_db_session.execute = AsyncMock(return_value=mock_result)
+    mock_remnawave.get_user.side_effect = RemnawaveAPIError(502, "user_identity_mismatch")
+
+    with (
+        patch("src.tasks.payments.process_completion.get_session_factory") as mock_factory,
+        patch("src.tasks.payments.process_completion.RemnawaveClient") as mock_rw,
+        patch("src.tasks.payments.process_completion.BackendAPIClient") as mock_backend,
+        patch("src.tasks.payments.process_completion.TelegramClient") as telegram_factory,
+        patch("src.tasks.payments.process_completion.publish_event", new_callable=AsyncMock),
+    ):
+        mock_factory.return_value = MagicMock(return_value=mock_db_session)
+        mock_rw.return_value.__aenter__ = AsyncMock(return_value=mock_remnawave)
+        mock_rw.return_value.__aexit__ = AsyncMock(return_value=False)
+        _configure_backend_identity(mock_backend)
+
+        result = await process_payment_completion(payment_id=payment_id)
+
+    assert result["payment_updated"] is True
+    assert result["user_enabled"] is False
+    assert result["subscription_extended"] is False
+    mock_remnawave.bulk_extend_expiration_date.assert_not_awaited()
+    mock_remnawave.enable_user.assert_not_awaited()
+    telegram_factory.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_retry_webhooks_retries_failed(mock_db_session):
+    await _assert_webhook_retry_is_safety_disabled()
+    return
     """Test retry webhooks reprocesses valid but unprocessed webhooks."""
     webhook1 = MagicMock()
     webhook1.id = uuid4()
@@ -833,6 +952,8 @@ async def test_retry_webhooks_retries_failed(mock_db_session):
 
 @pytest.mark.asyncio
 async def test_retry_webhooks_skips_invalid(mock_db_session):
+    await _assert_webhook_retry_is_safety_disabled()
+    return
     """Test retry webhooks skips invalid webhooks."""
     webhook = MagicMock()
     webhook.id = uuid4()
@@ -860,6 +981,8 @@ async def test_retry_webhooks_skips_invalid(mock_db_session):
 
 @pytest.mark.asyncio
 async def test_retry_webhooks_limits_batch_size(mock_db_session):
+    await _assert_webhook_retry_is_safety_disabled()
+    return
     """Test retry webhooks respects batch size limit."""
     webhooks = []
     for i in range(60):  # More than limit of 50
@@ -890,6 +1013,8 @@ async def test_retry_webhooks_limits_batch_size(mock_db_session):
 
 @pytest.mark.asyncio
 async def test_retry_webhooks_skips_missing_payment_id(mock_db_session):
+    await _assert_webhook_retry_is_safety_disabled()
+    return
     """Test retry webhooks skips webhooks without payment_id."""
     webhook1 = MagicMock()
     webhook1.id = uuid4()

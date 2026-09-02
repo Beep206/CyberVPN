@@ -771,6 +771,8 @@ async def initialize_realm_test_database(engine) -> None:
                 totp_secret TEXT,
                 totp_enabled INTEGER NOT NULL DEFAULT 0,
                 remnawave_uuid TEXT UNIQUE,
+                remnawave_user_id INTEGER,
+                subscription_auto_renew_enabled INTEGER NOT NULL DEFAULT 0,
                 subscription_url TEXT,
                 referral_code TEXT UNIQUE,
                 referred_by_user_id TEXT,
@@ -799,6 +801,10 @@ async def initialize_realm_test_database(engine) -> None:
         )
         conn.exec_driver_sql("CREATE UNIQUE INDEX ix_mobile_users_public_uid ON mobile_users(public_uid)")
         conn.exec_driver_sql("CREATE INDEX ix_mobile_users_auth_realm_id ON mobile_users(auth_realm_id)")
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX uq_mobile_users_remnawave_user_id_not_null "
+            "ON mobile_users(remnawave_user_id) WHERE remnawave_user_id IS NOT NULL"
+        )
         conn.exec_driver_sql("CREATE INDEX ix_mobile_users_referred_by_user_id ON mobile_users(referred_by_user_id)")
         conn.exec_driver_sql(
             "CREATE INDEX ix_mobile_users_referral_source_code_id ON mobile_users(referral_source_code_id)"
@@ -5461,6 +5467,7 @@ async def initialize_realm_test_database(engine) -> None:
                 identity_scope TEXT NOT NULL DEFAULT 'account',
                 subscription_key TEXT,
                 provider_subject_ref TEXT,
+                provider_numeric_subject_id INTEGER,
                 identity_status TEXT NOT NULL DEFAULT 'active',
                 service_context TEXT NOT NULL DEFAULT '{}',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -5483,7 +5490,41 @@ async def initialize_realm_test_database(engine) -> None:
             "CREATE INDEX ix_service_identities_identity_scope ON service_identities(identity_scope)",
             "CREATE INDEX ix_service_identities_subscription_key ON service_identities(subscription_key)",
             "CREATE INDEX ix_service_identities_provider_subject_ref ON service_identities(provider_subject_ref)",
+            "CREATE INDEX ix_service_identities_provider_numeric_subject_id "
+            "ON service_identities(provider_numeric_subject_id)",
             "CREATE INDEX ix_service_identities_identity_status ON service_identities(identity_status)",
+        ):
+            conn.exec_driver_sql(index_sql)
+        conn.exec_driver_sql(
+            """
+            CREATE TABLE remnawave_identity_reconciliations (
+                id TEXT PRIMARY KEY,
+                subject_type TEXT NOT NULL,
+                subject_id TEXT NOT NULL,
+                legacy_uuid TEXT,
+                numeric_user_id INTEGER,
+                reconciliation_state TEXT NOT NULL DEFAULT 'pending',
+                evidence TEXT NOT NULL DEFAULT '{}',
+                reconciled_at TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (subject_type, subject_id)
+            )
+            """
+        )
+        for index_sql in (
+            "CREATE INDEX ix_remnawave_identity_reconciliations_subject_type "
+            "ON remnawave_identity_reconciliations(subject_type)",
+            "CREATE INDEX ix_remnawave_identity_reconciliations_subject_id "
+            "ON remnawave_identity_reconciliations(subject_id)",
+            "CREATE INDEX ix_remnawave_identity_reconciliations_legacy_uuid "
+            "ON remnawave_identity_reconciliations(legacy_uuid)",
+            "CREATE INDEX ix_remnawave_identity_reconciliations_numeric_user_id "
+            "ON remnawave_identity_reconciliations(numeric_user_id)",
+            "CREATE INDEX ix_remnawave_identity_reconciliations_reconciliation_state "
+            "ON remnawave_identity_reconciliations(reconciliation_state)",
+            "CREATE INDEX ix_remnawave_reconciliation_subject_numeric "
+            "ON remnawave_identity_reconciliations(subject_type, numeric_user_id)",
         ):
             conn.exec_driver_sql(index_sql)
         conn.exec_driver_sql(

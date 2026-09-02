@@ -460,7 +460,17 @@
     "serverStatus": "STARE SERVER",
     "statusLabel": "STARE SISTEM:",
     "statusValue": "OPTIMĂ",
-    "title": "CENTRU COMANDĂ VPN"
+    "title": "CENTRU COMANDĂ VPN",
+    "vpnServiceStatus": {
+      "available": "Disponibil",
+      "connections": "Conexiuni",
+      "degraded": "Degradat parțial",
+      "devices": "Dispozitive",
+      "loading": "Se încarcă starea serviciului VPN",
+      "title": "Disponibilitatea serviciului VPN",
+      "unavailable": "Indisponibil",
+      "usage": "Utilizare"
+    }
   },
   "DeleteAccount": {
     "contact": {

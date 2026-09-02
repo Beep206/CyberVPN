@@ -19,6 +19,7 @@ from src.application.dto.mobile_auth import (
 )
 from src.application.services.auth_service import AuthService
 from src.application.services.mobile_session import MobileSessionService
+from src.application.services.remnawave_identity_access import resolve_exact_mapped_mobile_user_ref
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.domain.exceptions import InvalidCredentialsError
 from src.infrastructure.database.repositories.mobile_user_repo import (
@@ -71,6 +72,8 @@ class MobileLoginUseCase:
         if not user.is_active:
             raise InvalidCredentialsError()
 
+        user_ref = await resolve_exact_mapped_mobile_user_ref(self.session, user)
+
         # Update last login timestamp
         user.last_login_at = datetime.now(UTC)
         await self.user_repo.update(user)
@@ -81,9 +84,10 @@ class MobileLoginUseCase:
             remember_me=request.remember_me,
         )
 
-        # Fetch subscription from Remnawave (cached, with fallback to NONE).
-        if self.subscription_client and user.remnawave_uuid:
-            subscription = await self.subscription_client.get_subscription(user.remnawave_uuid)
+        # Fetch an exact identity-bound subscription; dependency failures are
+        # surfaced rather than converted into an empty entitlement.
+        if self.subscription_client and user_ref is not None:
+            subscription = await self.subscription_client.get_subscription(user_ref)
         else:
             subscription = SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
 

@@ -21,6 +21,7 @@ from tests.helpers.realm_auth import (
     initialize_realm_test_database,
     override_realm_test_db,
 )
+from tests.helpers.remnawave_identity import seed_exact_mobile_user_mapping
 from tests.integration.test_order_commit import _seed_order_context
 
 pytestmark = [pytest.mark.integration]
@@ -71,7 +72,13 @@ async def test_legacy_service_access_shadow_and_migration_bridge_are_idempotent(
                 )
                 customer_user = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
                 assert customer_user is not None
-                customer_user.remnawave_uuid = "legacy-remnawave-subject-001"
+                seed_exact_mobile_user_mapping(
+                    db,
+                    customer_user,
+                    numeric_user_id=500_641,
+                    legacy_uuid=uuid.UUID("00000000-0000-4000-8000-000000000641"),
+                    source="legacy_service_access_migration_fixture",
+                )
                 customer_user.subscription_url = "https://partner.example.test/sub/legacy-bridge-001"
                 customer_user.trial_expires_at = datetime.now(UTC) + timedelta(days=4)
                 db.add(admin_user)
@@ -99,8 +106,8 @@ async def test_legacy_service_access_shadow_and_migration_bridge_are_idempotent(
             )
             assert shadow_before_response.status_code == 200
             shadow_before = shadow_before_response.json()
-            assert shadow_before["legacy_provider_subject_ref"] == "legacy-remnawave-subject-001"
-            assert shadow_before["legacy_subscription_url"] == "https://partner.example.test/sub/legacy-bridge-001"
+            assert shadow_before["legacy_provider_subject_ref"] == "00000000-0000-4000-8000-000000000641"
+            assert shadow_before["legacy_subscription_url"] is None
             assert shadow_before["legacy_entitlement_snapshot"]["status"] == "trial"
             assert shadow_before["canonical_entitlement_snapshot"]["status"] == "trial"
             assert shadow_before["service_identity"] is None
@@ -122,17 +129,15 @@ async def test_legacy_service_access_shadow_and_migration_bridge_are_idempotent(
             assert first_migrate_payload["service_identity_created"] is True
             assert first_migrate_payload["provisioning_profile_created"] is True
             assert first_migrate_payload["access_delivery_channel_created"] is True
-            assert first_migrate_payload["service_identity"]["provider_subject_ref"] == "legacy-remnawave-subject-001"
+            assert (
+                first_migrate_payload["service_identity"]["provider_subject_ref"]
+                == "00000000-0000-4000-8000-000000000641"
+            )
+            assert first_migrate_payload["service_identity"]["provider_numeric_subject_id"] == 500_641
             assert first_migrate_payload["provisioning_profile"]["profile_key"] == "subscription_url-default"
             assert first_migrate_payload["access_delivery_channel"]["channel_type"] == "subscription_url"
-            assert (
-                first_migrate_payload["access_delivery_channel"]["delivery_payload"]["subscription_url"]
-                == "https://partner.example.test/sub/legacy-bridge-001"
-            )
-            assert (
-                first_migrate_payload["access_delivery_channel"]["delivery_payload"]["legacy_subscription_url"]
-                == "https://partner.example.test/sub/legacy-bridge-001"
-            )
+            assert first_migrate_payload["access_delivery_channel"]["delivery_payload"] == {}
+            assert "legacy-bridge-001" not in str(first_migrate_payload)
             assert first_migrate_payload["shadow_before"]["mismatch_codes"] == shadow_before["mismatch_codes"]
             assert first_migrate_payload["shadow_after"]["mismatch_codes"] == []
             assert first_migrate_payload["shadow_after"]["service_identity"] is not None

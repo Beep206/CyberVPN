@@ -31,6 +31,8 @@ from tests.helpers.spb_de_readiness import (
 OVERLAPPING_PLAN_CODES = "premium_smart_ru,premium_spb_de_exceptions"
 SMART_RU_EXTERNAL_SQUAD_UUID = "409147a7-a03c-4db5-bccf-33d3caaf8d52"
 TASK2_EXTERNAL_SQUAD_UUID = "ed139a4b-d21f-478a-b1d2-73ce9d9012ea"
+PROVIDER_NUMERIC_SUBJECT_ID = 4201
+PROVIDER_SUBJECT_REF = "e131349d-1d45-4a21-ac66-4e98fa54c22d"
 EXPECTED_EXTERNAL_SQUAD_UUIDS = {
     "premium_smart_ru": SMART_RU_EXTERNAL_SQUAD_UUID,
     "premium_spb_de_exceptions": TASK2_EXTERNAL_SQUAD_UUID,
@@ -53,10 +55,10 @@ class _Repository:
         self.grants = grants
         self.grant_checks: list[object] = []
 
-    async def list_active_subscription_identities_by_provider_subject(self, **kwargs):
+    async def list_active_subscription_identities_by_provider_numeric_subject(self, **kwargs):
         assert kwargs == {
             "provider_name": "remnawave",
-            "provider_subject_ref": "e131349d-1d45-4a21-ac66-4e98fa54c22d",
+            "provider_numeric_subject_id": 4201,
         }
         return self.identities
 
@@ -64,6 +66,55 @@ class _Repository:
         assert now.tzinfo is not None
         self.grant_checks.append(service_identity_id)
         return self.grants.get(service_identity_id)
+
+
+class _LedgerResult:
+    def __init__(self, reconciliation: SimpleNamespace | None) -> None:
+        self._reconciliation = reconciliation
+
+    def scalar_one_or_none(self) -> SimpleNamespace | None:
+        return self._reconciliation
+
+    def scalars(self):
+        return self
+
+    def all(self) -> list[SimpleNamespace]:
+        return [] if self._reconciliation is None else [self._reconciliation]
+
+
+class _LedgerSession:
+    def __init__(
+        self,
+        identities: list[SimpleNamespace],
+        *,
+        present: bool,
+        state: str,
+        numeric_user_id: int,
+        legacy_uuid: str | None,
+    ) -> None:
+        self._identities = identities
+        self._present = present
+        self._state = state
+        self._numeric_user_id = numeric_user_id
+        self._legacy_uuid = legacy_uuid
+        self.execute_calls = 0
+
+    async def execute(self, _statement) -> _LedgerResult:
+        self.execute_calls += 1
+        if len(self._identities) != 1:
+            raise AssertionError("ambiguous raw candidates must fail before ledger resolution")
+        if not self._present:
+            return _LedgerResult(None)
+        identity = self._identities[0]
+        return _LedgerResult(
+            SimpleNamespace(
+                subject_type="service_identity",
+                subject_id=identity.id,
+                numeric_user_id=self._numeric_user_id,
+                legacy_uuid=self._legacy_uuid,
+                reconciliation_state=self._state,
+            )
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -81,6 +132,8 @@ def _identity(plan_code: str) -> SimpleNamespace:
         id=uuid4(),
         customer_account_id=customer_id,
         auth_realm_id=realm_id,
+        provider_numeric_subject_id=PROVIDER_NUMERIC_SUBJECT_ID,
+        provider_subject_ref=PROVIDER_SUBJECT_REF,
         service_context={"plan_code": plan_code},
     )
 
@@ -106,16 +159,29 @@ def _use_case(
     grants: dict[object, SimpleNamespace | None],
     *,
     external_squad_uuid: str | None = None,
+    provider_uuid: str | None = PROVIDER_SUBJECT_REF,
+    ledger_present: bool = True,
+    ledger_state: str = "mapped",
+    ledger_numeric_user_id: int = PROVIDER_NUMERIC_SUBJECT_ID,
+    ledger_legacy_uuid: str | None = PROVIDER_SUBJECT_REF,
 ):
     client = _RemnawaveClient(
         {
-            "uuid": "e131349d-1d45-4a21-ac66-4e98fa54c22d",
+            "id": PROVIDER_NUMERIC_SUBJECT_ID,
+            "uuid": provider_uuid,
             "status": "ACTIVE",
             "externalSquadUuid": external_squad_uuid,
         }
     )
+    ledger_session = _LedgerSession(
+        identities,
+        present=ledger_present,
+        state=ledger_state,
+        numeric_user_id=ledger_numeric_user_id,
+        legacy_uuid=ledger_legacy_uuid,
+    )
     use_case = ResolveSubscriptionProductUseCase(
-        cast(AsyncSession, SimpleNamespace()),
+        cast(AsyncSession, ledger_session),
         cast(RemnawaveClient, client),
     )
     use_case._repo = cast(ServiceAccessRepository, _Repository(identities, grants))
@@ -296,12 +362,93 @@ async def test_rejects_invalid_short_uuid_before_provider_lookup() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("invalid_numeric_id", [None, 0, -1, True, "4201"])
+async def test_provider_response_requires_exact_positive_numeric_identity(invalid_numeric_id) -> None:
+    use_case, client = _use_case([], {})
+    client.payload["id"] = invalid_numeric_id
+
+    with pytest.raises(SubscriptionGatewayUnavailableError):
+        await use_case.execute("abcdefghijklmnop")
+
+    assert client.paths == ["/users/by-short-uuid/abcdefghijklmnop"]
+
+
+@pytest.mark.asyncio
 async def test_rejects_identity_without_active_entitlement() -> None:
     identity = _identity("premium_smart_ru")
     use_case, _ = _use_case([identity], {identity.id: None})
 
     with pytest.raises(SubscriptionGatewayNotFoundError):
         await use_case.execute("abcdefghijklmnop")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("ledger_present", "ledger_state", "ledger_numeric_user_id", "ledger_legacy_uuid"),
+    [
+        (False, "mapped", PROVIDER_NUMERIC_SUBJECT_ID, PROVIDER_SUBJECT_REF),
+        (True, "pending", PROVIDER_NUMERIC_SUBJECT_ID, PROVIDER_SUBJECT_REF),
+        (True, "conflict", PROVIDER_NUMERIC_SUBJECT_ID, PROVIDER_SUBJECT_REF),
+        (True, "mapped", 9999, PROVIDER_SUBJECT_REF),
+        (True, "mapped", PROVIDER_NUMERIC_SUBJECT_ID, "f165a822-c652-48c4-a29b-fb93962c155c"),
+    ],
+)
+async def test_fails_unavailable_before_grant_lookup_without_one_exact_mapped_ledger_row(
+    ledger_present: bool,
+    ledger_state: str,
+    ledger_numeric_user_id: int,
+    ledger_legacy_uuid: str,
+) -> None:
+    identity = _identity("premium_smart_ru")
+    use_case, _ = _use_case(
+        [identity],
+        {identity.id: _grant(identity)},
+        ledger_present=ledger_present,
+        ledger_state=ledger_state,
+        ledger_numeric_user_id=ledger_numeric_user_id,
+        ledger_legacy_uuid=ledger_legacy_uuid,
+    )
+
+    with pytest.raises(SubscriptionGatewayUnavailableError):
+        await use_case.execute("abcdefghijklmnop")
+
+    assert cast(_Repository, use_case._repo).grant_checks == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "provider_uuid",
+    ["f165a822-c652-48c4-a29b-fb93962c155c", "not-a-uuid"],
+)
+async def test_fails_unavailable_when_provider_legacy_uuid_is_not_the_exact_local_reference(
+    provider_uuid: str,
+) -> None:
+    identity = _identity("premium_smart_ru")
+    use_case, _ = _use_case(
+        [identity],
+        {identity.id: _grant(identity)},
+        provider_uuid=provider_uuid,
+    )
+
+    with pytest.raises(SubscriptionGatewayUnavailableError):
+        await use_case.execute("abcdefghijklmnop")
+
+    assert cast(_Repository, use_case._repo).grant_checks == []
+
+
+@pytest.mark.asyncio
+async def test_accepts_exact_numeric_mapping_when_provider_omits_legacy_uuid() -> None:
+    identity = _identity("premium_smart_ru")
+    use_case, _ = _use_case(
+        [identity],
+        {identity.id: _grant(identity)},
+        provider_uuid=None,
+        external_squad_uuid=SMART_RU_EXTERNAL_SQUAD_UUID,
+    )
+
+    result = await use_case.execute("abcdefghijklmnop")
+
+    assert result.product_code == "premium_smart_ru"
 
 
 @pytest.mark.asyncio
@@ -316,6 +463,9 @@ async def test_fails_closed_when_provider_subject_maps_to_two_products() -> None
     with pytest.raises(SubscriptionGatewayUnavailableError):
         await use_case.execute("abcdefghijklmnop")
 
+    assert cast(_LedgerSession, use_case._session).execute_calls == 0
+    assert cast(_Repository, use_case._repo).grant_checks == []
+
 
 @pytest.mark.asyncio
 async def test_fails_closed_when_supported_product_shares_subject_with_unsupported_active_grant() -> None:
@@ -329,7 +479,8 @@ async def test_fails_closed_when_supported_product_shares_subject_with_unsupport
     with pytest.raises(SubscriptionGatewayUnavailableError):
         await use_case.execute("abcdefghijklmnop")
 
-    assert cast(_Repository, use_case._repo).grant_checks == [smart.id, unsupported.id]
+    assert cast(_LedgerSession, use_case._session).execute_calls == 0
+    assert cast(_Repository, use_case._repo).grant_checks == []
 
 
 @pytest.mark.asyncio

@@ -400,5 +400,48 @@
       "close": "Ticket close failed. Please try again.",
       "reopen": "Ticket reopen failed. Please try again."
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN service availability",
+    "connections": "Connections",
+    "usage": "Usage",
+    "devices": "Devices",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "loading": "Loading VPN service status",
+    "degraded": "Partially degraded",
+    "liveConnections": {
+      "eyebrow": "LIVE CONNECTIONS",
+      "title": "Your current VPN connection",
+      "description": "Request a fresh, privacy-safe connection summary or disconnect your own active sessions.",
+      "load": "Check now",
+      "refresh": "Refresh",
+      "refreshing": "Checking...",
+      "idle": "Connection data is requested only when you press Check now.",
+      "pending": "Preparing a fresh connection snapshot...",
+      "progress": "Checking nodes: {completed} of {total}",
+      "failed": "The provider could not complete this connection check.",
+      "status": "Status",
+      "connected": "Connected",
+      "disconnected": "Not connected",
+      "connectedNodes": "Connected nodes",
+      "activeIps": "Active IP count",
+      "lastSeen": "Last seen",
+      "never": "No recent connection",
+      "privacy": "Only totals for your own account are shown. Node names, topology and IP addresses stay hidden.",
+      "drop": "Disconnect my sessions",
+      "dropping": "Disconnecting...",
+      "dropAccepted": "The disconnect request was accepted.",
+      "dropUnknown": "The provider outcome could not be confirmed. The request was not repeated.",
+      "refreshRequired": "Refresh before sending another request.",
+      "dropFailedNoRetry": "It was not retried automatically; refresh the status before trying again.",
+      "errors": {
+        "forbidden": "This connection action is not available for your account.",
+        "conflict": "This request conflicts with a previous operation. Refresh before continuing.",
+        "provider": "The VPN provider rejected the operation.",
+        "unavailable": "Connection controls are temporarily unavailable.",
+        "generic": "Connection status could not be loaded. You can try a fresh check."
+      }
+    }
   }
 }

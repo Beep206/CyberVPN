@@ -275,13 +275,14 @@ afterEach(() => {
 });
 
 describe('ServerAccessDashboard', () => {
-  it('renders customer-safe server access and config import actions', async () => {
+  it('renders account-scoped config actions without requesting global server topology', async () => {
     renderWithQueryClient(<ServerAccessDashboard />);
 
-    expect(await screen.findAllByText('Berlin Gateway')).toHaveLength(2);
     await waitFor(() => {
       expect(screen.getAllByText('config.status.ready').length).toBeGreaterThan(0);
     });
+    expect(screen.getByText('recommended.customerSafeReason')).toBeInTheDocument();
+    expect(screen.queryByText('Berlin Gateway')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /config\.copySubscription/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /config\.copyConfig/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /config\.downloadConfig/i })).toBeInTheDocument();
@@ -295,6 +296,7 @@ describe('ServerAccessDashboard', () => {
     expect(screen.queryByText('labels.traffic')).not.toBeInTheDocument();
     expect(screen.queryByText('labels.inbounds')).not.toBeInTheDocument();
     expect(screen.queryByText('labels.nodeVersion')).not.toBeInTheDocument();
+    expect(getServersMock).not.toHaveBeenCalled();
     expect(getServerStatsMock).not.toHaveBeenCalled();
 
     await waitFor(() => {

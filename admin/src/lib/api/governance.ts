@@ -11,16 +11,18 @@ type CreateAdminInviteRequest =
   operations['create_invite_api_v1_admin_invites_post']['requestBody']['content']['application/json'];
 type CreateAdminInviteResponse =
   operations['create_invite_api_v1_admin_invites_post']['responses'][201]['content']['application/json'];
-type SettingsResponse =
+export type RemnawaveSettingsResponse =
   operations['get_settings_api_v1_settings__get']['responses'][200]['content']['application/json'];
-type CreateSettingRequest =
-  operations['create_setting_api_v1_settings__post']['requestBody']['content']['application/json'];
-type CreateSettingResponse =
-  operations['create_setting_api_v1_settings__post']['responses'][200]['content']['application/json'];
-type UpdateSettingRequest =
-  operations['update_setting_api_v1_settings__id__put']['requestBody']['content']['application/json'];
-type UpdateSettingResponse =
-  operations['update_setting_api_v1_settings__id__put']['responses'][200]['content']['application/json'];
+type GeneratedUpdateRemnawaveSettingsRequest =
+  operations['update_settings_api_v1_settings__patch']['requestBody']['content']['application/json'];
+export type UpdateRemnawaveSettingsRequest = {
+  [Key in keyof GeneratedUpdateRemnawaveSettingsRequest]?: NonNullable<
+    GeneratedUpdateRemnawaveSettingsRequest[Key]
+  >;
+};
+type UpdateRemnawaveSettingsResponse =
+  | operations['update_settings_api_v1_settings__patch']['responses'][200]['content']['application/json']
+  | undefined;
 
 type PolicyVersionResponse = {
   id: string;
@@ -247,13 +249,10 @@ export const governanceApi = {
     apiClient.delete(`/admin/invites/${token}`),
 
   getSettings: () =>
-    apiClient.get<SettingsResponse>('/settings/'),
+    apiClient.get<RemnawaveSettingsResponse>('/settings/'),
 
-  createSetting: (data: CreateSettingRequest) =>
-    apiClient.post<CreateSettingResponse>('/settings/', data),
-
-  updateSetting: (id: number, data: UpdateSettingRequest) =>
-    apiClient.put<UpdateSettingResponse>(`/settings/${id}`, data),
+  updateSettings: (data: UpdateRemnawaveSettingsRequest) =>
+    apiClient.patch<UpdateRemnawaveSettingsResponse>('/settings/', data),
 
   getMiniAppRuntimeConfig: () =>
     apiClient.get<MiniAppRuntimeConfigResponse>('/admin/system-config/miniapp-runtime'),

@@ -460,7 +460,17 @@
     "serverStatus": "SZERVER ÁLLAPOT",
     "statusLabel": "RENDSZER ÁLLAPOT:",
     "statusValue": "OPTIMÁLIS",
-    "title": "VPN PARANCSNOKI KÖZPONT"
+    "title": "VPN PARANCSNOKI KÖZPONT",
+    "vpnServiceStatus": {
+      "available": "Elérhető",
+      "connections": "Kapcsolatok",
+      "degraded": "Részlegesen korlátozott",
+      "devices": "Eszközök",
+      "loading": "A VPN-szolgáltatás állapotának betöltése",
+      "title": "A VPN-szolgáltatás elérhetősége",
+      "unavailable": "Nem érhető el",
+      "usage": "Használat"
+    }
   },
   "DeleteAccount": {
     "contact": {

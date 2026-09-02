@@ -21,9 +21,7 @@ Widget buildTestableCancelSheet({
   required MockSubscriptionRepository mockRepo,
 }) {
   return ProviderScope(
-    overrides: [
-      subscriptionRepositoryProvider.overrideWithValue(mockRepo),
-    ],
+    overrides: [subscriptionRepositoryProvider.overrideWithValue(mockRepo)],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -60,10 +58,7 @@ void main() {
   group('CancelSubscriptionSheet - Rendering', () {
     testWidgets('test_renders_confirmation_title', (tester) async {
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
@@ -74,24 +69,24 @@ void main() {
 
     testWidgets('test_renders_warning_message', (tester) async {
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('You will lose access'), findsOneWidget);
+      expect(
+        find.text(
+          'Your subscription will remain active until the end of the current '
+          'billing period.',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('test_renders_cancel_and_keep_buttons', (tester) async {
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
@@ -104,14 +99,12 @@ void main() {
 
   group('CancelSubscriptionSheet - Cancel Flow', () {
     testWidgets('test_cancel_button_calls_repository', (tester) async {
-      when(() => mockRepo.cancelSubscription(any()))
-          .thenAnswer((_) async => const Success<void>(null));
+      when(
+        () => mockRepo.cancelSubscription(any()),
+      ).thenAnswer((_) async => const Success<void>(null));
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
@@ -124,14 +117,12 @@ void main() {
     });
 
     testWidgets('test_success_shows_snackbar_and_closes_sheet', (tester) async {
-      when(() => mockRepo.cancelSubscription(any()))
-          .thenAnswer((_) async => const Success<void>(null));
+      when(
+        () => mockRepo.cancelSubscription(any()),
+      ).thenAnswer((_) async => const Success<void>(null));
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
@@ -141,21 +132,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Subscription cancelled'), findsOneWidget);
+      expect(find.text('Subscription cancelled successfully.'), findsOneWidget);
       expect(find.byType(CancelSubscriptionSheet), findsNothing);
     });
 
     testWidgets('test_error_shows_snackbar', (tester) async {
       when(() => mockRepo.cancelSubscription(any())).thenAnswer(
         (_) async => const Failure<void>(
-            failures.ServerFailure(message: 'Failed to cancel subscription')),
+          failures.ServerFailure(message: 'Failed to cancel subscription'),
+        ),
       );
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
@@ -170,12 +159,11 @@ void main() {
   });
 
   group('CancelSubscriptionSheet - Keep Subscription', () {
-    testWidgets('test_keep_button_closes_sheet_without_api_call', (tester) async {
+    testWidgets('test_keep_button_closes_sheet_without_api_call', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());

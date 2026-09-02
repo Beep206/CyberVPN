@@ -22,20 +22,24 @@ class SubscriptionTemplatesUseCase:
         data = await self._client.get_validated(f"/api/subscription-templates/{uuid}", RemnawaveSubscriptionResponse)
         return self._dump_validated_model(data)
 
-    async def create_template(self, name: str, template_type: str, content: str) -> dict:
+    async def create_template(self, name: str, template_type: str, content: str) -> dict | None:
         data = await self._client.post_validated(
             "/api/subscription-templates",
             RemnawaveSubscriptionResponse,
             json={"name": name, "templateType": template_type, "content": content},
         )
+        if data is None:
+            return None
         return self._dump_validated_model(data)
 
-    async def update_template(self, uuid: str, **kwargs) -> dict:
+    async def update_template(self, uuid: str, **kwargs) -> dict | None:
         data = await self._client.put_validated(
             f"/api/subscription-templates/{uuid}",
             RemnawaveSubscriptionResponse,
             json=kwargs,
         )
+        if data is None:
+            return None
         return self._dump_validated_model(data)
 
     async def delete_template(self, uuid: str) -> None:

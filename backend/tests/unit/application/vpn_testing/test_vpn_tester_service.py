@@ -895,6 +895,7 @@ def _external_squad(payloads: dict[str, object]) -> dict[str, object]:
 
 def _remnawave_transport_payloads() -> dict[str, object]:
     raw_reality = {
+        "minClientVer": "26.3.27",
         "serverNames": ["reality-target.example"],
         "shortIds": ["sensitive-short-id"],
         "privateKey": "sensitive-private-key",
@@ -1244,6 +1245,25 @@ async def test_remnawave_transport_results_fail_when_de_specific_xhttp_inbound_c
     assert xhttp_result["details"]["contract"]["network_xhttp"] is True
     assert xhttp_result["details"]["de_contract"]["network_xhttp"] is False
     assert by_key["remnawave.hosts.transport_matrix"]["status"] == "pass"
+
+
+@pytest.mark.asyncio
+async def test_remnawave_transport_results_fail_when_any_reality_min_client_version_is_stale() -> None:
+    payloads = _remnawave_transport_payloads()
+    moscow_xhttp_inbound = payloads["/config-profiles/inbounds"]["inbounds"][5]
+    moscow_xhttp_inbound["rawInbound"]["streamSettings"]["realitySettings"]["minClientVer"] = ""
+    remnawave_client = SimpleNamespace(get=AsyncMock(side_effect=lambda path: payloads[path]))
+
+    results = await VpnTesterService(
+        SimpleNamespace(), remnawave_client=remnawave_client
+    )._remnawave_transport_results()
+    by_key = {item["check_key"]: item for item in results}
+    xhttp_result = by_key["remnawave.inbounds.vless_reality_xhttp"]
+
+    assert xhttp_result["status"] == "fail"
+    assert xhttp_result["details"]["contract"]["min_client_ver_26_3_27"] is True
+    assert xhttp_result["details"]["de_contract"]["min_client_ver_26_3_27"] is True
+    assert xhttp_result["details"]["moscow_contract"]["min_client_ver_26_3_27"] is False
 
 
 @pytest.mark.asyncio

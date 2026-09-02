@@ -310,11 +310,14 @@ impl NodeRegistryService {
             .join("-");
 
         NodeUpsertInput {
-            remnawave_node_id: node.id.clone(),
+            // Helix has historically persisted the stable Remnawave node UUID
+            // in this string column. Keep that identity stable while also
+            // validating the new numeric 3.x `id` in the transport contract.
+            remnawave_node_id: node.uuid.to_string(),
             node_name: node.name.clone(),
             hostname: node.hostname.clone(),
             adapter_node_label: if adapter_node_label.is_empty() {
-                format!("node-{}", node.id.to_ascii_lowercase())
+                format!("node-{}", node.id)
             } else {
                 adapter_node_label
             },
@@ -671,30 +674,35 @@ mod tests {
     #[test]
     fn inventory_to_upsert_maps_current_remnawave_inventory_shape() {
         let inventory_item: NodeInventoryItem = serde_json::from_value(json!({
+            "id": 17,
             "uuid": "550e8400-e29b-41d4-a716-446655440123",
             "name": "PT Edge FRA 01",
             "address": "fra-01.example.com",
             "isDisabled": false,
             "activePluginUuid": "550e8400-e29b-41d4-a716-446655440124",
             "versions": {
-                "node": "2.7.4",
-                "xray": "1.8.10"
-            }
+                "node": "3.4.1",
+                "xray": "26.7.31"
+            },
+            "ips": [{"ip": "203.0.113.17", "status": "INBOUND"}],
+            "integrationUuids": ["550e8400-e29b-41d4-a716-446655440125"]
         }))
         .expect("current Remnawave inventory payload");
 
         let upsert = NodeRegistryService::inventory_to_upsert(&inventory_item);
 
-        assert_eq!(upsert.remnawave_node_id, inventory_item.id);
+        assert_eq!(upsert.remnawave_node_id, inventory_item.uuid.to_string());
         assert_eq!(upsert.node_name, inventory_item.name);
         assert_eq!(upsert.hostname.as_deref(), Some("fra-01.example.com"));
         assert_eq!(upsert.adapter_node_label, "fra-01-example-com");
         assert_eq!(inventory_item.effective_enabled(), Some(true));
-        assert_eq!(inventory_item.effective_node_version(), Some("2.7.4"));
-        assert_eq!(inventory_item.effective_xray_version(), Some("1.8.10"));
+        assert_eq!(inventory_item.effective_node_version(), Some("3.4.1"));
+        assert_eq!(inventory_item.effective_xray_version(), Some("26.7.31"));
         assert_eq!(
             inventory_item.active_plugin_uuid.as_deref(),
             Some("550e8400-e29b-41d4-a716-446655440124")
         );
+        assert_eq!(inventory_item.ips.len(), 1);
+        assert_eq!(inventory_item.integration_uuids.len(), 1);
     }
 }

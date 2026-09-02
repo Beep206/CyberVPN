@@ -71,6 +71,93 @@ schedule_source = ListRedisScheduleSource(url=settings.redis_url)
 scheduler = TaskiqScheduler(broker, sources=[schedule_source, LabelScheduleSource(broker)])
 
 
+async def _start_remnawave_stream_consumer(state: Any) -> None:
+    from src.services.backend_api_client import BackendAPIClient
+    from src.services.redis_client import create_remnawave_stream_redis_client
+    from src.services.remnawave_streams import (
+        BackendRemnawaveStreamSink,
+        RedisStreamTransport,
+        RemnawaveStreamConsumer,
+        RemnawaveStreamConsumerConfig,
+    )
+
+    backend = BackendAPIClient()
+    redis_client = create_remnawave_stream_redis_client()
+    try:
+        await backend.__aenter__()
+        consumer_name = f"{platform.node() or 'worker'}-{os.getpid()}"
+        stream_hmac_secret = settings.remnawave_stream_ip_hmac_secret
+        if stream_hmac_secret is None:  # Settings validation fails first; keep startup fail closed.
+            raise RuntimeError("REMNAWAVE_STREAM_IP_HMAC_SECRET is not configured")
+        payload_fingerprint_hmac_key = stream_hmac_secret.get_secret_value().encode("utf-8")
+        consumer = RemnawaveStreamConsumer(
+            RedisStreamTransport(
+                redis_client,
+                payload_fingerprint_hmac_key=payload_fingerprint_hmac_key,
+            ),
+            BackendRemnawaveStreamSink(backend),
+            RemnawaveStreamConsumerConfig(
+                consumer_name=consumer_name,
+                payload_fingerprint_hmac_key=payload_fingerprint_hmac_key,
+                group_name=settings.remnawave_stream_consumer_group,
+                read_count=settings.remnawave_stream_read_count,
+                block_ms=settings.remnawave_stream_block_ms,
+                reclaim_count=settings.remnawave_stream_reclaim_count,
+                reclaim_min_idle_ms=settings.remnawave_stream_reclaim_min_idle_ms,
+                max_delivery_attempts=settings.remnawave_stream_max_delivery_attempts,
+                dlq_maxlen=settings.remnawave_stream_dlq_maxlen,
+                receipt_retention_days=settings.remnawave_stream_receipt_retention_days,
+                checkpoint_observe_interval_seconds=(settings.remnawave_stream_checkpoint_observe_interval_seconds),
+            ),
+        )
+        await consumer.initialize()
+    except (Exception, asyncio.CancelledError):
+        await backend.__aexit__(None, None, None)
+        await redis_client.aclose()
+        raise
+
+    state.remnawave_stream_backend = backend
+    state.remnawave_stream_redis = redis_client
+    state.remnawave_stream_consumer = consumer
+    state.remnawave_stream_consumer_task = asyncio.create_task(
+        consumer.run(),
+        name="remnawave-stream-consumer",
+    )
+    logger.info(
+        "remnawave_stream_consumer_started",
+        consumer_name=consumer_name,
+        group_name=settings.remnawave_stream_consumer_group,
+    )
+
+
+async def _stop_remnawave_stream_consumer(state: Any) -> None:
+    from src.services.backend_api_client import BackendAPIClient
+    from src.services.remnawave_streams import RemnawaveStreamConsumer
+
+    consumer = getattr(state, "remnawave_stream_consumer", None)
+    task = getattr(state, "remnawave_stream_consumer_task", None)
+    if isinstance(consumer, RemnawaveStreamConsumer):
+        consumer.stop()
+    if isinstance(task, asyncio.Task):
+        timeout = settings.remnawave_stream_block_ms / 1000 + 2
+        try:
+            await asyncio.wait_for(task, timeout=timeout)
+        except TimeoutError:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+
+    backend = getattr(state, "remnawave_stream_backend", None)
+    redis_client = getattr(state, "remnawave_stream_redis", None)
+    try:
+        if isinstance(backend, BackendAPIClient):
+            await backend.__aexit__(None, None, None)
+    finally:
+        if redis_client is not None and hasattr(redis_client, "aclose"):
+            await redis_client.aclose()
+    logger.info("remnawave_stream_consumer_stopped")
+
+
 @broker.on_event(TaskiqEvents.WORKER_STARTUP)
 async def startup_event(state) -> None:
     """Initialize shared resources on worker startup.
@@ -156,6 +243,9 @@ async def startup_event(state) -> None:
             headers={"User-Agent": "CyberVPN-TaskWorker/1.0"},
         )
 
+        if settings.remnawave_stream_consumer_enabled is True:
+            await _start_remnawave_stream_consumer(state)
+
         logger.info(
             "worker_startup_complete",
             http_timeout=30.0,
@@ -188,6 +278,9 @@ async def shutdown_event(state) -> None:
             with suppress(asyncio.CancelledError):
                 await queue_depth_task
             logger.info("queue_depth_metrics_loop_cancelled")
+
+        if isinstance(getattr(state, "remnawave_stream_consumer_task", None), asyncio.Task):
+            await _stop_remnawave_stream_consumer(state)
 
         # Dispose database engine
         if hasattr(state, "db_engine"):

@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN পরিষেবার প্রাপ্যতা",
+    "connections": "সংযোগ",
+    "usage": "ব্যবহার",
+    "devices": "ডিভাইস",
+    "available": "উপলভ্য",
+    "unavailable": "অনুপলভ্য",
+    "loading": "VPN পরিষেবার অবস্থা লোড হচ্ছে",
+    "degraded": "আংশিকভাবে সীমিত"
   }
 }

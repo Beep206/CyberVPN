@@ -7,6 +7,7 @@ from httpx import AsyncClient
 
 from src.application.services.helix_service import HelixManifestUnavailableError
 from src.main import app
+from src.presentation.api.v1.helix.routes import get_helix_customer_access
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.helix import get_helix_service
 
@@ -174,7 +175,7 @@ async def test_helix_capabilities_return_defaults(
     async def _service_override():
         return StubHelixService()
 
-    app.dependency_overrides[get_current_active_user] = _auth_override
+    app.dependency_overrides[get_helix_customer_access] = _auth_override
     app.dependency_overrides[get_helix_service] = _service_override
 
     response = await async_client.get("/api/v1/helix/capabilities")
@@ -197,7 +198,7 @@ async def test_helix_manifest_resolution_shapes_response(
     async def _service_override():
         return StubHelixService()
 
-    app.dependency_overrides[get_current_active_user] = _auth_override
+    app.dependency_overrides[get_helix_customer_access] = _auth_override
     app.dependency_overrides[get_helix_service] = _service_override
 
     response = await async_client.post(
@@ -236,7 +237,7 @@ async def test_helix_runtime_event_is_forwarded_through_backend(
     async def _service_override():
         return stub_service
 
-    app.dependency_overrides[get_current_active_user] = _auth_override
+    app.dependency_overrides[get_helix_customer_access] = _auth_override
     app.dependency_overrides[get_helix_service] = _service_override
 
     response = await async_client.post(
@@ -291,7 +292,7 @@ async def test_helix_runtime_benchmark_event_is_forwarded_through_backend(
     async def _service_override():
         return stub_service
 
-    app.dependency_overrides[get_current_active_user] = _auth_override
+    app.dependency_overrides[get_helix_customer_access] = _auth_override
     app.dependency_overrides[get_helix_service] = _service_override
 
     response = await async_client.post(
@@ -383,7 +384,7 @@ async def test_helix_manifest_returns_hidden_not_found_when_manifest_is_unavaila
     async def _service_override():
         return RefusingHelixService()
 
-    app.dependency_overrides[get_current_active_user] = _auth_override
+    app.dependency_overrides[get_helix_customer_access] = _auth_override
     app.dependency_overrides[get_helix_service] = _service_override
 
     response = await async_client.post(

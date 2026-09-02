@@ -630,7 +630,7 @@ pub fn sample_manifest_document(
 
 pub fn sample_account_snapshot() -> AccountSnapshot {
     AccountSnapshot {
-        account_id: "acct-1".to_owned(),
+        account_id: "42".to_owned(),
         bootstrap_subjects: vec![BootstrapSubject::ShortUuid("sub-1".to_owned())],
         lifecycle: AccountLifecycle::Active,
         verta_access: VertaAccess {
@@ -645,7 +645,7 @@ pub fn sample_account_snapshot() -> AccountSnapshot {
         },
         metadata: None,
         observed_at_unix: 1_700_000_000,
-        source_version: Some("2.7.4".to_owned()),
+        source_version: Some("3.4.1".to_owned()),
     }
 }
 

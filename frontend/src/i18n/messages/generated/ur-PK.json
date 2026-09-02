@@ -460,7 +460,17 @@
     "serverStatus": "سرور اسٹیٹس",
     "statusLabel": "سسٹم اسٹیٹس:",
     "statusValue": "بہترین",
-    "title": "VPN کمانڈ سینٹر"
+    "title": "VPN کمانڈ سینٹر",
+    "vpnServiceStatus": {
+      "available": "دستیاب",
+      "connections": "کنکشنز",
+      "degraded": "جزوی طور پر متاثر",
+      "devices": "ڈیوائسز",
+      "loading": "VPN سروس کی حالت لوڈ ہو رہی ہے",
+      "title": "VPN سروس کی دستیابی",
+      "unavailable": "دستیاب نہیں",
+      "usage": "استعمال"
+    }
   },
   "DeleteAccount": {
     "contact": {

@@ -12,9 +12,47 @@
       - remnawave_edge_node_port | int <= 65535
     fail_msg: "remnawave_edge_node_port must be in the TCP port range."
 
+- name: Remnawave | Assert this release runs only on the scanned architecture
+  ansible.builtin.assert:
+    that:
+      - ansible_architecture == 'x86_64'
+    fail_msg: >-
+      Remnawave Node 3.4.1 is release-gated only for linux/amd64. Produce an
+      exact arm64 child-digest scan, SBOM, attestation, and canary before
+      extending this role to arm64 hosts.
+
+- name: Remnawave | Assert Node release is immutable and safety flags are explicit
+  ansible.builtin.assert:
+    that:
+      - remnawave_edge_image is match('^remnawave/node:3\\.4\\.1@sha256:[a-f0-9]{64}$')
+      - remnawave_edge_sni_verification is boolean
+      - remnawave_edge_sni_verification
+      - remnawave_edge_nftables_logging is boolean
+      - remnawave_edge_nftables_accept_reply_traffic is boolean
+    fail_msg: >-
+      Pin Remnawave Node 3.4.1 by digest, require SNI verification, and set all
+      SNI/nftables flags as YAML booleans before rollout.
+
+- name: Remnawave | Reject extra environment overrides of protected safety settings
+  ansible.builtin.assert:
+    that:
+      - >-
+        remnawave_edge_extra_env.keys() | list |
+        intersect(['NODE_PORT', 'SECRET_KEY', 'SNI_VERIFICATION', 'NFTABLES_LOGGING',
+        'NFTABLES_ACCEPT_REPLY_TRAFFIC']) | length == 0
+    fail_msg: >-
+      remnawave_edge_extra_env must not override NODE_PORT, SECRET_KEY,
+      SNI_VERIFICATION, NFTABLES_LOGGING, or NFTABLES_ACCEPT_REPLY_TRAFFIC.
+
 - name: Remnawave | Assert secret key is present for deploy
   ansible.builtin.assert:
     that:
-      - remnawave_edge_secret_key | length >= 16
-    fail_msg: "Set vault_remnawave_edge_secret_key before running Remnawave deploy."
+      - remnawave_edge_secret_key | length >= 512
+      - remnawave_edge_secret_key is match('^[A-Za-z0-9+/]+={0,2}$')
+      - remnawave_edge_preupgrade_secret_key_sha256 is match('^[0-9a-f]{64}$')
+      - (remnawave_edge_secret_key | hash('sha256')) == remnawave_edge_preupgrade_secret_key_sha256
+    fail_msg: >-
+      SECRET_KEY must be the exact high-entropy base64 certificate payload
+      attested by the read-only 2.8 baseline fingerprint. Placeholder, weak,
+      rotated, or mismatched node credentials are rejected.
   when: remnawave_edge_action == 'deploy'

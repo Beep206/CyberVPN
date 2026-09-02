@@ -30,6 +30,9 @@ TEST_ENV_DEFAULTS = {
     "ENABLE_METRICS": "true",
     "REDIS_URL": "redis://localhost:6379/15",
     _test_env_name("REMNAWAVE", "TOKEN"): _non_secret_test_value("remnawave"),
+    _test_env_name("REMNAWAVE", "CONNECTION", "DROP", "HMAC", "SECRET"): _non_secret_test_value(
+        "remnawave-connection-drop"
+    ),
     _test_env_name("JWT", "SECRET"): _non_secret_test_value("jwt"),
     _test_env_name("CRYPTOBOT", "TOKEN"): _non_secret_test_value("cryptobot"),
     _test_env_name("CYBERVPN", "DEVICE", "COOKIE", "PEPPER"): _non_secret_test_value("device-cookie"),

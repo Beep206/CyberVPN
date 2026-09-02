@@ -134,6 +134,18 @@ class GrowthCodeRepository:
         result = await self._session.execute(stmt.limit(1))
         return result.scalars().first()
 
+    async def get_gift_code_by_hash_for_update(self, code_hash: str) -> GrowthCodeModel | None:
+        result = await self._session.execute(
+            select(GrowthCodeModel)
+            .where(
+                GrowthCodeModel.code_hash == code_hash,
+                GrowthCodeModel.code_type == "gift",
+            )
+            .with_for_update(of=GrowthCodeModel)
+            .limit(1)
+        )
+        return result.scalars().first()
+
     async def list_codes(
         self,
         *,

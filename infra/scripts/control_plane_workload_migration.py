@@ -25,7 +25,7 @@ REQUIRED_ANCHORS: dict[str, tuple[str, ...]] = {
     "services/task-worker/Dockerfile": ('CMD ["taskiq", "worker", "src.broker:broker"',),
     "services/task-worker/src/broker.py": ("TaskiqScheduler", "PROMETHEUS_MULTIPROC_DIR"),
     "services/task-worker/src/config.py": ("metrics_port: int = 9091", "worker_concurrency: int = 2"),
-    "infra/docker-compose.yml": ('cybervpn-worker:', 'cybervpn-scheduler:', '"taskiq", "scheduler", "src.broker:scheduler"', "PROMETHEUS_MULTIPROC_DIR"),
+    "infra/docker-compose.yml": ('cybervpn-worker:', 'cybervpn-scheduler:', '"taskiq", "scheduler", "src.scheduler:scheduler"', "PROMETHEUS_MULTIPROC_DIR"),
     "infra/ansible/inventories/staging/group_vars/control_plane_staging/main.yml": (
         "control_plane_stack_backend_env",
         "control_plane_stack_worker_env",
@@ -302,7 +302,7 @@ workload:
   command:
     - taskiq
     - scheduler
-    - src.broker:scheduler
+    - src.scheduler:scheduler
   args: []
 
 metrics:
@@ -1020,7 +1020,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             digest_placeholder="sha256:REPLACE_ME_TASK_SCHEDULER_IMAGE_DIGEST",
             target_name="task-scheduler-runtime",
             mode="scheduler",
-            command=["taskiq", "scheduler", "src.broker:scheduler"],
+            command=["taskiq", "scheduler", "src.scheduler:scheduler"],
             args=[],
             multiproc_enabled=False,
             replica_count=1,
@@ -1080,7 +1080,7 @@ def command_validate(args: argparse.Namespace) -> int:
     print("backend_migration_job=alembic upgrade head")
     print("backend_metrics_port=9091")
     print("task_worker_metrics_port=9091")
-    print("scheduler_command=taskiq scheduler src.broker:scheduler")
+    print("scheduler_command=taskiq scheduler src.scheduler:scheduler")
     print("rollout_order=namespace,backend,task-worker,task-scheduler")
     return 0
 

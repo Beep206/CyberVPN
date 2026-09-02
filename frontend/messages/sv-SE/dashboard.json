@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN-tjänstens tillgänglighet",
+    "connections": "Anslutningar",
+    "usage": "Användning",
+    "devices": "Enheter",
+    "available": "Tillgängligt",
+    "unavailable": "Inte tillgängligt",
+    "loading": "Läser in VPN-tjänstens status",
+    "degraded": "Delvis begränsat"
   }
 }

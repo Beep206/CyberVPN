@@ -116,10 +116,15 @@ def test_control_plane_vault_bootstrap_declares_backend_internal_secret() -> Non
         assert (
             "vault_control_plane_backend_telegram_bot_internal_secret:" in vault_example
         )
+        assert (
+            "vault_control_plane_backend_remnawave_stream_ip_hmac_secret:"
+            in vault_example
+        )
 
     source_example = _read(VAULT_SOURCE_EXAMPLE)
     assert "internal_secret:" in source_example
     assert "telegram_bot_internal_secret:" in source_example
+    assert "remnawave_stream_ip_hmac_secret:" in source_example
 
     bootstrap = _read(VAULT_BOOTSTRAP)
     assert (
@@ -128,6 +133,11 @@ def test_control_plane_vault_bootstrap_declares_backend_internal_secret() -> Non
     )
     assert '"backend.telegram_bot_internal_secret"' in bootstrap
     assert "vault_control_plane_backend_telegram_bot_internal_secret" in bootstrap
+    assert (
+        '"backend.remnawave_stream_ip_hmac_secret": '
+        '"vault_control_plane_backend_remnawave_stream_ip_hmac_secret"'
+        in bootstrap
+    )
 
 
 def test_control_plane_validation_requires_backend_internal_secret_audience_split() -> (
@@ -168,6 +178,37 @@ def test_control_plane_validation_requires_backend_internal_secret_audience_spli
         "control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET "
         "== control_plane_stack_effective_scheduler_env.TELEGRAM_BOT_INTERNAL_SECRET"
     ) in validate
+    assert (
+        "control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET | length >= 32"
+        in validate
+    )
+    assert (
+        "control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET "
+        "!= control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET"
+    ) in validate
+
+
+def test_remnawave_stream_ingestion_env_is_versioned_and_bounded() -> None:
+    expected = {
+        "REMNAWAVE_STREAM_INGESTION_ENABLED": "true",
+        "REMNAWAVE_STREAM_CONSUMER_GROUP": "cybervpn-remnawave-v1",
+        "REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS": "14",
+        "REMNAWAVE_USER_USAGE_RETENTION_DAYS": "180",
+        "REMNAWAVE_SUBSCRIPTION_REQUEST_RETENTION_DAYS": "30",
+        "REMNAWAVE_NODE_CONNECTIONS_RETENTION_DAYS": "30",
+    }
+    for path in (PRODUCTION_INVENTORY, STAGING_INVENTORY):
+        inventory = _read(path)
+        assert (
+            "'REMNAWAVE_STREAM_IP_HMAC_SECRET': "
+            "vault_control_plane_backend_remnawave_stream_ip_hmac_secret"
+        ) in inventory
+        for key, value in expected.items():
+            assert f"'{key}': '{value}'" in inventory
+
+    stage1_compose = _read(STAGE1_COMPOSE)
+    assert "REMNAWAVE_STREAM_INGESTION_ENABLED: ${REMNAWAVE_STREAM_INGESTION_ENABLED:-true}" in stage1_compose
+    assert "REMNAWAVE_STREAM_IP_HMAC_SECRET: ${REMNAWAVE_STREAM_IP_HMAC_SECRET:?" in stage1_compose
 
 
 def test_stage1_compose_uses_backend_internal_secret_for_backend_worker_and_scheduler() -> (

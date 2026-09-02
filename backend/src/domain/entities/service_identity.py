@@ -19,3 +19,4 @@ class ServiceIdentity:
     service_context: dict
     created_at: datetime
     updated_at: datetime
+    provider_numeric_subject_id: int | None = None

@@ -96,7 +96,7 @@ def build_commission_contract_snapshot(
     currency_code: str | None = None,
 ) -> dict[str, Any]:
     normalized_currency = _normalize_currency(currency_code or contract.currency_code)
-    snapshot = {
+    snapshot: dict[str, Any] = {
         "calculation_version": PARTNER_EARNING_SNAPSHOT_VERSION,
         "commission_contract_id": str(contract.id),
         "commission_model": contract.commission_model,

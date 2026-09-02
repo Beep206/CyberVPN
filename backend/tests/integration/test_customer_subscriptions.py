@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 from httpx import AsyncClient
@@ -29,35 +30,50 @@ pytestmark = [pytest.mark.integration]
 
 class _FakeRemnawaveClient:
     def __init__(self) -> None:
-        self.created_uuid = uuid.uuid4()
+        self.created_numeric_id = 4201
+        self.default_internal_squad_uuid = uuid.uuid4()
+
+    async def get_collection_validated(self, path, envelope_key, schema):
+        assert path == "/internal-squads"
+        assert envelope_key == "internalSquads"
+        assert schema is not None
+        return [
+            SimpleNamespace(
+                uuid=self.default_internal_squad_uuid,
+                name="CYBERVPN_PREMIUM_SMART_RU_NODES",
+            )
+        ]
 
     async def post_validated(self, path, schema, *, json=None):
         assert path == "/api/users"
         now = datetime.now(UTC)
         return RemnawaveUserResponse(
-            uuid=str(self.created_uuid),
+            id=self.created_numeric_id,
             username=(json or {}).get("username", "cvpn_s_test"),
             status="ACTIVE",
-            short_uuid=str(self.created_uuid)[:8],
+            short_uuid="numeric-only-4201",
             created_at=now,
             updated_at=now,
             expire_at=(json or {}).get("expireAt"),
-            subscription_url=f"https://cyber-vpn.org/api/sub/{self.created_uuid.hex[:16]}",
+            email=(json or {}).get("email"),
+            subscription_url="https://cyber-vpn.org/api/sub/numericonly4201x",
             traffic_limit_bytes=(json or {}).get("trafficLimitBytes"),
             hwid_device_limit=(json or {}).get("hwidDeviceLimit"),
+            traffic_limit_strategy=(json or {}).get("trafficLimitStrategy"),
+            active_internal_squads=(json or {}).get("activeInternalSquads"),
         )
 
     async def get_validated(self, path, schema):
-        assert path == f"/subscriptions/by-uuid/{self.created_uuid}"
+        assert path == f"/subscriptions/by-id/{self.created_numeric_id}"
         return RemnawaveSubscriptionDetailsResponse(
             is_found=True,
             user={
-                "shortUuid": str(self.created_uuid)[:8],
+                "shortUuid": "numeric-only-4201",
                 "username": "cvpn_s_test",
                 "userStatus": "ACTIVE",
             },
             links=["vless://selected-subscription"],
-            subscription_url=f"https://cyber-vpn.org/api/sub/{self.created_uuid.hex[:16]}",
+            subscription_url="https://cyber-vpn.org/api/sub/numericonly4201x",
         )
 
 
@@ -326,7 +342,8 @@ async def test_selected_subscription_config_creates_subscription_scoped_identity
                 service_identity = db.get(ServiceIdentityModel, grant.service_identity_id)
                 assert service_identity.identity_scope == "subscription"
                 assert service_identity.subscription_key == selected_key
-                assert service_identity.provider_subject_ref == str(fake_remnawave.created_uuid)
+                assert service_identity.provider_subject_ref is None
+                assert service_identity.provider_numeric_subject_id == fake_remnawave.created_numeric_id
 
             list_response = await async_client.get("/api/v1/customer-subscriptions/", headers=headers)
             assert list_response.status_code == 200

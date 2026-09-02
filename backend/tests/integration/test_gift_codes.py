@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import asynccontextmanager
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from httpx import AsyncClient
@@ -9,19 +11,24 @@ from sqlalchemy import select
 
 from src.application.services.auth_service import AuthService
 from src.application.use_cases.gifts import IssueGiftCodeUseCase
+from src.application.use_cases.gifts.provisioning import GiftProvisioningRequest, GiftProvisioningResult
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
 from src.config import settings
 from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
-from src.infrastructure.database.models.growth_code_model import GrowthCodeModel
+from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
+from src.infrastructure.database.models.growth_code_model import GrowthCodeModel, GrowthCodeRedemptionModel
 from src.infrastructure.database.models.invite_code_model import InviteCodeModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.partner_model import PartnerCodeModel, PartnerEarningModel
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.models.referral_commission_model import ReferralCommissionModel
+from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.main import app
+from src.presentation.api.v1.gifts import routes as gift_routes
+from src.presentation.api.v1.gifts.routes import get_gift_provisioning_gateway
 from tests.helpers.realm_auth import (
     FakeRedis,
     SyncSessionAdapter,
@@ -35,6 +42,54 @@ from tests.integration.test_order_commit import _make_customer_access_token, _se
 from tests.integration.test_quote_checkout_sessions import _seed_quote_context
 
 pytestmark = [pytest.mark.integration]
+
+
+class _GiftProvisioningGateway:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.user_id = 9_430_001
+        self.legacy_uuid = uuid.uuid5(uuid.NAMESPACE_URL, "cybervpn:integration:gift-redeemer")
+
+    async def provision_gift_access(self, request: GiftProvisioningRequest) -> GiftProvisioningResult:
+        self.calls += 1
+        return GiftProvisioningResult(
+            customer_account_id=request.customer_account_id,
+            gift_code_id=request.gift_code_id,
+            remnawave_uuid=str(self.legacy_uuid),
+            remnawave_user_id=self.user_id,
+            profile_id=request.profile_id,
+            status="active",
+            expires_at=request.access_expires_at,
+            subscription_url="https://subscription.example.test/gift-integration",
+            created=True,
+        )
+
+
+class _InMemoryGiftProvisioningAttempts:
+    def __init__(self) -> None:
+        self.record = None
+
+    async def begin(self, **kwargs):
+        if self.record is None:
+            self.record = SimpleNamespace(status="pending", request_hash=kwargs["request_hash"])
+            return SimpleNamespace(
+                gift_record=self.record,
+                customer_record=self.record,
+                should_mutate=True,
+            )
+        assert self.record.request_hash == kwargs["request_hash"]
+        return SimpleNamespace(
+            gift_record=self.record,
+            customer_record=self.record,
+            should_mutate=False,
+        )
+
+    async def mark_reconciliation_required(self, decision) -> None:
+        decision.gift_record.status = "reconciliation_required"
+
+    async def mark_completed(self, decision, *, user_ref) -> None:
+        user_ref.require_numeric_id()
+        decision.gift_record.status = "completed"
 
 
 @pytest.fixture(autouse=True)
@@ -111,7 +166,10 @@ async def test_codes_resolve_returns_wrong_context_for_gift_in_checkout(async_cl
 
 
 @pytest.mark.asyncio
-async def test_redeem_gift_creates_entitlement_grant(async_client: AsyncClient) -> None:
+async def test_redeem_gift_creates_entitlement_grant(
+    async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()
     sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
@@ -121,6 +179,14 @@ async def test_redeem_gift_creates_entitlement_grant(async_client: AsyncClient) 
         yield fake_redis
 
     app.dependency_overrides[get_redis] = _override_redis
+
+    @asynccontextmanager
+    async def _marker_session():
+        yield object()
+
+    monkeypatch.setattr(gift_routes, "AsyncSessionLocal", _marker_session)
+    attempts = _InMemoryGiftProvisioningAttempts()
+    monkeypatch.setattr(gift_routes, "_gift_provisioning_attempts", lambda _db, *, is_create: attempts)
 
     try:
         async with override_realm_test_db(sessionmaker):
@@ -164,6 +230,32 @@ async def test_redeem_gift_creates_entitlement_grant(async_client: AsyncClient) 
                 user_id=str(redeemer_id),
                 customer_realm=customer_realm,
             )
+            unavailable_response = await async_client.post(
+                "/api/v1/gifts/redeem",
+                headers={
+                    "Authorization": f"Bearer {customer_token}",
+                    "X-Auth-Realm": "customer",
+                },
+                json={"code": issued.raw_code},
+            )
+            assert unavailable_response.status_code == 503
+
+            with sessionmaker() as db:
+                growth_code = db.execute(
+                    select(GrowthCodeModel).where(GrowthCodeModel.id == issued.growth_code.id)
+                ).scalar_one()
+                assert growth_code.status == "active"
+                assert growth_code.uses_count == 0
+                assert db.query(GrowthCodeRedemptionModel).count() == 0
+                assert db.query(EntitlementGrantModel).count() == 0
+                assert db.query(ServiceIdentityModel).filter_by(customer_account_id=redeemer_id).count() == 0
+
+            provisioning_gateway = _GiftProvisioningGateway()
+
+            async def _override_gift_provisioning_gateway():
+                return provisioning_gateway
+
+            app.dependency_overrides[get_gift_provisioning_gateway] = _override_gift_provisioning_gateway
             response = await async_client.post(
                 "/api/v1/gifts/redeem",
                 headers={
@@ -185,8 +277,16 @@ async def test_redeem_gift_creates_entitlement_grant(async_client: AsyncClient) 
                 ).scalar_one()
                 assert growth_code.status == "redeemed"
                 assert growth_code.uses_count == 1
+                identity = db.execute(
+                    select(ServiceIdentityModel).where(ServiceIdentityModel.customer_account_id == redeemer_id)
+                ).scalar_one()
+                assert provisioning_gateway.calls == 1
+                assert identity.identity_status == "active"
+                assert identity.provider_numeric_subject_id == provisioning_gateway.user_id
+                assert identity.provider_subject_ref == str(provisioning_gateway.legacy_uuid)
     finally:
         app.dependency_overrides.pop(get_redis, None)
+        app.dependency_overrides.pop(get_gift_provisioning_gateway, None)
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)
 

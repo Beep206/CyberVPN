@@ -15,9 +15,10 @@ remnawave_edge_container_name: remnanode
 remnawave_edge_compose_filename: docker-compose.yml
 remnawave_edge_env_filename: remnanode.env
 
-# Remnawave publishes node tags independently from the backend image. Keep this
-# exact registry-verified tag pinned until a newer node image is validated.
-remnawave_edge_image: remnawave/node:2.8.0
+# Remnawave publishes node tags independently from the backend image. This
+# release is intentionally limited to amd64 until arm64 has an exact-child
+# scan, SBOM, attestation, and canary evidence of its own.
+remnawave_edge_image: remnawave/node:3.4.1@sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e
 remnawave_edge_restart_policy: unless-stopped
 remnawave_edge_network_mode: host
 remnawave_edge_compose_service_pull_policy: missing
@@ -27,6 +28,10 @@ remnawave_edge_wait_timeout: 120
 
 remnawave_edge_node_port: 2222
 remnawave_edge_secret_key: ""
+remnawave_edge_preupgrade_secret_key_sha256: ""
+remnawave_edge_sni_verification: true
+remnawave_edge_nftables_logging: true
+remnawave_edge_nftables_accept_reply_traffic: false
 
 remnawave_edge_cap_add:
   - NET_ADMIN

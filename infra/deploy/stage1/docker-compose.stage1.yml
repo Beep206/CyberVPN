@@ -154,6 +154,23 @@ services:
       VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_FAULT_SECONDS: ${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_FAULT_SECONDS:-240}
       VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_BODY_BYTES: ${VPN_TESTER_TASK2_OPERATOR_EVIDENCE_MAX_BODY_BYTES:-65536}
       BACKEND_INTERNAL_SECRET: ${BACKEND_INTERNAL_SECRET:-replace-before-live-backend-internal}
+      WEBHOOK_LOG_FINGERPRINT_SECRET: ${WEBHOOK_LOG_FINGERPRINT_SECRET:?set a dedicated 32-plus-character webhook log fingerprint secret}
+      REMNAWAVE_STREAM_INGESTION_ENABLED: ${REMNAWAVE_STREAM_INGESTION_ENABLED:-true}
+      REMNAWAVE_STREAM_IP_HMAC_SECRET: ${REMNAWAVE_STREAM_IP_HMAC_SECRET:?set a dedicated 32-plus-character Remnawave stream IP HMAC secret}
+      REMNAWAVE_CONNECTION_DROP_HMAC_SECRET: ${REMNAWAVE_CONNECTION_DROP_HMAC_SECRET:?set a dedicated stable 32-plus-character Remnawave connection-drop HMAC secret}
+      REMNAWAVE_STREAM_CONSUMER_GROUP: ${REMNAWAVE_STREAM_CONSUMER_GROUP:-cybervpn-remnawave-v1}
+      REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS: ${REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS:-14}
+      REMNAWAVE_USER_USAGE_RETENTION_DAYS: ${REMNAWAVE_USER_USAGE_RETENTION_DAYS:-180}
+      REMNAWAVE_SUBSCRIPTION_REQUEST_RETENTION_DAYS: ${REMNAWAVE_SUBSCRIPTION_REQUEST_RETENTION_DAYS:-30}
+      REMNAWAVE_NODE_CONNECTIONS_RETENTION_DAYS: ${REMNAWAVE_NODE_CONNECTIONS_RETENTION_DAYS:-30}
+      REMNAWAVE_NODE_SSH_ENABLED: ${REMNAWAVE_NODE_SSH_ENABLED:-false}
+      REMNAWAVE_NODE_SSH_BROKER_URL: http://cybervpn-remnawave-node-ssh-proxy:8080
+      REMNAWAVE_NODE_SSH_BROKER_SECRET: ${REMNAWAVE_NODE_SSH_BROKER_SECRET:-}
+      REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS: ${REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS:-}
+      REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS: ${REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS:-}
+      REMNAWAVE_NODE_SSH_TICKET_TTL_SECONDS: ${REMNAWAVE_NODE_SSH_TICKET_TTL_SECONDS:-15}
+      REMNAWAVE_NODE_SSH_SESSION_MAX_SECONDS: ${REMNAWAVE_NODE_SSH_SESSION_MAX_SECONDS:-1800}
+      REMNAWAVE_NODE_SSH_REVOCATION_POLL_SECONDS: ${REMNAWAVE_NODE_SSH_REVOCATION_POLL_SECONDS:-0.5}
       TELEGRAM_BOT_INTERNAL_SECRET: ${TELEGRAM_BOT_INTERNAL_SECRET:-replace-before-live-telegram-internal}
       TELEGRAM_BOT_REGISTRATION_MODE: ${TELEGRAM_BOT_REGISTRATION_MODE:-allow_pending_onboarding}
       TELEGRAM_BOT_ALLOW_REGISTRATION_WHEN_PUBLIC_CLOSED: ${TELEGRAM_BOT_ALLOW_REGISTRATION_WHEN_PUBLIC_CLOSED:-true}
@@ -218,6 +235,8 @@ services:
     depends_on:
       cybervpn-nats:
         condition: service_healthy
+      cybervpn-remnawave-node-ssh-proxy:
+        condition: service_healthy
     volumes:
       - ${CYBERVPN_READINESS_DIR:-/srv/cybervpn/readiness}/task2:/run/cybervpn/readiness/task2:ro
     networks:
@@ -225,6 +244,8 @@ services:
       cybervpn-data: {}
       cybervpn-metrics: {}
       cybervpn-egress: {}
+      cybervpn-remnawave-ssh:
+        ipv4_address: ${CYBERVPN_STAGE1_REMNAWAVE_SSH_BACKEND_IP:-172.30.8.4}
     tmpfs:
       - /tmp:size=128m,mode=1777
     healthcheck:
@@ -306,6 +327,14 @@ services:
     environment:
       DATABASE_URL: ${CYBERVPN_DATABASE_URL:-postgresql+asyncpg://cybervpn:replace-before-live@cybervpn-postgres:5432/cybervpn}
       REDIS_URL: ${CYBERVPN_REDIS_URL:-redis://cybervpn-valkey:6379/0}
+      REMNAWAVE_STREAM_CONSUMER_ENABLED: ${REMNAWAVE_STREAM_CONSUMER_ENABLED:-true}
+      REMNAWAVE_STREAM_REDIS_URL: ${REMNAWAVE_STREAM_REDIS_URL:-redis://cybervpn-remnawave-valkey:6379/0}
+      REMNAWAVE_STREAM_CONSUMER_GROUP: ${REMNAWAVE_STREAM_CONSUMER_GROUP:-cybervpn-remnawave-v1}
+      REMNAWAVE_STREAM_IP_HMAC_SECRET: ${REMNAWAVE_STREAM_IP_HMAC_SECRET:?set a dedicated 32-plus-character Remnawave stream IP HMAC secret}
+      REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS: ${REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS:-14}
+      REMNAWAVE_STREAM_RETENTION_ENABLED: ${REMNAWAVE_STREAM_RETENTION_ENABLED:-true}
+      REMNAWAVE_STREAM_RETENTION_BATCH_LIMIT: ${REMNAWAVE_STREAM_RETENTION_BATCH_LIMIT:-1000}
+      REMNAWAVE_STREAM_RETENTION_MAX_BATCHES: ${REMNAWAVE_STREAM_RETENTION_MAX_BATCHES:-20}
       ENVIRONMENT: production
       LOG_LEVEL: INFO
       METRICS_ENABLED: "true"
@@ -344,15 +373,21 @@ services:
       PARTNER_PAYOUTS_ENABLED: ${PARTNER_PAYOUTS_ENABLED:-false}
       PARTNER_EVENT_BACKBONE_ENABLED: ${PARTNER_EVENT_BACKBONE_ENABLED:-true}
       PARTNER_EXPORTS_ENABLED: ${PARTNER_EXPORTS_ENABLED:-true}
+    depends_on:
+      cybervpn-backend:
+        condition: service_healthy
+      cybervpn-remnawave-valkey:
+        condition: service_healthy
     networks:
       cybervpn-backend: {}
       cybervpn-data: {}
+      cybervpn-remnawave-data: {}
       cybervpn-metrics: {}
       cybervpn-egress: {}
     tmpfs:
       - /tmp:size=256m,mode=1777
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import os, redis; client=redis.from_url(os.environ['REDIS_URL'], socket_connect_timeout=5, socket_timeout=5); client.ping(); client.close()\""]
+      test: ["CMD-SHELL", "python -c \"import os, redis; urls=[os.environ['REDIS_URL']]; urls += [os.environ['REMNAWAVE_STREAM_REDIS_URL']] if os.environ.get('REMNAWAVE_STREAM_CONSUMER_ENABLED', 'false').lower() == 'true' else []; clients=[redis.from_url(url, socket_connect_timeout=5, socket_timeout=5) for url in urls]; [client.ping() for client in clients]; [client.close() for client in clients]\""]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -372,7 +407,7 @@ services:
   cybervpn-scheduler:
     <<: *runtime-defaults
     image: ${CYBERVPN_IMAGE_REGISTRY:-local}/cybervpn-task-worker:${CYBERVPN_IMAGE_TAG:-stage1-beta-rc.1}
-    command: ["taskiq", "scheduler", "src.broker:scheduler"]
+    command: ["taskiq", "scheduler", "src.scheduler:scheduler"]
     env_file:
       - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/app.env
         required: false
@@ -387,6 +422,7 @@ services:
     environment:
       DATABASE_URL: ${CYBERVPN_DATABASE_URL:-postgresql+asyncpg://cybervpn:replace-before-live@cybervpn-postgres:5432/cybervpn}
       REDIS_URL: ${CYBERVPN_REDIS_URL:-redis://cybervpn-valkey:6379/0}
+      REMNAWAVE_STREAM_CONSUMER_ENABLED: "false"
       ENVIRONMENT: production
       LOG_LEVEL: INFO
       METRICS_ENABLED: "false"
@@ -445,10 +481,14 @@ services:
 
   cybervpn-remnawave:
     <<: *runtime-defaults
-    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:-cybervpn/remnawave-backend:2.8.0-raw-vision-flow.2}
+    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:?CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be a registry digest-pinned 3.4.3 image}
     env_file:
       - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-panel.env
         required: true
+    environment:
+      CYBERVPN_NODE_SSH_BROKER_ENABLED: ${REMNAWAVE_NODE_SSH_ENABLED:-false}
+      CYBERVPN_NODE_SSH_BROKER_SECRET: ${REMNAWAVE_NODE_SSH_BROKER_SECRET:-}
+      CYBERVPN_NODE_SSH_BROKER_TRUSTED_PROXY_RANGES: ${CYBERVPN_STAGE1_REMNAWAVE_SSH_PROXY_IP:-172.30.8.3}
     expose:
       - "3000"
       - "3001"
@@ -469,6 +509,8 @@ services:
       cybervpn-remnawave-data: {}
       cybervpn-metrics: {}
       cybervpn-egress: {}
+      cybervpn-remnawave-ssh:
+        ipv4_address: ${CYBERVPN_STAGE1_REMNAWAVE_SSH_PANEL_IP:-172.30.8.2}
     tmpfs:
       - /tmp:size=128m,mode=1777
     healthcheck:
@@ -488,6 +530,83 @@ services:
       prometheus.io/port: "3001"
       prometheus.job: remnawave
       prometheus.service: cybervpn-remnawave
+
+  cybervpn-remnawave-subscription-page:
+    <<: *runtime-defaults
+    profiles: ["subscription"]
+    image: ${REMNAWAVE_SUBSCRIPTION_PAGE_IMAGE:-remnawave/subscription-page:8.0.0@sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac}
+    env_file:
+      - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-subscription-page.env
+        required: true
+    environment:
+      APP_PORT: "3010"
+      REMNAWAVE_PANEL_URL: http://cybervpn-remnawave:3000
+      CUSTOM_SUB_PREFIX: api/sub
+      TRUST_PROXY: ${REMNAWAVE_SUBSCRIPTION_PAGE_TRUST_PROXY:-172.30.3.0/24}
+      PM2_HOME: /tmp/pm2
+      MARZBAN_LEGACY_LINK_ENABLED: "false"
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m,mode=0700,uid=1000,gid=1000
+    expose:
+      - "3010"
+    ports:
+      - "127.0.0.1:13010:3010"
+    depends_on:
+      cybervpn-remnawave:
+        condition: service_healthy
+    networks:
+      cybervpn-backend: {}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "2", "http://127.0.0.1:3010/internal/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    mem_limit: 384m
+    cpus: "0.50"
+    pids_limit: 128
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-remnawave-subscription-page
+      cybervpn.rollback-image: remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c
+
+  cybervpn-remnawave-node-ssh-proxy:
+    image: ${CYBERVPN_NODE_SSH_PROXY_IMAGE:?Set the promoted digest-pinned CyberVPN node-ssh-proxy mirror image}
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /config:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=1000,gid=1000
+      - /data:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=1000,gid=1000
+      - /tmp:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=1000,gid=1000
+    volumes:
+      - ./remnawave-node-ssh-proxy.Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      cybervpn-remnawave:
+        condition: service_healthy
+    networks:
+      cybervpn-remnawave-ssh:
+        ipv4_address: ${CYBERVPN_STAGE1_REMNAWAVE_SSH_PROXY_IP:-172.30.8.3}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/internal/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    mem_limit: 64m
+    cpus: "0.25"
+    pids_limit: 64
+    labels:
+      <<: *stage-labels
+      cybervpn.service: cybervpn-remnawave-node-ssh-proxy
 
   cybervpn-remnawave-postgres:
     <<: *runtime-defaults
@@ -552,7 +671,7 @@ services:
   cybervpn-remnawave-node-local:
     <<: *runtime-defaults
     profiles: ["vpn-node-local"]
-    image: ${REMNAWAVE_NODE_IMAGE:-remnawave/node:2.8.0}
+    image: ${REMNAWAVE_NODE_IMAGE:-remnawave/node:3.4.1@sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e}
     cap_add:
       - NET_ADMIN
     env_file:
@@ -972,6 +1091,12 @@ networks:
   cybervpn-remnawave-data:
     name: cybervpn_stage1_remnawave_data
     internal: true
+  cybervpn-remnawave-ssh:
+    name: cybervpn_stage1_remnawave_ssh
+    internal: true
+    ipam:
+      config:
+        - subnet: ${CYBERVPN_STAGE1_REMNAWAVE_SSH_SUBNET:-172.30.8.0/29}
   cybervpn-egress:
     name: cybervpn_stage1_egress
 

@@ -31,6 +31,7 @@ class AdminMobileUserListItemResponse(BaseModel):
     is_partner: bool
     telegram_id: int | None
     telegram_username: str | None
+    remnawave_user_id: int | None
     remnawave_uuid: str | None
     referral_code: str | None
     referred_by_user_id: UUID | None
@@ -66,6 +67,7 @@ class AdminUpdateMobileUserRequest(BaseModel):
 
 class AdminMobileUserSubscriptionSnapshotResponse(BaseModel):
     exists: bool
+    remnawave_user_id: int | None = None
     remnawave_uuid: str | None = None
     status: str | None = None
     short_uuid: str | None = None

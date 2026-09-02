@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/screens/notification_prefs_screen.dart';
@@ -12,10 +13,9 @@ import 'package:cybervpn_mobile/features/settings/presentation/screens/notificat
 
 /// A fake [SettingsNotifier] that holds an in-memory [AppSettings] without
 /// touching SharedPreferences.
-class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
-    implements SettingsNotifier {
+class _FakeSettingsNotifier extends SettingsNotifier {
   _FakeSettingsNotifier([AppSettings? initial])
-      : _settings = initial ?? const AppSettings();
+    : _settings = initial ?? const AppSettings();
 
   AppSettings _settings;
 
@@ -26,20 +26,20 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
   Future<void> toggleNotification(NotificationType type) async {
     _settings = switch (type) {
       NotificationType.connection => _settings.copyWith(
-          notificationConnection: !_settings.notificationConnection,
-        ),
+        notificationConnection: !_settings.notificationConnection,
+      ),
       NotificationType.expiry => _settings.copyWith(
-          notificationExpiry: !_settings.notificationExpiry,
-        ),
+        notificationExpiry: !_settings.notificationExpiry,
+      ),
       NotificationType.promotional => _settings.copyWith(
-          notificationPromotional: !_settings.notificationPromotional,
-        ),
+        notificationPromotional: !_settings.notificationPromotional,
+      ),
       NotificationType.referral => _settings.copyWith(
-          notificationReferral: !_settings.notificationReferral,
-        ),
+        notificationReferral: !_settings.notificationReferral,
+      ),
       NotificationType.vpnSpeed => _settings.copyWith(
-          notificationVpnSpeed: !_settings.notificationVpnSpeed,
-        ),
+        notificationVpnSpeed: !_settings.notificationVpnSpeed,
+      ),
     };
     state = AsyncData(_settings);
   }
@@ -72,7 +72,10 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
   @override
   Future<void> updateMtu({required MtuMode mode, int? mtuValue}) async {}
   @override
-  Future<void> updateDns({required DnsProvider provider, String? customDns}) async {}
+  Future<void> updateDns({
+    required DnsProvider provider,
+    String? customDns,
+  }) async {}
   @override
   Future<void> addTrustedNetwork(String ssid) async {}
   @override
@@ -99,14 +102,13 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
 // Helper
 // ---------------------------------------------------------------------------
 
-Widget _buildTestWidget({
-  required _FakeSettingsNotifier notifier,
-}) {
+Widget _buildTestWidget({required _FakeSettingsNotifier notifier}) {
   return ProviderScope(
-    overrides: [
-      settingsProvider.overrideWith(() => notifier),
-    ],
+    overrides: [settingsProvider.overrideWith(() => notifier)],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
       home: NotificationPrefsScreen(),
     ),
   );
@@ -133,22 +135,25 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(notifier: notifier));
       await tester.pumpAndSettle();
 
-      expect(find.text('Connection status changes'), findsOneWidget);
+      expect(find.text('Connection Status'), findsOneWidget);
       expect(find.text('Subscription expiry'), findsOneWidget);
-      expect(find.text('Promotional'), findsOneWidget);
+      expect(find.text('Promotions'), findsOneWidget);
       expect(find.text('Referral activity'), findsOneWidget);
-      expect(find.text('Security alerts'), findsOneWidget);
+      expect(find.text('Security Alerts'), findsOneWidget);
     });
 
-    testWidgets('toggle promotional updates provider from false to true',
-        (tester) async {
+    testWidgets('toggle promotional updates provider from false to true', (
+      tester,
+    ) async {
       final notifier = _FakeSettingsNotifier();
 
       await tester.pumpWidget(_buildTestWidget(notifier: notifier));
       await tester.pumpAndSettle();
 
       // Verify initially off (default for promotional is false).
-      final switchFinder = find.byKey(const Key('toggle_notification_promotional'));
+      final switchFinder = find.byKey(
+        const Key('toggle_notification_promotional'),
+      );
       expect(switchFinder, findsOneWidget);
 
       // Find the Switch widget within the promotional tile.
@@ -160,7 +165,7 @@ void main() {
       expect(switchWidget.value, isFalse);
 
       // Tap to toggle on.
-      await tester.tap(find.text('Promotional'));
+      await tester.tap(find.text('Promotions'));
       await tester.pumpAndSettle();
 
       // Verify provider state was updated.
@@ -171,15 +176,18 @@ void main() {
       expect(switchWidget.value, isTrue);
     });
 
-    testWidgets('security alerts toggle is disabled (onChanged is null)',
-        (tester) async {
+    testWidgets('security alerts toggle is disabled (onChanged is null)', (
+      tester,
+    ) async {
       final notifier = _FakeSettingsNotifier();
 
       await tester.pumpWidget(_buildTestWidget(notifier: notifier));
       await tester.pumpAndSettle();
 
       // Find the Switch inside the security alerts tile.
-      final securityTile = find.byKey(const Key('toggle_notification_security'));
+      final securityTile = find.byKey(
+        const Key('toggle_notification_security'),
+      );
       expect(securityTile, findsOneWidget);
 
       final switchFinder = find.descendant(
@@ -242,8 +250,9 @@ void main() {
     // widget tests because Platform.isAndroid returns false in test
     // environments. The toggle is guarded by a try-catch that returns false
     // when Platform is unavailable, so it will not render in tests.
-    testWidgets('VPN speed toggle is not shown in test environment',
-        (tester) async {
+    testWidgets('VPN speed toggle is not shown in test environment', (
+      tester,
+    ) async {
       final notifier = _FakeSettingsNotifier();
 
       await tester.pumpWidget(_buildTestWidget(notifier: notifier));

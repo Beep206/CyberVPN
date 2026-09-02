@@ -1,0 +1,140 @@
+{
+  "$id": "https://cybervpn.dev/schemas/control-plane-accepted-risk/v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "approved_at": {
+      "format": "date-time",
+      "pattern": "Z$",
+      "type": "string"
+    },
+    "approved_by": {
+      "maxLength": 128,
+      "minLength": 3,
+      "type": "string"
+    },
+    "components": {
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "backend": {
+          "$ref": "#/$defs/component"
+        },
+        "helix_adapter": {
+          "$ref": "#/$defs/component"
+        },
+        "node": {
+          "$ref": "#/$defs/component"
+        },
+        "node_ssh_proxy": {
+          "$ref": "#/$defs/component"
+        },
+        "remnawave": {
+          "$ref": "#/$defs/component"
+        },
+        "subscription_page": {
+          "$ref": "#/$defs/component"
+        },
+        "worker": {
+          "$ref": "#/$defs/component"
+        }
+      },
+      "type": "object"
+    },
+    "decision": {
+      "const": "accepted_non_blocking"
+    },
+    "decision_id": {
+      "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$",
+      "type": "string"
+    },
+    "policy_id": {
+      "const": "cybervpn-control-plane-supply-chain/v2"
+    },
+    "rationale": {
+      "maxLength": 2000,
+      "minLength": 20,
+      "type": "string"
+    },
+    "schema_id": {
+      "const": "https://cybervpn.dev/schemas/control-plane-accepted-risk/v1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "signer_workflow": {
+      "const": "github.com/Beep206/CyberVPN/.github/workflows/control-plane-images.yml"
+    },
+    "source_commit": {
+      "pattern": "^[a-f0-9]{40}$",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "schema_id",
+    "decision_id",
+    "decision",
+    "policy_id",
+    "approved_by",
+    "approved_at",
+    "rationale",
+    "signer_workflow",
+    "source_commit",
+    "components"
+  ],
+  "type": "object",
+  "$defs": {
+    "component": {
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "critical": {
+              "minimum": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "high": {
+              "minimum": 1
+            }
+          }
+        }
+      ],
+      "properties": {
+        "critical": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "high": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "image": {
+          "pattern": "^ghcr[.]io/beep206/cybervpn/[a-z0-9-]+@sha256:[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "report_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "scanner": {
+          "enum": [
+            "docker-scout",
+            "trivy"
+          ]
+        }
+      },
+      "required": [
+        "image",
+        "scanner",
+        "report_sha256",
+        "critical",
+        "high"
+      ],
+      "type": "object"
+    }
+  }
+}

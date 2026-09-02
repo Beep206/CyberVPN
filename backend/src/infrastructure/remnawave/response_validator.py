@@ -18,6 +18,22 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
+_SAFE_HTTP_METHODS = frozenset({"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"})
+
+
+def _safe_operation(endpoint: str) -> str:
+    """Return only the developer-controlled HTTP verb, never an upstream path."""
+
+    operation = endpoint.partition(" ")[0].upper()
+    return operation if operation in _SAFE_HTTP_METHODS else "UNKNOWN"
+
+
+def _safe_validation_summary(exc: ValidationError) -> tuple[int, list[str]]:
+    """Reduce Pydantic failures to stable codes without raw input/context."""
+
+    errors = exc.errors(include_url=False, include_context=False, include_input=False)
+    return len(errors), sorted({str(error.get("type", "validation_error")) for error in errors})
+
 
 class RemnawaveResponseValidator:
     """Validates Remnawave API responses against Pydantic schemas.
@@ -51,13 +67,15 @@ class RemnawaveResponseValidator:
             # Pydantic validation automatically strips unknown fields
             validated = schema.model_validate(data)
             return validated
-        except ValidationError as e:
+        except ValidationError as exc:
+            error_count, error_codes = _safe_validation_summary(exc)
             logger.error(
                 "Remnawave response validation failed - potential upstream compromise",
                 extra={
-                    "endpoint": endpoint,
-                    "errors": e.errors(),
-                    "raw_data_keys": list(data.keys()) if isinstance(data, dict) else type(data).__name__,
+                    "operation": _safe_operation(endpoint),
+                    "schema": schema.__name__,
+                    "error_count": error_count,
+                    "error_codes": error_codes,
                 },
             )
             raise HTTPException(
@@ -88,7 +106,7 @@ class RemnawaveResponseValidator:
             logger.error(
                 "Remnawave response validation failed - expected list",
                 extra={
-                    "endpoint": endpoint,
+                    "operation": _safe_operation(endpoint),
                     "actual_type": type(data).__name__,
                 },
             )
@@ -101,13 +119,16 @@ class RemnawaveResponseValidator:
         for i, item in enumerate(data):
             try:
                 validated.append(schema.model_validate(item))
-            except ValidationError as e:
+            except ValidationError as exc:
+                error_count, error_codes = _safe_validation_summary(exc)
                 logger.error(
                     "Remnawave response validation failed - potential upstream compromise",
                     extra={
-                        "endpoint": endpoint,
+                        "operation": _safe_operation(endpoint),
+                        "schema": schema.__name__,
                         "index": i,
-                        "errors": e.errors(),
+                        "error_count": error_count,
+                        "error_codes": error_codes,
                     },
                 )
                 raise HTTPException(
@@ -163,8 +184,7 @@ class RemnawaveResponseValidator:
         logger.error(
             "Remnawave response validation failed - expected collection",
             extra={
-                "endpoint": endpoint,
-                "collection_key": collection_key,
+                "operation": _safe_operation(endpoint),
                 "actual_type": type(data).__name__,
             },
         )

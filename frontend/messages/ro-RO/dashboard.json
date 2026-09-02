@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Disponibilitatea serviciului VPN",
+    "connections": "Conexiuni",
+    "usage": "Utilizare",
+    "devices": "Dispozitive",
+    "available": "Disponibil",
+    "unavailable": "Indisponibil",
+    "loading": "Se încarcă starea serviciului VPN",
+    "degraded": "Degradat parțial"
   }
 }

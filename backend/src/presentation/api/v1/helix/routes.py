@@ -1,18 +1,27 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.helix_service import (
     HelixAccessDeniedError,
+    HelixCustomerAccess,
     HelixDisabledError,
     HelixManifestUnavailableError,
     HelixService,
     ResolveManifestCommand,
     RuntimeEventCommand,
 )
+from src.application.use_cases.auth_realms import RealmResolution
 from src.domain.enums import AdminRole
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.helix.client import AdapterPublishRolloutRequest
 from src.infrastructure.monitoring.metrics import route_operations_total
-from src.presentation.dependencies import get_current_active_user, require_role
+from src.presentation.api.v1.subscriptions.credential_access import (
+    require_customer_principal,
+    resolve_exact_mobile_user_ref,
+)
+from src.presentation.dependencies import require_role
+from src.presentation.dependencies.auth import CurrentPrincipalActor, get_current_principal_actor
+from src.presentation.dependencies.auth_realms import get_request_auth_realm
+from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.helix import (
     get_helix_service,
 )
@@ -40,9 +49,27 @@ def _raise_hidden_not_found() -> None:
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
 
+async def get_helix_customer_access(
+    current_actor: CurrentPrincipalActor = Depends(get_current_principal_actor),
+    current_realm: RealmResolution = Depends(get_request_auth_realm),
+    db: AsyncSession = Depends(get_db),
+) -> HelixCustomerAccess:
+    """Resolve the authenticated customer to one exact Remnawave 3.x identity."""
+
+    require_customer_principal(current_actor, current_realm)
+    customer, user_ref = await resolve_exact_mobile_user_ref(
+        db,
+        customer_id=current_actor.principal_id,
+        expected_auth_realm_id=current_actor.auth_realm_id,
+    )
+    if customer.id != current_actor.principal_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
+    return HelixCustomerAccess(customer_id=customer.id, remnawave_user_ref=user_ref)
+
+
 @router.get("/capabilities", response_model=HelixCapabilityDefaultsResponse)
 async def get_capability_defaults(
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: HelixCustomerAccess = Depends(get_helix_customer_access),
     service: HelixService = Depends(get_helix_service),
 ) -> HelixCapabilityDefaultsResponse:
     try:
@@ -60,7 +87,7 @@ async def get_capability_defaults(
 @router.post("/manifest", response_model=HelixResolveManifestResponse)
 async def resolve_manifest(
     request: HelixResolveManifestRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: HelixCustomerAccess = Depends(get_helix_customer_access),
     service: HelixService = Depends(get_helix_service),
 ) -> HelixResolveManifestResponse:
     try:
@@ -88,7 +115,7 @@ async def resolve_manifest(
 @router.post("/events/runtime", response_model=HelixRuntimeEventResponse)
 async def report_runtime_event(
     request: HelixRuntimeEventRequest,
-    current_user: AdminUserModel = Depends(get_current_active_user),
+    current_user: HelixCustomerAccess = Depends(get_helix_customer_access),
     service: HelixService = Depends(get_helix_service),
 ) -> HelixRuntimeEventResponse:
     try:

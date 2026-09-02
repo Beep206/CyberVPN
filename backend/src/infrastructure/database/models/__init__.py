@@ -208,6 +208,19 @@ from src.infrastructure.database.models.referral_attribution_session_model impor
 from src.infrastructure.database.models.referral_commission_model import ReferralCommissionModel
 from src.infrastructure.database.models.refresh_token_model import RefreshToken
 from src.infrastructure.database.models.refund_model import RefundModel
+from src.infrastructure.database.models.remnawave_upgrade_model import (
+    PartnerRemnawaveResourceGrantModel,
+    RemnawaveConnectionDropReceiptModel,
+    RemnawaveIdentityReconciliationModel,
+    RemnawaveNodeConnectionsHourlyModel,
+    RemnawaveNodePresenceModel,
+    RemnawaveStreamCheckpointModel,
+    RemnawaveStreamDeadLetterModel,
+    RemnawaveStreamGapModel,
+    RemnawaveStreamReceiptModel,
+    RemnawaveSubscriptionRequestEventModel,
+    RemnawaveUserUsageHourlyModel,
+)
 from src.infrastructure.database.models.renewal_order_model import RenewalOrderModel
 from src.infrastructure.database.models.reserve_model import ReserveModel
 from src.infrastructure.database.models.risk_identifier_model import RiskIdentifierModel
@@ -244,6 +257,17 @@ from src.infrastructure.database.models.withdrawal_request_model import Withdraw
 
 __all__ = [
     "AdminUserModel",
+    "PartnerRemnawaveResourceGrantModel",
+    "RemnawaveConnectionDropReceiptModel",
+    "RemnawaveIdentityReconciliationModel",
+    "RemnawaveNodeConnectionsHourlyModel",
+    "RemnawaveNodePresenceModel",
+    "RemnawaveStreamCheckpointModel",
+    "RemnawaveStreamDeadLetterModel",
+    "RemnawaveStreamGapModel",
+    "RemnawaveStreamReceiptModel",
+    "RemnawaveSubscriptionRequestEventModel",
+    "RemnawaveUserUsageHourlyModel",
     "AccessDeliveryChannelModel",
     "AcceptedLegalDocumentModel",
     "AuthRealmModel",

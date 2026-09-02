@@ -41,6 +41,7 @@ from src.utils.constants import (
     SCHEDULE_PAYMENT_VERIFY,
     SCHEDULE_PUBLIC_NETWORK_DPI_SCORE,
     SCHEDULE_QUEUE_DEPTH,
+    SCHEDULE_REMNAWAVE_STREAM_RETENTION,
     SCHEDULE_REPORT_DAILY,
     SCHEDULE_REPORT_WEEKLY,
     SCHEDULE_SERVICES_HEALTH,
@@ -51,7 +52,6 @@ from src.utils.constants import (
     SCHEDULE_SYNC_NODE_CONFIGS,
     SCHEDULE_SYNC_USER_STATS,
     SCHEDULE_TELEGRAM_STARS_RECONCILIATION,
-    SCHEDULE_TRAFFIC_RESET,
     SCHEDULE_VPN_TESTER_ALL_TARIFFS,
     SCHEDULE_VPN_TESTER_BALANCER,
     SCHEDULE_VPN_TESTER_CLEANUP,
@@ -218,9 +218,13 @@ from src.tasks.subscriptions.auto_renew import auto_renew_subscriptions
 
 auto_renew_subscriptions = _schedule_task(auto_renew_subscriptions, [{"cron": SCHEDULE_AUTO_RENEW}])
 
+# Preserve the historical TaskIQ name for queued/manual compatibility while
+# explicitly keeping the NO_RESET policy task out of LabelScheduleSource.
 from src.tasks.subscriptions.reset_traffic import reset_monthly_traffic
 
-reset_monthly_traffic = _schedule_task(reset_monthly_traffic, [{"cron": SCHEDULE_TRAFFIC_RESET}])
+reset_monthly_traffic_labels = getattr(reset_monthly_traffic, "labels", None)
+if isinstance(reset_monthly_traffic_labels, dict):
+    reset_monthly_traffic_labels.pop("schedule", None)
 
 # =============================================================================
 # Analytics Tasks
@@ -343,6 +347,13 @@ cleanup_notifications = _schedule_task(cleanup_notifications, [{"cron": SCHEDULE
 from src.tasks.cleanup.cache import cleanup_cache
 
 cleanup_cache = _schedule_task(cleanup_cache, [{"cron": SCHEDULE_CLEANUP_CACHE}])
+
+from src.tasks.cleanup.remnawave_stream_retention import purge_remnawave_stream_retention
+
+purge_remnawave_stream_retention = _schedule_task(
+    purge_remnawave_stream_retention,
+    [{"cron": SCHEDULE_REMNAWAVE_STREAM_RETENTION}],
+)
 
 # =============================================================================
 # Sync Tasks

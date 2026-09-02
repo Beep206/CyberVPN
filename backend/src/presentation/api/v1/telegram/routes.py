@@ -11,7 +11,8 @@ from decimal import Decimal
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+import redis.asyncio as redis
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +20,11 @@ from src.application.events import EventOutboxService
 from src.application.services.auth_service import AuthService
 from src.application.services.config_service import ConfigService
 from src.application.services.public_uid_allocator import allocate_public_uid
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    resolve_exact_mapped_mobile_user_ref,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.services.stage1_plan_policy import (
     filter_stage1_public_addons,
     filter_stage1_public_paid_plans,
@@ -39,7 +45,10 @@ from src.application.use_cases.payments.payment_completed_earnings import (
     append_payment_completed_partner_earning_publication,
 )
 from src.application.use_cases.refunds import ReconcileTelegramStarsRefundUseCase
-from src.application.use_cases.service_access import GetCurrentServiceStateUseCase
+from src.application.use_cases.service_access import (
+    CurrentServiceIdentityConflict,
+    GetCurrentServiceStateUseCase,
+)
 from src.application.use_cases.subscriptions import GenerateConfigUseCase
 from src.application.use_cases.subscriptions.get_current_entitlements import GetCurrentEntitlementsUseCase
 from src.application.use_cases.trial.activate_trial import ActivateTrialUseCase
@@ -48,6 +57,7 @@ from src.application.use_cases.trial.stage1_trial_provisioning import Stage1Tria
 from src.config.settings import settings
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.customer_staff_note_model import CustomerStaffNoteModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
@@ -66,7 +76,6 @@ from src.infrastructure.database.repositories.subscription_plan_repo import Subs
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
-from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.contracts import RemnawaveCreatedSubscriptionResponse
 from src.infrastructure.remnawave.stage1_trial_gateway import RemnawaveStage1TrialProvisioningGateway
@@ -101,6 +110,10 @@ from src.presentation.api.v1.plans.schemas import (
 )
 from src.presentation.api.v1.provisioning_profiles.routes import _serialize_provisioning_profile
 from src.presentation.api.v1.service_identities.routes import _serialize_service_identity
+from src.presentation.api.v1.subscriptions.credential_access import (
+    read_customer_vpn_credentials_as_admin,
+    require_sensitive_config_admin,
+)
 from src.presentation.api.v1.telegram.schemas import (
     ConfigResponse,
     CreateSubscriptionRequest,
@@ -134,6 +147,8 @@ from src.presentation.api.v1.telegram.schemas import (
     TelegramStarsRefundReconciliationResponse,
     TelegramUserResponse,
 )
+from src.presentation.dependencies.auth import CurrentPrincipalActor, get_current_principal_actor
+from src.presentation.dependencies.auth_realms import get_request_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
@@ -279,7 +294,7 @@ def _extract_telegram_stars_amount(features: dict | None) -> int | None:
     ]
 
     for candidate in candidates:
-        if candidate in (None, ""):
+        if candidate is None or candidate == "":
             continue
         try:
             value = int(candidate)
@@ -729,6 +744,24 @@ async def _refresh_bot_user_for_response(db: AsyncSession, user: AdminUserModel)
     return user
 
 
+async def _get_exact_remnawave_user_for_mobile(
+    *,
+    db: AsyncSession,
+    mobile_user: MobileUserModel,
+    remnawave_client: RemnawaveClient,
+):
+    try:
+        user_ref = await resolve_exact_mapped_mobile_user_ref(db, mobile_user)
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Customer Remnawave identity is not exactly reconciled",
+        ) from exc
+    if user_ref is None:
+        return None
+    return await RemnawaveUserGateway(client=remnawave_client).get_by_ref(user_ref)
+
+
 def _build_bot_subscription(remnawave_user: Any | None) -> TelegramBotSubscriptionResponse | None:
     has_subscription = bool(
         remnawave_user
@@ -812,12 +845,21 @@ def _build_bot_trial_status(
 @router.get("/user/{telegram_id}", response_model=TelegramUserResponse)
 async def get_telegram_user(
     telegram_id: int,
+    db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.USER_READ)),
 ) -> TelegramUserResponse:
     """Get Telegram user information."""
-    gateway = RemnawaveUserGateway(client=remnawave_client)
-    user = await gateway.get_by_telegram_id(telegram_id=telegram_id)
+    mobile_user = await MobileUserRepository(db).get_by_telegram_id(telegram_id)
+    user = (
+        await _get_exact_remnawave_user_for_mobile(
+            db=db,
+            mobile_user=mobile_user,
+            remnawave_client=remnawave_client,
+        )
+        if mobile_user is not None
+        else None
+    )
 
     if not user:
         raise HTTPException(
@@ -833,7 +875,7 @@ async def get_telegram_user(
         data_usage=user.data_usage,
         data_limit=user.data_limit,
         expires_at=user.expires_at,
-        subscription_url=user.subscription_url,
+        subscription_url=None,
     )
 
 
@@ -845,12 +887,21 @@ async def get_telegram_user(
 async def create_subscription(
     telegram_id: int,
     request: CreateSubscriptionRequest,
+    db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.SUBSCRIPTION_CREATE)),
-) -> CreateSubscriptionResponse:
+) -> CreateSubscriptionResponse | Response:
     """Create a subscription for a Telegram user."""
-    gateway = RemnawaveUserGateway(client=remnawave_client)
-    user = await gateway.get_by_telegram_id(telegram_id=telegram_id)
+    mobile_user = await MobileUserRepository(db).get_by_telegram_id(telegram_id)
+    user = (
+        await _get_exact_remnawave_user_for_mobile(
+            db=db,
+            mobile_user=mobile_user,
+            remnawave_client=remnawave_client,
+        )
+        if mobile_user is not None
+        else None
+    )
 
     if not user:
         raise HTTPException(
@@ -859,9 +910,9 @@ async def create_subscription(
         )
 
     subscription_data = {
-        "user_uuid": str(user.uuid),
-        "plan_name": request.plan_name,
-        "duration_days": request.duration_days,
+        "userId": user.remnawave_id,
+        "planName": request.plan_name,
+        "durationDays": request.duration_days,
     }
 
     result = await remnawave_client.post_validated(
@@ -871,6 +922,8 @@ async def create_subscription(
     )
 
     route_operations_total.labels(route="telegram", action="create_subscription", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return CreateSubscriptionResponse(
         status="success",
         subscription_id=result.uuid or result.id,
@@ -881,20 +934,33 @@ async def create_subscription(
 @router.get("/user/{telegram_id}/config", response_model=ConfigResponse)
 async def get_user_config(
     telegram_id: int,
+    request: Request,
+    current_actor: CurrentPrincipalActor = Depends(get_current_principal_actor),
+    current_realm: RealmResolution = Depends(get_request_auth_realm),
+    db: AsyncSession = Depends(get_db),
     remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
-    _: None = Depends(require_permission(Permission.USER_READ)),
+    redis_client: redis.Redis = Depends(get_redis),
 ) -> ConfigResponse:
-    """Get VPN configuration for a Telegram user."""
-    gateway = RemnawaveUserGateway(client=remnawave_client)
-    user = await gateway.get_by_telegram_id(telegram_id=telegram_id)
-
-    if not user:
+    """Get VPN configuration through the shared fresh-auth admin boundary."""
+    # Authorize before resolving the target Telegram id so low-privilege
+    # operators cannot use response differences as a customer oracle.
+    await require_sensitive_config_admin(db, actor=current_actor, current_realm=current_realm)
+    mobile_user = await MobileUserRepository(db).get_by_telegram_id(telegram_id)
+    if mobile_user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with telegram_id {telegram_id} not found",
         )
 
-    result = await GenerateConfigUseCase(remnawave_client).execute(user.uuid)
+    result = await read_customer_vpn_credentials_as_admin(
+        customer_id=mobile_user.id,
+        request=request,
+        actor=current_actor,
+        current_realm=current_realm,
+        db=db,
+        client=remnawave_client,
+        redis_client=redis_client,
+    )
 
     route_operations_total.labels(route="telegram", action="get_config", status="success").inc()
     subscription_url = result.get("subscription_url")
@@ -966,8 +1032,15 @@ async def get_bot_user(
     user = await _get_bot_user_or_404(db, telegram_id)
     mobile_user = await MobileUserRepository(db).get_by_telegram_id(telegram_id)
 
-    gateway = RemnawaveUserGateway(client=remnawave_client)
-    remnawave_user = await gateway.get_by_telegram_id(telegram_id)
+    remnawave_user = (
+        await _get_exact_remnawave_user_for_mobile(
+            db=db,
+            mobile_user=mobile_user,
+            remnawave_client=remnawave_client,
+        )
+        if mobile_user is not None
+        else None
+    )
     entitlements_snapshot = (
         await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id) if mobile_user is not None else None
     )
@@ -991,7 +1064,6 @@ async def create_or_bootstrap_bot_user(
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service),
-    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramBotUserResponse:
     """Create or refresh a Telegram bot user in the FastAPI auth backend."""
     _require_telegram_bot_secret(telegram_bot_secret)
@@ -1021,13 +1093,13 @@ async def create_or_bootstrap_bot_user(
             referrer_id=request.referrer_id,
             auth_service=auth_service,
         )
-        entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
+        existing_entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
         requires_onboarding = await _has_pending_telegram_bot_onboarding(db, mobile_user=mobile_user)
         existing = await _refresh_bot_user_for_response(db, existing)
         route_operations_total.labels(route="telegram_bot", action="upsert_user", status="success").inc()
         return _build_bot_user_response(
             existing,
-            entitlements_snapshot=entitlements_snapshot,
+            entitlements_snapshot=existing_entitlements_snapshot,
             requires_onboarding=requires_onboarding,
             miniapp_url=settings.telegram_miniapp_onboarding_url,
         )
@@ -1085,25 +1157,11 @@ async def create_or_bootstrap_bot_user(
         auth_service=auth_service,
     )
 
+    entitlements_snapshot: dict[str, Any] | None
     if requires_onboarding:
         await _ensure_telegram_bot_pending_onboarding(db, mobile_user=mobile_user)
         entitlements_snapshot = None
     else:
-        try:
-            await remnawave_adapter.create_user(
-                username=user.login,
-                email="",
-                telegram_id=request.telegram_id,
-            )
-        except Exception as exc:
-            # Best-effort provisioning: Telegram bot should remain operational even if upstream provisioning fails.
-            logger.warning(
-                "telegram_bot_user_provisioning_failed",
-                extra={
-                    "telegram_id_fingerprint": _telegram_id_fingerprint(request.telegram_id),
-                    "error_type": type(exc).__name__,
-                },
-            )
         entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
 
     route_operations_total.labels(route="telegram_bot", action="create_user", status="success").inc()
@@ -1164,8 +1222,11 @@ async def update_bot_user(
         auth_service=auth_service,
     )
 
-    gateway = RemnawaveUserGateway(client=remnawave_client)
-    remnawave_user = await gateway.get_by_telegram_id(telegram_id)
+    remnawave_user = await _get_exact_remnawave_user_for_mobile(
+        db=db,
+        mobile_user=mobile_user,
+        remnawave_client=remnawave_client,
+    )
     entitlements_snapshot = await GetCurrentEntitlementsUseCase(db).execute(mobile_user.id)
     user = await _refresh_bot_user_for_response(db, user)
 
@@ -1256,16 +1317,22 @@ async def get_bot_user_service_state(
         except PermissionError as exc:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     else:
-        result = await GetCurrentServiceStateUseCase(db).execute(
-            customer_account_id=mobile_user.id,
-            current_realm=current_realm,
-            provider_name="remnawave",
-            channel_type=AccessDeliveryChannelType.TELEGRAM_BOT.value,
-            channel_subject_ref=None,
-            provisioning_profile_key=None,
-            credential_type=DeviceCredentialType.TELEGRAM_BOT.value,
-            credential_subject_key=f"telegram-bot:{telegram_id}",
-        )
+        try:
+            result = await GetCurrentServiceStateUseCase(db).execute(
+                customer_account_id=mobile_user.id,
+                current_realm=current_realm,
+                provider_name="remnawave",
+                channel_type=AccessDeliveryChannelType.TELEGRAM_BOT.value,
+                channel_subject_ref=None,
+                provisioning_profile_key=None,
+                credential_type=DeviceCredentialType.TELEGRAM_BOT.value,
+                credential_subject_key=f"telegram-bot:{telegram_id}",
+            )
+        except CurrentServiceIdentityConflict as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Current Remnawave identity is not exactly reconciled",
+            ) from exc
     route_operations_total.labels(route="telegram_bot", action="service_state", status="success").inc()
     return TelegramBotCurrentServiceStateResponse(
         customer_account_id=mobile_user.id,
@@ -1426,6 +1493,11 @@ async def create_telegram_stars_invoice(
 
     mobile_user = await _get_mobile_user_or_404(db, body.telegram_id)
     quote_result = await _build_checkout_result(db=db, user_id=mobile_user.id, body=body)
+    if quote_result.plan_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Telegram Stars checkout requires a plan-based purchase",
+        )
     plan = await SubscriptionPlanRepository(db).get_by_id(quote_result.plan_id)
     expected_stars_amount = _extract_telegram_stars_amount(plan.features if plan is not None else None)
     if expected_stars_amount is None:
@@ -1928,52 +2000,28 @@ async def get_bot_user_config(
             subscription_key=subscription_key,
         )
 
-    if mobile_user and mobile_user.remnawave_uuid:
-        try:
-            result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
-        except HTTPException as exc:
-            if exc.status_code != status.HTTP_404_NOT_FOUND:
-                raise
-        else:
-            subscription_url = result.get("subscription_url") or (
-                normalize_public_subscription_url(mobile_user.subscription_url)
-                if mobile_user.subscription_url
-                else None
-            )
-            config_string = subscription_url or result.get("config_string", "")
-            route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
-            return ConfigResponse(
-                config_string=str(config_string),
-                client_type="subscription" if subscription_url else str(result.get("client_type", "subscription")),
-                subscription_url=str(subscription_url) if subscription_url else None,
-                subscription_key=None,
-            )
-
-    gateway = RemnawaveUserGateway(client=remnawave_client)
-    user = await gateway.get_by_telegram_id(telegram_id=telegram_id)
-    if not user:
-        if mobile_user and mobile_user.subscription_url:
-            subscription_url = (
-                normalize_public_subscription_url(mobile_user.subscription_url) or mobile_user.subscription_url
-            )
-            route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
-            return ConfigResponse(
-                config_string=str(subscription_url),
-                client_type="subscription",
-                subscription_url=str(subscription_url),
-                subscription_key=None,
-            )
+    if mobile_user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with telegram_id {telegram_id} not found",
         )
-
-    result = await GenerateConfigUseCase(remnawave_client).execute(user.uuid)
-    subscription_url = result.get("subscription_url") or (
-        normalize_public_subscription_url(mobile_user.subscription_url)
-        if mobile_user and mobile_user.subscription_url
-        else None
-    )
+    try:
+        user_ref = await resolve_exact_mapped_remnawave_ref(
+            db,
+            subject_type="mobile_user",
+            subject_id=mobile_user.id,
+            numeric_user_id=mobile_user.remnawave_user_id,
+            legacy_uuid_raw=mobile_user.remnawave_uuid,
+        )
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Customer VPN identity is not exactly reconciled",
+        ) from exc
+    if user_ref is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="VPN identity is not available")
+    result = await GenerateConfigUseCase(remnawave_client).execute(user_ref)
+    subscription_url = normalize_public_subscription_url(result.get("subscription_url"))
     config_string = subscription_url or result.get("config_string", "")
     route_operations_total.labels(route="telegram_bot", action="get_config", status="success").inc()
     return ConfigResponse(

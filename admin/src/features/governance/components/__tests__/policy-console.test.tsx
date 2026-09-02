@@ -6,8 +6,7 @@ import { PolicyConsole } from '../policy-console';
 
 const {
   mockGetSettings,
-  mockCreateSetting,
-  mockUpdateSetting,
+  mockUpdateSettings,
   mockGetMiniAppRuntimeConfig,
   mockUpdateMiniAppRuntimeConfig,
   mockGetMiniAppLaunchReadinessConfig,
@@ -17,8 +16,7 @@ const {
   mockGetMiniAppLaunchTimeline,
 } = vi.hoisted(() => ({
   mockGetSettings: vi.fn(),
-  mockCreateSetting: vi.fn(),
-  mockUpdateSetting: vi.fn(),
+  mockUpdateSettings: vi.fn(),
   mockGetMiniAppRuntimeConfig: vi.fn(),
   mockUpdateMiniAppRuntimeConfig: vi.fn(),
   mockGetMiniAppLaunchReadinessConfig: vi.fn(),
@@ -31,8 +29,7 @@ const {
 vi.mock('@/lib/api/governance', () => ({
   governanceApi: {
     getSettings: (...args: unknown[]) => mockGetSettings(...args),
-    createSetting: (...args: unknown[]) => mockCreateSetting(...args),
-    updateSetting: (...args: unknown[]) => mockUpdateSetting(...args),
+    updateSettings: (...args: unknown[]) => mockUpdateSettings(...args),
     getMiniAppRuntimeConfig: (...args: unknown[]) => mockGetMiniAppRuntimeConfig(...args),
     updateMiniAppRuntimeConfig: (...args: unknown[]) => mockUpdateMiniAppRuntimeConfig(...args),
     getMiniAppLaunchReadinessConfig: (...args: unknown[]) => mockGetMiniAppLaunchReadinessConfig(...args),
@@ -62,9 +59,43 @@ function renderWithQueryClient(ui: ReactNode) {
 describe('PolicyConsole', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetSettings.mockResolvedValue({ data: [] });
-    mockCreateSetting.mockResolvedValue({ data: {} });
-    mockUpdateSetting.mockResolvedValue({ data: {} });
+    mockGetSettings.mockResolvedValue({
+      data: {
+        passkeySettings: {
+          enabled: true,
+          rpId: 'panel.example.com',
+          origin: 'https://panel.example.com',
+        },
+        oauth2Settings: {
+          github: {
+            enabled: true,
+            clientId: 'github-client',
+            clientSecret: 'github-secret-must-not-render',
+            allowedEmails: [],
+          },
+          pocketid: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedEmails: [],
+            frontendDomain: null,
+            plainDomain: null,
+          },
+          yandex: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedEmails: [],
+          },
+        },
+        passwordSettings: { enabled: false },
+        brandingSettings: { title: 'CyberVPN', logoUrl: null },
+      },
+    });
+    mockUpdateSettings.mockResolvedValue({
+      status: 202,
+      data: undefined,
+    });
     mockGetMiniAppRuntimeConfig.mockResolvedValue({
       data: {
         key: 'miniapp.runtime',
@@ -230,6 +261,74 @@ describe('PolicyConsole', () => {
         },
       ],
     });
+  });
+
+  it('renders the four singleton sections without exposing OAuth client secrets', async () => {
+    renderWithQueryClient(<PolicyConsole />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('passkeySettings').length).toBeGreaterThan(0);
+      expect(screen.getByText('oauth2Settings')).toBeInTheDocument();
+      expect(screen.getByText('passwordSettings')).toBeInTheDocument();
+      expect(screen.getByText('brandingSettings')).toBeInTheDocument();
+    });
+
+    expect(document.body).not.toHaveTextContent('github-secret-must-not-render');
+    const oauthRow = screen.getByText('oauth2Settings').closest('tr');
+    expect(oauthRow).not.toBeNull();
+    expect(
+      within(oauthRow as HTMLElement).getByRole('button', { name: 'policy.gapTitle' }),
+    ).toBeDisabled();
+  });
+
+  it('patches one editable section through the singleton endpoint contract', async () => {
+    renderWithQueryClient(<PolicyConsole />);
+
+    const brandingRow = await waitFor(() => {
+      const row = screen.getByText('brandingSettings').closest('tr');
+      expect(row).not.toBeNull();
+      return row as HTMLElement;
+    });
+    fireEvent.click(within(brandingRow).getByRole('button', { name: 'common.edit' }));
+
+    const valueEditor = screen.getByPlaceholderText('policy.valuePlaceholder');
+    fireEvent.change(valueEditor, {
+      target: {
+        value: JSON.stringify({
+          title: 'CyberVPN Control',
+          logoUrl: 'https://panel.example.com/logo.svg',
+        }),
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'common.update' }));
+
+    await waitFor(() => {
+      expect(mockUpdateSettings).toHaveBeenCalledWith({
+        brandingSettings: {
+          title: 'CyberVPN Control',
+          logoUrl: 'https://panel.example.com/logo.svg',
+        },
+      });
+    });
+    expect(await screen.findByText('policy.updateSuccess')).toBeInTheDocument();
+  });
+
+  it('rejects a malformed section locally instead of sending an invalid patch', async () => {
+    renderWithQueryClient(<PolicyConsole />);
+
+    const passwordRow = await waitFor(() => {
+      const row = screen.getByText('passwordSettings').closest('tr');
+      expect(row).not.toBeNull();
+      return row as HTMLElement;
+    });
+    fireEvent.click(within(passwordRow).getByRole('button', { name: 'common.edit' }));
+    fireEvent.change(screen.getByPlaceholderText('policy.valuePlaceholder'), {
+      target: { value: JSON.stringify({ enabled: 'yes' }) },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'common.update' }));
+
+    expect(await screen.findByText('common.validation.jsonInvalid')).toBeInTheDocument();
+    expect(mockUpdateSettings).not.toHaveBeenCalled();
   });
 
   it('submits the dedicated mini app runtime governance mutation', async () => {

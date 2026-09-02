@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN 서비스 가용성",
+    "connections": "연결",
+    "usage": "사용량",
+    "devices": "기기",
+    "available": "사용 가능",
+    "unavailable": "사용 불가",
+    "loading": "VPN 서비스 상태 불러오는 중",
+    "degraded": "일부 성능 저하"
   }
 }

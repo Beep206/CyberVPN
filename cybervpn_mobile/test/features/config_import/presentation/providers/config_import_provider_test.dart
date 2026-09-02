@@ -1,6 +1,13 @@
+import 'package:cybervpn_mobile/core/types/result.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/repositories/config_import_repository.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/providers/config_import_provider.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart'
+    show vpnProfileRepositoryProvider;
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/vpn_profile.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/domain/repositories/profile_repository.dart'
+    as profiles;
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show configImportRepositoryProvider;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,15 +81,63 @@ class FailingConfigImportRepository extends MockConfigImportRepository {
   }
 }
 
+class FakeProfileRepository implements profiles.ProfileRepository {
+  int localProfileAdds = 0;
+  int remoteProfileAdds = 0;
+
+  @override
+  Future<Result<VpnProfile>> addLocalProfile(
+    String name,
+    List<ProfileServer> servers,
+  ) async {
+    localProfileAdds++;
+    return Success(
+      VpnProfile.local(
+        id: 'local-$localProfileAdds',
+        name: name,
+        sortOrder: localProfileAdds - 1,
+        createdAt: DateTime(2026, 1, 1),
+        servers: servers,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<VpnProfile>> addRemoteProfile(
+    String url, {
+    String? name,
+  }) async {
+    remoteProfileAdds++;
+    return Success(
+      VpnProfile.remote(
+        id: 'remote-$remoteProfileAdds',
+        name: name ?? 'Remote profile',
+        subscriptionUrl: url,
+        sortOrder: remoteProfileAdds - 1,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
 /// Creates a [ProviderContainer] with the given [repository] override.
-ProviderContainer createContainer(ConfigImportRepository repository) {
+ProviderContainer createContainer(
+  ConfigImportRepository repository, {
+  FakeProfileRepository? profileRepository,
+}) {
   return ProviderContainer(
     overrides: [
       configImportRepositoryProvider.overrideWithValue(repository),
+      vpnProfileRepositoryProvider.overrideWithValue(
+        profileRepository ?? FakeProfileRepository(),
+      ),
     ],
   );
 }
@@ -138,11 +193,16 @@ void main() {
 
   group('ConfigImportNotifier', () {
     late MockConfigImportRepository repository;
+    late FakeProfileRepository profileRepository;
     late ProviderContainer container;
 
     setUp(() {
       repository = MockConfigImportRepository();
-      container = createContainer(repository);
+      profileRepository = FakeProfileRepository();
+      container = createContainer(
+        repository,
+        profileRepository: profileRepository,
+      );
     });
 
     tearDown(() {
@@ -170,6 +230,7 @@ void main() {
       expect(state.customServers.first.rawUri, 'vless://test@server:443');
       expect(state.isImporting, isFalse);
       expect(state.lastError, isNull);
+      expect(profileRepository.localProfileAdds, 1);
     });
 
     test('importFromUri sets error on failure', () async {
@@ -223,6 +284,7 @@ void main() {
         state.customServers.first.subscriptionUrl,
         'https://example.com/sub',
       );
+      expect(profileRepository.remoteProfileAdds, 1);
     });
   });
 
@@ -255,8 +317,7 @@ void main() {
       expect(configs, hasLength(1));
     });
 
-    test('subscriptionUrlsProvider returns unique subscription URLs',
-        () async {
+    test('subscriptionUrlsProvider returns unique subscription URLs', () async {
       await waitForState(container);
 
       final notifier = container.read(configImportProvider.notifier);

@@ -65,7 +65,6 @@ class TelegramWebAuthUseCase:
         self._auth_service = auth_service
         self._session = session
         self._telegram_service = telegram_service
-        self._remnawave_gateway = remnawave_gateway
         self._allow_new_users = allow_new_users
         self._session_issuer = AuthSessionIssuer(auth_service=auth_service, session=session)
 
@@ -146,19 +145,6 @@ class TelegramWebAuthUseCase:
                 extra={"user_id": str(user.id), "login": login},
             )
 
-            if self._remnawave_gateway:
-                try:
-                    await self._remnawave_gateway.create_user(
-                        username=login,
-                        email="",
-                        telegram_id=telegram_id,
-                    )
-                except Exception as e:
-                    logger.exception(
-                        "Failed to create Remnawave user for Web Telegram registration: %s",
-                        e,
-                        extra={"user_id": str(user.id)},
-                    )
         else:
             logger.info(
                 "Telegram Web login for existing user",

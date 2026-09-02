@@ -460,7 +460,17 @@
     "serverStatus": "SERVERSTATUS",
     "statusLabel": "SYSTEMSTATUS:",
     "statusValue": "OPTIMAL",
-    "title": "VPN KOMMANDOCENTRAL"
+    "title": "VPN KOMMANDOCENTRAL",
+    "vpnServiceStatus": {
+      "available": "Tillgängligt",
+      "connections": "Anslutningar",
+      "degraded": "Delvis begränsat",
+      "devices": "Enheter",
+      "loading": "Läser in VPN-tjänstens status",
+      "title": "VPN-tjänstens tillgänglighet",
+      "unavailable": "Inte tillgängligt",
+      "usage": "Användning"
+    }
   },
   "DeleteAccount": {
     "contact": {

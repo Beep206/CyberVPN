@@ -460,7 +460,17 @@
     "serverStatus": "সার্ভার স্ট্যাটাস",
     "statusLabel": "সিস্টেম স্ট্যাটাস:",
     "statusValue": "সর্বোত্তম",
-    "title": "VPN কমান্ড সেন্টার"
+    "title": "VPN কমান্ড সেন্টার",
+    "vpnServiceStatus": {
+      "available": "উপলভ্য",
+      "connections": "সংযোগ",
+      "degraded": "আংশিকভাবে সীমিত",
+      "devices": "ডিভাইস",
+      "loading": "VPN পরিষেবার অবস্থা লোড হচ্ছে",
+      "title": "VPN পরিষেবার প্রাপ্যতা",
+      "unavailable": "অনুপলভ্য",
+      "usage": "ব্যবহার"
+    }
   },
   "DeleteAccount": {
     "contact": {

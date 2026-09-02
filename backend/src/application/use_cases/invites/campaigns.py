@@ -662,7 +662,9 @@ class CreateInviteCampaignVersionUseCase:
             "child_per_user_redemption_cap": child_per_user_redemption_cap,
             "child_grant_plan_id": str(child_plan.id) if child_plan is not None else None,
             "child_grant_duration_mode": child_grant_duration_mode,
-            "child_grant_duration_days": int(child_duration_days) if child_plan is not None else None,
+            "child_grant_duration_days": (
+                int(child_duration_days) if child_plan is not None and child_duration_days is not None else None
+            ),
             "child_grant_device_limit_override": command.child_grant_device_limit_override,
             "child_invite_expiry_mode": child_invite_expiry_mode,
             "child_invite_expiry_days": command.child_invite_expiry_days,
@@ -837,7 +839,8 @@ class ValidateInviteCampaignVersionUseCase:
 
         if campaign.status == "archived":
             errors.append("archived campaigns cannot publish new versions")
-        if campaign.expires_at is not None and _coerce_utc(campaign.expires_at) <= datetime.now(UTC):
+        campaign_expires_at = _coerce_utc(campaign.expires_at)
+        if campaign_expires_at is not None and campaign_expires_at <= datetime.now(UTC):
             errors.append("campaign expiry is in the past")
         if not errors and version.status == "published":
             warnings.append("version is already published")
@@ -961,6 +964,8 @@ class CreateInviteCampaignBatchUseCase:
             )
 
         expiry_mode = str(command.expiry_mode or INVITE_EXPIRY_CAMPAIGN_DEFAULT)
+        resolved_expiry_days: int | None
+        resolved_expires_at: datetime | None
         if expiry_mode == INVITE_EXPIRY_CAMPAIGN_DEFAULT:
             resolved_expiry_mode = version.root_invite_expiry_mode or INVITE_EXPIRY_RELATIVE
             resolved_expiry_days = version.root_invite_expiry_days or 30
@@ -1056,11 +1061,11 @@ class CreateInviteCampaignBatchUseCase:
         invites: list[InviteCodeModel] = []
         for index in range(int(command.count)):
             raw_code = await _generate_unique_code(self._session)
-            owner_user_id = owner_user_ids[index] if owner_user_ids else command.owner_user_id
+            invite_owner_user_id: UUID | None = owner_user_ids[index] if owner_user_ids else command.owner_user_id
             invites.append(
                 InviteCodeModel(
                     code=raw_code,
-                    owner_user_id=owner_user_id,
+                    owner_user_id=invite_owner_user_id,
                     free_days=display_days,
                     plan_id=version.grant_plan_id,
                     batch_id=batch.id,

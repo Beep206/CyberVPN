@@ -7,7 +7,9 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
+from httpx import HTTPStatusError, ReadTimeout, Request, Response
 
+from src.application.services.remnawave_identity_access import RemnawaveIdentityAccessConflict
 from src.application.use_cases.subscriptions.stage1_paid_provisioning import (
     STAGE1_PAID_ORDER_STATUS,
     STAGE1_PAID_SETTLEMENT_STATUS,
@@ -28,6 +30,11 @@ from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningRequest,
     Stage1TrialProvisioningResult,
     build_stage1_trial_provisioning_request,
+)
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
+from src.infrastructure.remnawave.user_gateway import (
+    RemnawaveIdentityBindingError,
+    RemnawaveMutationAcceptedPending,
 )
 from src.presentation.api.shared import STAGE1_DEFAULT_VPN_PROFILE_ID
 from src.presentation.api.shared.stage1_contract import (
@@ -53,6 +60,13 @@ class InMemoryRetryQueue:
     def __init__(self) -> None:
         self.jobs: dict[str, Stage1ProvisioningRetryJob] = {}
         self.saved: list[Stage1ProvisioningRetryJob] = []
+        self.current_refs: dict[object, RemnawaveUserRef | Exception | None] = {}
+
+    async def resolve_current_remnawave_user_ref(self, customer_account_id):
+        result = self.current_refs.get(customer_account_id)
+        if isinstance(result, Exception):
+            raise result
+        return result
 
     async def save_retry_job(self, job: Stage1ProvisioningRetryJob) -> Stage1ProvisioningRetryJob:
         self.jobs[str(job.job_id)] = job
@@ -107,7 +121,7 @@ class DurableLikeRetryQueue(InMemoryRetryQueue):
     ) -> Stage1ProvisioningRetryJob:
         updated = replace(
             job,
-            state=Stage1ProvisioningRetryJobState.DEAD_LETTER,
+            state=Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED,
             provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
             support_state=Stage1SupportState.OPS_ESCALATION,
             completed_at=completed_at,
@@ -233,6 +247,294 @@ async def test_stage1_paid_retry_queue_is_idempotent_by_operation_and_correlatio
 
 
 @pytest.mark.asyncio
+async def test_stage1_accepted_create_requires_reconciliation_and_is_never_replayed_by_worker() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = _build_paid_request(clock.value)
+    gateway = FlakyPaidGateway([RemnawaveMutationAcceptedPending(operation="create")])
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+
+    decision = await service.provision_paid_or_queue(request=request, gateway=gateway)
+
+    assert decision.queued_for_retry is False
+    assert decision.provisioning_state == Stage1ProvisioningState.RECONCILIATION_REQUIRED
+    assert decision.retry_job is not None
+    assert decision.retry_job.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED
+    assert decision.retry_job.completed_at == clock.value
+    assert len(gateway.requests) == 1
+
+    clock.advance(timedelta(hours=1))
+    worker_result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=gateway,
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+
+    assert worker_result.claimed == 0
+    assert len(gateway.requests) == 1
+
+    direct_retry_gateway = FlakyPaidGateway([])
+    retried = await service.retry_paid_job(
+        job=decision.retry_job,
+        request=request,
+        gateway=direct_retry_gateway,
+    )
+    assert retried.provisioning_state == Stage1ProvisioningState.RECONCILIATION_REQUIRED
+    assert direct_retry_gateway.requests == []
+
+
+@pytest.mark.asyncio
+async def test_stage1_new_identity_transport_ambiguity_is_not_queued_for_blind_create_retry() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = InMemoryRetryQueue()
+    request = build_stage1_trial_provisioning_request(
+        customer_account_id=uuid4(),
+        email="trial-user@example.test",
+        username="trial-user",
+        telegram_id=123,
+        trial_expires_at=clock.value + timedelta(days=STAGE1_TRIAL_DURATION_DAYS),
+    )
+    ambiguous_timeout = ReadTimeout(
+        "response lost after request send",
+        request=Request("POST", "https://remnawave.invalid/api/users"),
+    )
+    gateway = FlakyTrialGateway([ambiguous_timeout])
+
+    decision = await Stage1ProvisioningRetryService(queue=queue, now=clock).provision_trial_or_queue(
+        request=request,
+        gateway=gateway,
+    )
+
+    assert decision.queued_for_retry is False
+    assert decision.provisioning_state == Stage1ProvisioningState.RECONCILIATION_REQUIRED
+    assert decision.retry_job is not None
+    assert decision.retry_job.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED
+    assert len(gateway.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_stage1_new_identity_response_mismatch_is_never_replayed() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = build_stage1_trial_provisioning_request(
+        customer_account_id=uuid4(),
+        email="trial-user@example.test",
+        username="trial-user",
+        telegram_id=123,
+        trial_expires_at=clock.value + timedelta(days=STAGE1_TRIAL_DURATION_DAYS),
+    )
+    gateway = FlakyTrialGateway([RemnawaveIdentityBindingError("provider response identity mismatch")])
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+
+    decision = await service.provision_trial_or_queue(request=request, gateway=gateway)
+
+    assert decision.queued_for_retry is False
+    assert decision.retry_job is not None
+    assert decision.retry_job.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED
+    assert len(gateway.requests) == 1
+    clock.advance(timedelta(hours=1))
+    worker_result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=FlakyPaidGateway([]),
+        trial_gateway=gateway,
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+    assert worker_result.claimed == 0
+    assert len(gateway.requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status_code", [400, 500])
+async def test_stage1_mutation_http_error_is_terminal_and_never_replayed(status_code: int) -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = _build_paid_request(clock.value)
+    upstream_request = Request("POST", "https://remnawave.invalid/api/users")
+    error = HTTPStatusError(
+        "provider mutation failed",
+        request=upstream_request,
+        response=Response(status_code, request=upstream_request),
+    )
+    gateway = FlakyPaidGateway([error])
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+
+    decision = await service.provision_paid_or_queue(request=request, gateway=gateway)
+
+    assert decision.queued_for_retry is False
+    assert decision.retry_job is not None
+    assert decision.retry_job.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED
+    assert len(gateway.requests) == 1
+    worker_result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=gateway,
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+    assert worker_result.claimed == 0
+    assert len(gateway.requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_stage1_known_target_transport_ambiguity_is_not_replayed() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    legacy_uuid = uuid4()
+    request = replace(
+        _build_paid_request(clock.value),
+        existing_remnawave_user_id=42,
+        existing_remnawave_uuid=str(legacy_uuid),
+    )
+    ambiguous_timeout = ReadTimeout(
+        "response lost after mutation send",
+        request=Request("PATCH", "https://remnawave.invalid/api/users"),
+    )
+    gateway = FlakyPaidGateway([ambiguous_timeout])
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+
+    decision = await service.provision_paid_or_queue(request=request, gateway=gateway)
+
+    assert decision.queued_for_retry is False
+    assert decision.retry_job is not None
+    assert decision.retry_job.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED
+    assert len(gateway.requests) == 1
+    clock.advance(timedelta(hours=1))
+    worker_result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=gateway,
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+    assert worker_result.claimed == 0
+    assert len(gateway.requests) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("current_identity_case", ["missing", "pending", "wrong_numeric", "wrong_legacy"])
+async def test_stage1_worker_revalidates_current_exact_identity_before_retry(
+    current_identity_case: str,
+) -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    legacy_uuid = uuid4()
+    request = replace(
+        _build_paid_request(clock.value),
+        existing_remnawave_user_id=42,
+        existing_remnawave_uuid=str(legacy_uuid),
+    )
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+    first = await service.provision_paid_or_queue(
+        request=request,
+        gateway=FlakyPaidGateway([ConnectionError("known pre-dispatch outage")]),
+    )
+    assert first.retry_job is not None
+    queue.current_refs[request.customer_account_id] = {
+        "missing": None,
+        "pending": RemnawaveIdentityAccessConflict("pending mapping"),
+        "wrong_numeric": RemnawaveUserRef(id=99, legacy_uuid=legacy_uuid),
+        "wrong_legacy": RemnawaveUserRef(id=42, legacy_uuid=uuid4()),
+    }[current_identity_case]
+    clock.advance(timedelta(seconds=60))
+    retry_gateway = FlakyPaidGateway([])
+
+    result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=retry_gateway,
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+
+    assert result.claimed == 1
+    assert result.reconciliation_required == 1
+    assert retry_gateway.requests == []
+    stored = queue.jobs_by_key[(Stage1ProvisioningRetryOperation.PAID_ACCESS.value, str(request.order_id))]
+    assert stored.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED
+
+
+@pytest.mark.asyncio
+async def test_stage1_worker_retries_exact_numeric_only_identity() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = replace(
+        _build_paid_request(clock.value),
+        existing_remnawave_user_id=42,
+        existing_remnawave_uuid=None,
+    )
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+    first = await service.provision_paid_or_queue(
+        request=request,
+        gateway=FlakyPaidGateway([ConnectionError("known pre-dispatch outage")]),
+    )
+    assert first.retry_job is not None
+    queue.current_refs[request.customer_account_id] = RemnawaveUserRef(id=42)
+    clock.advance(timedelta(seconds=60))
+    success = Stage1PaidProvisioningResult(
+        customer_account_id=request.customer_account_id,
+        order_id=request.order_id,
+        remnawave_uuid=None,
+        profile_id=request.profile_id,
+        status="active",
+        expires_at=request.access_expires_at,
+        created=False,
+        remnawave_user_id=42,
+    )
+    retry_gateway = FlakyPaidGateway([success])
+
+    result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=retry_gateway,
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+
+    assert result.succeeded == 1
+    assert retry_gateway.requests[0].existing_remnawave_user_id == 42
+    assert retry_gateway.requests[0].existing_remnawave_uuid is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("legacy_on_stored_job", [True, False])
+async def test_stage1_worker_rejects_one_sided_legacy_identity(legacy_on_stored_job: bool) -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    legacy_uuid = uuid4()
+    request = replace(
+        _build_paid_request(clock.value),
+        existing_remnawave_user_id=42,
+        existing_remnawave_uuid=str(legacy_uuid) if legacy_on_stored_job else None,
+    )
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+    first = await service.provision_paid_or_queue(
+        request=request,
+        gateway=FlakyPaidGateway([ConnectionError("known pre-dispatch outage")]),
+    )
+    assert first.retry_job is not None
+    queue.current_refs[request.customer_account_id] = RemnawaveUserRef(
+        id=42,
+        legacy_uuid=None if legacy_on_stored_job else legacy_uuid,
+    )
+    clock.advance(timedelta(seconds=60))
+    retry_gateway = FlakyPaidGateway([])
+
+    result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=retry_gateway,
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+
+    assert result.reconciliation_required == 1
+    assert retry_gateway.requests == []
+
+
+@pytest.mark.asyncio
 async def test_stage1_paid_retry_later_succeeds_and_marks_job_ready() -> None:
     clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
     queue = InMemoryRetryQueue()
@@ -339,6 +641,50 @@ async def test_stage1_retry_failure_before_max_attempts_keeps_job_retrying() -> 
     assert retry.retry_job.attempt_count == 2
     assert retry.retry_job.next_attempt_at == clock.value + timedelta(seconds=120)
     assert retry.provisioning_state == Stage1ProvisioningState.RETRYING
+
+
+@pytest.mark.asyncio
+async def test_stage1_queued_retry_http_500_latches_reconciliation_without_second_replay() -> None:
+    clock = MutableClock(datetime(2026, 5, 4, 9, 30, tzinfo=UTC))
+    queue = DurableLikeRetryQueue()
+    request = _build_paid_request(clock.value)
+    service = Stage1ProvisioningRetryService(queue=queue, now=clock)
+    initial_gateway = FlakyPaidGateway([ConnectionError("known pre-dispatch outage")])
+    first = await service.provision_paid_or_queue(request=request, gateway=initial_gateway)
+    assert first.retry_job is not None
+    assert first.queued_for_retry is True
+
+    upstream_request = Request("POST", "https://remnawave.invalid/api/users")
+    ambiguous_500 = HTTPStatusError(
+        "provider may have committed before returning 500",
+        request=upstream_request,
+        response=Response(500, request=upstream_request),
+    )
+    retry_gateway = FlakyPaidGateway([ambiguous_500])
+    clock.advance(timedelta(seconds=60))
+    retry = await service.retry_paid_job(
+        job=first.retry_job,
+        request=request,
+        gateway=retry_gateway,
+    )
+
+    assert retry.queued_for_retry is False
+    assert retry.retry_job is not None
+    assert retry.retry_job.state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED
+    assert retry.retry_job.attempt_count == 2
+    assert len(initial_gateway.requests) == 1
+    assert len(retry_gateway.requests) == 1
+
+    clock.advance(timedelta(hours=1))
+    worker_result = await Stage1ProvisioningRetryWorker(
+        repository=queue,
+        retry_service=service,
+        paid_gateway=retry_gateway,
+        trial_gateway=FlakyTrialGateway([]),
+        now=clock,
+    ).run_due_jobs(limit=10, worker_id="pytest-worker")
+    assert worker_result.claimed == 0
+    assert len(retry_gateway.requests) == 1
 
 
 @pytest.mark.asyncio

@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Disponibilité du service VPN",
+    "connections": "Connexions",
+    "usage": "Utilisation",
+    "devices": "Appareils",
+    "available": "Disponible",
+    "unavailable": "Indisponible",
+    "loading": "Chargement de l’état du service VPN",
+    "degraded": "Partiellement dégradé"
   }
 }

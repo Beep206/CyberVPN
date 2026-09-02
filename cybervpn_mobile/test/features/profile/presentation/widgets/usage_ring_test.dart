@@ -11,17 +11,12 @@ void main() {
     Widget buildWidget(UsageRing ring) {
       return MaterialApp(
         theme: cyberpunkDarkTheme(),
-        home: Scaffold(
-          body: Center(child: ring),
-        ),
+        home: Scaffold(body: Center(child: ring)),
       );
     }
 
     testWidgets('displays circular progress indicators', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.2,
-        totalValue: 10.0,
-      );
+      const ring = UsageRing(usedValue: 5.2, totalValue: 10.0);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -29,12 +24,10 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNWidgets(2));
     });
 
-    testWidgets('displays default center text with used/total values',
-        (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.2,
-        totalValue: 10.0,
-      );
+    testWidgets('displays default center text with used/total values', (
+      tester,
+    ) async {
+      const ring = UsageRing(usedValue: 5.2, totalValue: 10.0);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -67,10 +60,7 @@ void main() {
     });
 
     testWidgets('does not display subtitle when null', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.2,
-        totalValue: 10.0,
-      );
+      const ring = UsageRing(usedValue: 5.2, totalValue: 10.0);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -79,12 +69,10 @@ void main() {
     });
 
     testWidgets('calculates correct ratio for 50% progress', (tester) async {
-      const ring = UsageRing(
-        usedValue: 50.0,
-        totalValue: 100.0,
-      );
+      const ring = UsageRing(usedValue: 50.0, totalValue: 100.0);
 
       await tester.pumpWidget(buildWidget(ring));
+      await tester.pumpAndSettle();
 
       // Find the progress indicator (not the background one)
       final progressIndicators = tester.widgetList<CircularProgressIndicator>(
@@ -97,12 +85,10 @@ void main() {
     });
 
     testWidgets('calculates correct ratio for 100% progress', (tester) async {
-      const ring = UsageRing(
-        usedValue: 100.0,
-        totalValue: 100.0,
-      );
+      const ring = UsageRing(usedValue: 100.0, totalValue: 100.0);
 
       await tester.pumpWidget(buildWidget(ring));
+      await tester.pumpAndSettle();
 
       final progressIndicators = tester.widgetList<CircularProgressIndicator>(
         find.byType(CircularProgressIndicator),
@@ -111,13 +97,11 @@ void main() {
       expect(progressRing.value, 1.0);
     });
 
-    testWidgets('clamps ratio to 0.0 when used > total', (tester) async {
-      const ring = UsageRing(
-        usedValue: 150.0,
-        totalValue: 100.0,
-      );
+    testWidgets('clamps ratio to 1.0 when used > total', (tester) async {
+      const ring = UsageRing(usedValue: 150.0, totalValue: 100.0);
 
       await tester.pumpWidget(buildWidget(ring));
+      await tester.pumpAndSettle();
 
       final progressIndicators = tester.widgetList<CircularProgressIndicator>(
         find.byType(CircularProgressIndicator),
@@ -128,10 +112,7 @@ void main() {
     });
 
     testWidgets('handles zero total value safely', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.0,
-        totalValue: 0.0,
-      );
+      const ring = UsageRing(usedValue: 5.0, totalValue: 0.0);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -143,11 +124,7 @@ void main() {
     });
 
     testWidgets('uses custom size when provided', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.0,
-        totalValue: 10.0,
-        size: 200,
-      );
+      const ring = UsageRing(usedValue: 5.0, totalValue: 10.0, size: 200);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -159,10 +136,7 @@ void main() {
     });
 
     testWidgets('uses default size 160 when not specified', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.0,
-        totalValue: 10.0,
-      );
+      const ring = UsageRing(usedValue: 5.0, totalValue: 10.0);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -173,11 +147,7 @@ void main() {
     });
 
     testWidgets('uses custom stroke width when provided', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.0,
-        totalValue: 10.0,
-        strokeWidth: 16,
-      );
+      const ring = UsageRing(usedValue: 5.0, totalValue: 10.0, strokeWidth: 16);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -190,12 +160,10 @@ void main() {
       }
     });
 
-    testWidgets('uses default stroke width 12 when not specified',
-        (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.0,
-        totalValue: 10.0,
-      );
+    testWidgets('uses default stroke width 12 when not specified', (
+      tester,
+    ) async {
+      const ring = UsageRing(usedValue: 5.0, totalValue: 10.0);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -224,15 +192,13 @@ void main() {
 
       // Second indicator is the progress ring
       final progressRing = progressIndicators.elementAt(1);
-      final colorAnimation = progressRing.valueColor as AlwaysStoppedAnimation<Color>;
+      final colorAnimation =
+          progressRing.valueColor as AlwaysStoppedAnimation<Color>;
       expect(colorAnimation.value, customColor);
     });
 
     testWidgets('uses theme primary color as default accent', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.0,
-        totalValue: 10.0,
-      );
+      const ring = UsageRing(usedValue: 5.0, totalValue: 10.0);
 
       await tester.pumpWidget(buildWidget(ring));
 
@@ -241,12 +207,14 @@ void main() {
       );
 
       final progressRing = progressIndicators.elementAt(1);
-      final colorAnimation = progressRing.valueColor as AlwaysStoppedAnimation<Color>;
+      final colorAnimation =
+          progressRing.valueColor as AlwaysStoppedAnimation<Color>;
       expect(colorAnimation.value, CyberColors.matrixGreen);
     });
 
-    testWidgets('displays multiple text widgets when subtitle provided',
-        (tester) async {
+    testWidgets('displays multiple text widgets when subtitle provided', (
+      tester,
+    ) async {
       const ring = UsageRing(
         usedValue: 5.0,
         totalValue: 10.0,
@@ -261,10 +229,7 @@ void main() {
     });
 
     testWidgets('formats decimal values correctly', (tester) async {
-      const ring = UsageRing(
-        usedValue: 5.234567,
-        totalValue: 10.987654,
-      );
+      const ring = UsageRing(usedValue: 5.234567, totalValue: 10.987654);
 
       await tester.pumpWidget(buildWidget(ring));
 

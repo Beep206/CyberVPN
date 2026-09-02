@@ -6,14 +6,12 @@ type SubscriptionsResponse = operations['list_subscription_templates_api_v1_subs
 type CreateSubscriptionTemplateRequest =
   operations['create_subscription_template_api_v1_subscriptions__post']['requestBody']['content']['application/json'];
 type CreateSubscriptionTemplateResponse =
-  operations['create_subscription_template_api_v1_subscriptions__post']['responses'][200]['content']['application/json'];
+  operations['create_subscription_template_api_v1_subscriptions__post']['responses'][201]['content']['application/json'];
 type SubscriptionResponse = operations['get_subscription_template_api_v1_subscriptions__uuid__get']['responses'][200]['content']['application/json'];
 type UpdateSubscriptionTemplateRequest =
   operations['update_subscription_template_api_v1_subscriptions__uuid__put']['requestBody']['content']['application/json'];
 type UpdateSubscriptionTemplateResponse =
   operations['update_subscription_template_api_v1_subscriptions__uuid__put']['responses'][200]['content']['application/json'];
-type DeleteSubscriptionTemplateResponse =
-  operations['delete_subscription_template_api_v1_subscriptions__uuid__delete']['responses'][200]['content']['application/json'];
 type UserConfigResponse = operations['generate_config_api_v1_subscriptions_config__user_uuid__get']['responses'][200]['content']['application/json'];
 
 // Manual types for endpoints not in generated types
@@ -68,7 +66,7 @@ export const subscriptionsApi = {
    * DELETE /api/v1/subscriptions/{uuid}
    */
   remove: (uuid: string) =>
-    apiClient.delete<DeleteSubscriptionTemplateResponse>(`/subscriptions/${uuid}`),
+    apiClient.delete<void>(`/subscriptions/${uuid}`),
 
   /**
    * Get VPN configuration for user

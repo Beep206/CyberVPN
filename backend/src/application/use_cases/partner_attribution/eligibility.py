@@ -374,7 +374,7 @@ def _build_policy_snapshot(
     risk_review_decisions: tuple[str, ...],
     now: datetime,
 ) -> dict[str, Any]:
-    snapshot = {
+    snapshot: dict[str, Any] = {
         "partner_account_id": str(code_model.partner_account_id) if code_model.partner_account_id else None,
         "partner_account_status": account.status if account else None,
         "partner_code_id": str(code_model.id),

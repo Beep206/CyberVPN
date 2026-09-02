@@ -216,30 +216,76 @@ inventory-test:
 	python -m unittest discover -s ansible/tests -p 'test_*.py'
 
 control-plane-release-staging:
+	test -n "$(REMNAWAVE_IMAGE)"
+	test -n "$(REMNAWAVE_AUTH_SECRET_SHA256)"
 	test -n "$(BACKEND_IMAGE)"
 	test -n "$(WORKER_IMAGE)"
 	test -n "$(HELIX_ADAPTER_IMAGE)"
+	test -n "$(NODE_IMAGE)"
+	test -n "$(SUBSCRIPTION_PAGE_IMAGE)"
+	test -n "$(NODE_SSH_PROXY_IMAGE)"
+	test -n "$(SOURCE_COMMIT)"
+	test -n "$(SOURCE_RUN_URL)"
+	test -n "$(EVIDENCE_MANIFEST)"
+	python ansible/scripts/verify_control_plane_attestations.py \
+		--source-commit "$(SOURCE_COMMIT)" \
+		--source-run-url "$(SOURCE_RUN_URL)" \
+		--image "remnawave=$(REMNAWAVE_IMAGE)" \
+		--image "backend=$(BACKEND_IMAGE)" \
+		--image "worker=$(WORKER_IMAGE)" \
+		--image "helix_adapter=$(HELIX_ADAPTER_IMAGE)" \
+		--image "node=$(NODE_IMAGE)" \
+		--image "subscription_page=$(SUBSCRIPTION_PAGE_IMAGE)" \
+		--image "node_ssh_proxy=$(NODE_SSH_PROXY_IMAGE)" $(if $(ACCEPTED_RISK_DECISION),--accepted-risk-decision "$(ACCEPTED_RISK_DECISION)",)
 	python ansible/scripts/promote_control_plane_release.py \
 		--environment staging \
+		--remnawave-image "$(REMNAWAVE_IMAGE)" \
+		--remnawave-auth-secret-sha256 "$(REMNAWAVE_AUTH_SECRET_SHA256)" \
 		--backend-image "$(BACKEND_IMAGE)" \
 		--worker-image "$(WORKER_IMAGE)" \
 		--helix-adapter-image "$(HELIX_ADAPTER_IMAGE)" \
-		$(if $(SOURCE_COMMIT),--source-commit "$(SOURCE_COMMIT)",) \
-		$(if $(SOURCE_RUN_URL),--source-run-url "$(SOURCE_RUN_URL)",) \
-		$(if $(RELEASE_NAME),--release-name "$(RELEASE_NAME)",)
+		--node-image "$(NODE_IMAGE)" \
+		--subscription-page-image "$(SUBSCRIPTION_PAGE_IMAGE)" \
+		--node-ssh-proxy-image "$(NODE_SSH_PROXY_IMAGE)" \
+		--source-commit "$(SOURCE_COMMIT)" \
+		--source-run-url "$(SOURCE_RUN_URL)" \
+		--evidence-manifest "$(EVIDENCE_MANIFEST)" $(if $(RELEASE_NAME),--release-name "$(RELEASE_NAME)",)
 
 control-plane-release-production:
+	test -n "$(REMNAWAVE_IMAGE)"
+	test -n "$(REMNAWAVE_AUTH_SECRET_SHA256)"
 	test -n "$(BACKEND_IMAGE)"
 	test -n "$(WORKER_IMAGE)"
 	test -n "$(HELIX_ADAPTER_IMAGE)"
+	test -n "$(NODE_IMAGE)"
+	test -n "$(SUBSCRIPTION_PAGE_IMAGE)"
+	test -n "$(NODE_SSH_PROXY_IMAGE)"
+	test -n "$(SOURCE_COMMIT)"
+	test -n "$(SOURCE_RUN_URL)"
+	test -n "$(EVIDENCE_MANIFEST)"
+	python ansible/scripts/verify_control_plane_attestations.py \
+		--source-commit "$(SOURCE_COMMIT)" \
+		--source-run-url "$(SOURCE_RUN_URL)" \
+		--image "remnawave=$(REMNAWAVE_IMAGE)" \
+		--image "backend=$(BACKEND_IMAGE)" \
+		--image "worker=$(WORKER_IMAGE)" \
+		--image "helix_adapter=$(HELIX_ADAPTER_IMAGE)" \
+		--image "node=$(NODE_IMAGE)" \
+		--image "subscription_page=$(SUBSCRIPTION_PAGE_IMAGE)" \
+		--image "node_ssh_proxy=$(NODE_SSH_PROXY_IMAGE)" $(if $(ACCEPTED_RISK_DECISION),--accepted-risk-decision "$(ACCEPTED_RISK_DECISION)",)
 	python ansible/scripts/promote_control_plane_release.py \
 		--environment production \
+		--remnawave-image "$(REMNAWAVE_IMAGE)" \
+		--remnawave-auth-secret-sha256 "$(REMNAWAVE_AUTH_SECRET_SHA256)" \
 		--backend-image "$(BACKEND_IMAGE)" \
 		--worker-image "$(WORKER_IMAGE)" \
 		--helix-adapter-image "$(HELIX_ADAPTER_IMAGE)" \
-		$(if $(SOURCE_COMMIT),--source-commit "$(SOURCE_COMMIT)",) \
-		$(if $(SOURCE_RUN_URL),--source-run-url "$(SOURCE_RUN_URL)",) \
-		$(if $(RELEASE_NAME),--release-name "$(RELEASE_NAME)",)
+		--node-image "$(NODE_IMAGE)" \
+		--subscription-page-image "$(SUBSCRIPTION_PAGE_IMAGE)" \
+		--node-ssh-proxy-image "$(NODE_SSH_PROXY_IMAGE)" \
+		--source-commit "$(SOURCE_COMMIT)" \
+		--source-run-url "$(SOURCE_RUN_URL)" \
+		--evidence-manifest "$(EVIDENCE_MANIFEST)" $(if $(RELEASE_NAME),--release-name "$(RELEASE_NAME)",)
 
 control-plane-vault-bootstrap-staging:
 	test -n "$(SECRETS_SOURCE)"

@@ -1,11 +1,10 @@
-"""Integration tests for schedule registration.
+"""Integration tests for production schedule registration."""
 
-Tests verify that the schedule definitions module can be imported and
-that the register_schedules function works correctly.
-
-Note: TaskIQ schedule registration happens at module import time via .with_labels().
-These tests verify the module structure is correct, not the runtime scheduling behavior.
-"""
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -122,3 +121,45 @@ class TestScheduleRegistration:
         # Verify scheduler has the schedule source
         assert len(scheduler.sources) > 0, "Scheduler should have schedule sources"
         assert scheduler.sources[0] == schedule_source, "Scheduler should use configured schedule source"
+
+    def test_production_entrypoint_registers_retention_tasks_in_clean_process(self):
+        """The exact CLI module must attach privacy-retention cron labels."""
+        worker_root = Path(__file__).resolve().parents[2]
+        env = os.environ.copy()
+        env.update(
+            {
+                "ENVIRONMENT": "test",
+                "METRICS_PROTECT": "false",
+                "REMNAWAVE_API_TOKEN": "runtime-test-remnawave-token",
+                "TELEGRAM_BOT_TOKEN": "123456:runtime-test-telegram-token",
+                "CRYPTOBOT_TOKEN": "runtime-test-cryptobot-token",
+            }
+        )
+        script = """
+import json
+import src.scheduler
+from src.broker import broker
+
+tasks = broker.get_all_tasks()
+print(json.dumps({
+    "cleanup_webhook_logs": tasks["cleanup_webhook_logs"].labels.get("schedule"),
+    "purge_remnawave_stream_retention": tasks["purge_remnawave_stream_retention"].labels.get("schedule"),
+    "reset_monthly_traffic": tasks["reset_monthly_traffic"].labels.get("schedule"),
+}))
+"""
+
+        result = subprocess.run(  # noqa: S603 -- fixed interpreter and constant audit script
+            [sys.executable, "-c", script],
+            cwd=worker_root,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        payload = json.loads(result.stdout.strip().splitlines()[-1])
+
+        assert payload == {
+            "cleanup_webhook_logs": [{"cron": "0 3 * * 1"}],
+            "purge_remnawave_stream_retention": [{"cron": "15 3 * * *"}],
+            "reset_monthly_traffic": None,
+        }

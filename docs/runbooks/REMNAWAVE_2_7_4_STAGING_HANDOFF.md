@@ -1,5 +1,8 @@
 # Remnawave 2.7.4 Staging Rollout Handoff
 
+> Historical record only. Do not use this procedure for the current 3.4 line;
+> use `REMNAWAVE_3_4_3_UPGRADE.md` and `REMNAWAVE_UPGRADE_GUARDRAILS.md`.
+
 This runbook is the operator handoff for Phase 1 of the Remnawave integration hardening work.
 
 Use it when executing the staging Remnawave edge upgrade from `2.6.1` to `2.7.4`.

@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN سروس کی دستیابی",
+    "connections": "کنکشنز",
+    "usage": "استعمال",
+    "devices": "ڈیوائسز",
+    "available": "دستیاب",
+    "unavailable": "دستیاب نہیں",
+    "loading": "VPN سروس کی حالت لوڈ ہو رہی ہے",
+    "degraded": "جزوی طور پر متاثر"
   }
 }

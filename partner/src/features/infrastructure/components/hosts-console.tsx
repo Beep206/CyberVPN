@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { GlobeLock, PencilLine, Plus, Trash2 } from 'lucide-react';
+import { GlobeLock, PencilLine, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,7 @@ import { hostsApi } from '@/lib/api/infrastructure';
 import { InfrastructurePageShell } from '@/features/infrastructure/components/infrastructure-page-shell';
 import { InfrastructureStatusChip } from '@/features/infrastructure/components/infrastructure-status-chip';
 import { InfrastructureEmptyState } from '@/features/infrastructure/components/empty-state';
-import {
-  formatCompactNumber,
-  parseCsvList,
-  shortId,
-} from '@/features/infrastructure/lib/formatting';
+import { formatCompactNumber, shortId } from '@/features/infrastructure/lib/formatting';
 import {
   Table,
   TableBody,
@@ -25,33 +21,47 @@ import {
 } from '@/shared/ui/organisms/table';
 
 interface HostFormState {
-  name: string;
+  remark: string;
   address: string;
   port: string;
   sni: string;
   host_header: string;
   path: string;
   alpn: string;
-  is_disabled: boolean;
+  isDisabled: boolean;
 }
 
 const EMPTY_FORM: HostFormState = {
-  name: '',
+  remark: '',
   address: '',
   port: '443',
   sni: '',
   host_header: '',
   path: '',
   alpn: '',
-  is_disabled: false,
+  isDisabled: false,
 };
+
+type HostAlpn = NonNullable<Parameters<typeof hostsApi.update>[1]['alpn']>;
+
+const HOST_ALPN_VALUES: readonly HostAlpn[] = [
+  'h3',
+  'h2',
+  'http/1.1',
+  'h2,http/1.1',
+  'h3,h2,http/1.1',
+  'h3,h2',
+];
+
+function parseHostAlpn(value: string): HostAlpn | null {
+  return HOST_ALPN_VALUES.find((candidate) => candidate === value) ?? null;
+}
 
 export function HostsConsole() {
   const t = useTranslations('Infrastructure');
   const queryClient = useQueryClient();
   const [form, setForm] = useState<HostFormState>(EMPTY_FORM);
   const [selectedHostId, setSelectedHostId] = useState<string | null>(null);
-  const [mode, setMode] = useState<'create' | 'edit'>('create');
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const hostsQuery = useQuery({
@@ -61,20 +71,6 @@ export function HostsConsole() {
       return response.data;
     },
     staleTime: 30_000,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: hostsApi.create,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['infrastructure', 'hosts'] });
-      setForm(EMPTY_FORM);
-      setMode('create');
-      setSelectedHostId(null);
-      setFeedback(t('hosts.createSuccess'));
-    },
-    onError: (error) => {
-      setFeedback(error instanceof Error ? error.message : t('common.actionFailed'));
-    },
   });
 
   const updateMutation = useMutation({
@@ -94,7 +90,6 @@ export function HostsConsole() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['infrastructure', 'hosts'] });
       setForm(EMPTY_FORM);
-      setMode('create');
       setSelectedHostId(null);
       setFeedback(t('hosts.deleteSuccess'));
     },
@@ -111,28 +106,28 @@ export function HostsConsole() {
     setFeedback(null);
 
     const port = Number(form.port);
-    if (!form.name.trim() || !form.address.trim() || !Number.isFinite(port) || port <= 0) {
+    if (!selectedHost) {
+      setFeedback(t('hosts.selectedHost'));
+      return;
+    }
+
+    if (!form.remark.trim() || !form.address.trim() || !Number.isFinite(port) || port <= 0) {
       setFeedback(t('common.validation.hostFormInvalid'));
       return;
     }
 
-    const payload = {
-      name: form.name.trim(),
+    const payload: Parameters<typeof hostsApi.update>[1] = {
+      remark: form.remark.trim(),
       address: form.address.trim(),
       port,
-      sni: form.sni.trim() || undefined,
-      host_header: form.host_header.trim() || undefined,
-      path: form.path.trim() || undefined,
-      alpn: parseCsvList(form.alpn),
-      is_disabled: form.is_disabled,
+      sni: form.sni.trim() ? [form.sni.trim()] : null,
+      host: form.host_header.trim() ? [form.host_header.trim()] : null,
+      path: form.path.trim() ? [form.path.trim()] : null,
+      alpn: parseHostAlpn(form.alpn),
+      isDisabled: form.isDisabled,
     };
 
-    if (mode === 'edit' && selectedHost) {
-      await updateMutation.mutateAsync({ uuid: selectedHost.uuid, payload });
-      return;
-    }
-
-    await createMutation.mutateAsync(payload);
+    await updateMutation.mutateAsync({ uuid: selectedHost.uuid, payload });
   }
 
   function handleEditSelection(hostId: string) {
@@ -140,17 +135,16 @@ export function HostsConsole() {
     if (!host) return;
 
     setSelectedHostId(host.uuid);
-    setMode('edit');
     setFeedback(null);
     setForm({
-      name: host.name,
+      remark: host.remark,
       address: host.address,
       port: String(host.port),
       sni: host.sni ?? '',
-      host_header: host.host_header ?? '',
+      host_header: host.host ?? '',
       path: host.path ?? '',
-      alpn: host.alpn?.join(', ') ?? '',
-      is_disabled: host.is_disabled,
+      alpn: host.alpn ?? '',
+      isDisabled: host.isDisabled,
     });
   }
 
@@ -160,21 +154,6 @@ export function HostsConsole() {
       title={t('hosts.title')}
       description={t('hosts.description')}
       icon={GlobeLock}
-      actions={
-        <Button
-          magnetic={false}
-          variant="ghost"
-          onClick={() => {
-            setMode('create');
-            setSelectedHostId(null);
-            setForm(EMPTY_FORM);
-            setFeedback(null);
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {t('hosts.createAction')}
-        </Button>
-      }
       metrics={[
         {
           label: t('hosts.metrics.total'),
@@ -184,7 +163,7 @@ export function HostsConsole() {
         },
         {
           label: t('hosts.metrics.disabled'),
-          value: formatCompactNumber(hosts.filter((host) => host.is_disabled).length),
+          value: formatCompactNumber(hosts.filter((host) => host.isDisabled).length),
           hint: t('hosts.metrics.disabledHint'),
           tone: 'warning',
         },
@@ -233,7 +212,7 @@ export function HostsConsole() {
                     <TableCell>
                       <div className="space-y-1">
                         <p className="font-display uppercase tracking-[0.14em] text-white">
-                          {host.name}
+                          {host.remark}
                         </p>
                         <p className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
                           #{shortId(host.uuid)}
@@ -245,8 +224,8 @@ export function HostsConsole() {
                     <TableCell>{host.path ?? t('common.emptyShort')}</TableCell>
                     <TableCell>
                       <InfrastructureStatusChip
-                        label={host.is_disabled ? t('common.disabled') : t('common.active')}
-                        tone={host.is_disabled ? 'warning' : 'success'}
+                        label={host.isDisabled ? t('common.disabled') : t('common.active')}
+                        tone={host.isDisabled ? 'warning' : 'success'}
                       />
                     </TableCell>
                     <TableCell>
@@ -283,10 +262,10 @@ export function HostsConsole() {
 
         <section className="rounded-2xl border border-grid-line/20 bg-terminal-surface/35 p-5 backdrop-blur xl:col-span-4">
           <h2 className="text-sm font-display uppercase tracking-[0.24em] text-white">
-            {mode === 'edit' ? t('hosts.editTitle') : t('hosts.createTitle')}
+            {t('hosts.editTitle')}
           </h2>
           <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
-            {mode === 'edit' ? t('hosts.editDescription') : t('hosts.createDescription')}
+            {t('hosts.editDescription')}
           </p>
 
           {feedback ? (
@@ -297,7 +276,7 @@ export function HostsConsole() {
 
           <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
             {[
-              ['name', t('common.name'), 'edge-germany-primary'],
+              ['remark', t('common.name'), 'edge-germany-primary'],
               ['address', t('common.address'), 'de-edge-01.example.com'],
               ['port', t('common.port'), '443'],
               ['sni', t('common.sni'), 'cloudflare.com'],
@@ -328,9 +307,9 @@ export function HostsConsole() {
             <label className="flex items-center gap-3 rounded-2xl border border-grid-line/20 bg-terminal-bg/45 px-4 py-3">
               <input
                 type="checkbox"
-                checked={form.is_disabled}
+                checked={form.isDisabled}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, is_disabled: event.target.checked }))
+                  setForm((current) => ({ ...current, isDisabled: event.target.checked }))
                 }
               />
               <span className="text-sm font-mono text-foreground">{t('common.disabled')}</span>
@@ -340,17 +319,16 @@ export function HostsConsole() {
               <Button
                 type="submit"
                 magnetic={false}
-                disabled={createMutation.isPending || updateMutation.isPending}
+                disabled={!selectedHost || updateMutation.isPending}
               >
-                {mode === 'edit' ? t('common.save') : t('hosts.createAction')}
+                {t('common.save')}
               </Button>
-              {mode === 'edit' ? (
+              {selectedHost ? (
                 <Button
                   type="button"
                   variant="ghost"
                   magnetic={false}
                   onClick={() => {
-                    setMode('create');
                     setSelectedHostId(null);
                     setForm(EMPTY_FORM);
                     setFeedback(null);
@@ -368,10 +346,10 @@ export function HostsConsole() {
                 {t('hosts.selectedHost')}
               </p>
               <p className="mt-2 text-lg font-display tracking-[0.14em] text-white">
-                {selectedHost.name}
+                {selectedHost.remark}
               </p>
               <p className="mt-2 text-sm font-mono text-muted-foreground">
-                {selectedHost.alpn?.join(', ') || t('common.emptyShort')}
+                {selectedHost.alpn || t('common.emptyShort')}
               </p>
             </div>
           ) : null}

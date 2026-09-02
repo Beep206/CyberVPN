@@ -7,118 +7,60 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_bulk_disable_users_success():
-    """Test bulk disable users processes all users."""
-    user_uuids = ["user-1", "user-2", "user-3"]
+    """The registered disable task is explicit and performs no provider I/O."""
+    user_ids = [101, 102, 103]
+    from src.tasks.bulk import bulk_operations
 
-    with (
-        patch("src.tasks.bulk.bulk_operations.RemnawaveClient") as mock_rw_cls,
-        patch("src.tasks.bulk.bulk_operations.TelegramClient") as mock_tg_cls,
-        patch("src.tasks.bulk.bulk_operations.get_redis_client") as mock_redis_fn,
-        patch("src.tasks.bulk.bulk_operations.CacheService") as mock_cache_cls,
-        patch("src.tasks.bulk.bulk_operations.get_settings") as mock_settings,
-        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock),
+    result = await bulk_operations.bulk_disable_users(user_ids, "admin-1")
+
+    assert result["total"] == 3
+    assert result["processed"] == 0
+    assert result["failed"] == 0
+    assert result["safety_disabled"] is True
+    assert "durable receipts" in result["reason"]
+    for forbidden_boundary in (
+        "RemnawaveClient",
+        "TelegramClient",
+        "CacheService",
+        "get_redis_client",
+        "publish_event",
     ):
-        mock_settings.return_value.bulk_batch_size = 10
-
-        mock_rw = AsyncMock()
-        mock_rw.disable_user.return_value = {"status": "disabled"}
-        mock_rw_cls.return_value.__aenter__.return_value = mock_rw
-
-        mock_tg = AsyncMock()
-        mock_tg_cls.return_value.__aenter__.return_value = mock_tg
-
-        mock_redis = AsyncMock()
-        mock_redis_fn.return_value = mock_redis
-
-        mock_cache = AsyncMock()
-        mock_cache_cls.return_value = mock_cache
-
-        from src.tasks.bulk.bulk_operations import bulk_disable_users
-
-        result = await bulk_disable_users(user_uuids, "admin-1")
-
-        assert result["total"] == 3
-        assert result["processed"] == 3
-        assert result["failed"] == 0
-        assert mock_rw.disable_user.call_count == 3
-        mock_tg.send_admin_alert.assert_called_once()
+        assert not hasattr(bulk_operations, forbidden_boundary)
 
 
 @pytest.mark.asyncio
 async def test_bulk_disable_users_partial_failure():
-    """Test bulk disable handles individual failures."""
-    user_uuids = ["user-1", "user-2", "user-3"]
+    """No partial mutation path is reachable while safety-disabled."""
+    user_ids = [101, 102, 103]
+    from src.tasks.bulk.bulk_operations import bulk_disable_users
 
-    with (
-        patch("src.tasks.bulk.bulk_operations.RemnawaveClient") as mock_rw_cls,
-        patch("src.tasks.bulk.bulk_operations.TelegramClient") as mock_tg_cls,
-        patch("src.tasks.bulk.bulk_operations.get_redis_client") as mock_redis_fn,
-        patch("src.tasks.bulk.bulk_operations.CacheService") as mock_cache_cls,
-        patch("src.tasks.bulk.bulk_operations.get_settings") as mock_settings,
-        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock),
-    ):
-        mock_settings.return_value.bulk_batch_size = 10
+    result = await bulk_disable_users(user_ids, "admin-1")
 
-        mock_rw = AsyncMock()
-        mock_rw.disable_user.side_effect = [
-            {"status": "disabled"},
-            Exception("API error"),
-            {"status": "disabled"},
-        ]
-        mock_rw_cls.return_value.__aenter__.return_value = mock_rw
-
-        mock_tg = AsyncMock()
-        mock_tg_cls.return_value.__aenter__.return_value = mock_tg
-
-        mock_redis = AsyncMock()
-        mock_redis_fn.return_value = mock_redis
-
-        mock_cache = AsyncMock()
-        mock_cache_cls.return_value = mock_cache
-
-        from src.tasks.bulk.bulk_operations import bulk_disable_users
-
-        result = await bulk_disable_users(user_uuids, "admin-1")
-
-        assert result["processed"] == 2
-        assert result["failed"] == 1
+    assert result["processed"] == 0
+    assert result["failed"] == 0
+    assert result["safety_disabled"] is True
 
 
 @pytest.mark.asyncio
 async def test_bulk_enable_users_success():
-    """Test bulk enable users processes all users."""
-    user_uuids = ["user-1", "user-2"]
+    """The registered enable task is explicit and performs no provider I/O."""
+    user_ids = [101, 102]
+    from src.tasks.bulk import bulk_operations
 
-    with (
-        patch("src.tasks.bulk.bulk_operations.RemnawaveClient") as mock_rw_cls,
-        patch("src.tasks.bulk.bulk_operations.TelegramClient") as mock_tg_cls,
-        patch("src.tasks.bulk.bulk_operations.get_redis_client") as mock_redis_fn,
-        patch("src.tasks.bulk.bulk_operations.CacheService") as mock_cache_cls,
-        patch("src.tasks.bulk.bulk_operations.get_settings") as mock_settings,
-        patch("src.tasks.bulk.bulk_operations.publish_event", new_callable=AsyncMock),
+    result = await bulk_operations.bulk_enable_users(user_ids, "admin-1")
+
+    assert result["total"] == 2
+    assert result["processed"] == 0
+    assert result["failed"] == 0
+    assert result["safety_disabled"] is True
+    for forbidden_boundary in (
+        "RemnawaveClient",
+        "TelegramClient",
+        "CacheService",
+        "get_redis_client",
+        "publish_event",
     ):
-        mock_settings.return_value.bulk_batch_size = 10
-
-        mock_rw = AsyncMock()
-        mock_rw.enable_user.return_value = {"status": "active"}
-        mock_rw_cls.return_value.__aenter__.return_value = mock_rw
-
-        mock_tg = AsyncMock()
-        mock_tg_cls.return_value.__aenter__.return_value = mock_tg
-
-        mock_redis = AsyncMock()
-        mock_redis_fn.return_value = mock_redis
-
-        mock_cache = AsyncMock()
-        mock_cache_cls.return_value = mock_cache
-
-        from src.tasks.bulk.bulk_operations import bulk_enable_users
-
-        result = await bulk_enable_users(user_uuids, "admin-1")
-
-        assert result["total"] == 2
-        assert result["processed"] == 2
-        assert result["failed"] == 0
+        assert not hasattr(bulk_operations, forbidden_boundary)
 
 
 @pytest.mark.asyncio

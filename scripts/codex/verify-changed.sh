@@ -224,8 +224,10 @@ backend_wslenv() {
   local entry
   for entry in \
     REMNAWAVE_TOKEN \
+    APP_SECRET \
     JWT_SECRET \
     CRYPTOBOT_TOKEN \
+    CYBERVPN_DEVICE_COOKIE_PEPPER \
     DATABASE_URL \
     REDIS_URL \
     CYBERVPN_TEST_POSTGRES_URL \
@@ -424,8 +426,12 @@ backend_env=(
   env
   "WSLENV=$(backend_wslenv)"
   "REMNAWAVE_TOKEN=${REMNAWAVE_TOKEN:-codex_local_remnawave_token}"
+  "APP_SECRET=${APP_SECRET:-codex_local_app_secret_at_least_32_characters_long}"
   "JWT_SECRET=${JWT_SECRET:-codex_local_jwt_secret_at_least_32_characters_long}"
   "CRYPTOBOT_TOKEN=${CRYPTOBOT_TOKEN:-codex_local_cryptobot_token}"
+  "CYBERVPN_DEVICE_COOKIE_PEPPER=${CYBERVPN_DEVICE_COOKIE_PEPPER:-codex_local_device_cookie_pepper_at_least_32_chars}"
+  "TOTP_ENCRYPTION_KEY=${TOTP_ENCRYPTION_KEY:-codex_local_totp_encryption_key_at_least_32_chars}"
+  "OAUTH_TOKEN_ENCRYPTION_KEY=${OAUTH_TOKEN_ENCRYPTION_KEY:-codex_local_oauth_encryption_key_at_least_32_chars}"
   # Match the host port published by infra/docker-compose.yml for local tests.
   "DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-local_dev_postgres}@127.0.0.1:6767/${BACKEND_TEST_DB_NAME}}"
   "REDIS_URL=${REDIS_URL:-redis://127.0.0.1:6379/15}"
@@ -584,24 +590,24 @@ fi
 if scope_enabled verta protocol packages/verta-protocol && changed_prefix packages/verta-protocol; then
   if ensure_cargo; then
     run_gate "verta-cargo-fmt" "${CARGO_BIN}" fmt --manifest-path packages/verta-protocol/Cargo.toml --all -- --check
-    run_gate "verta-cargo-clippy" "${CARGO_BIN}" clippy --manifest-path packages/verta-protocol/Cargo.toml --workspace --all-targets --all-features -- -D warnings
-    run_gate "verta-cargo-test" "${CARGO_BIN}" test --manifest-path packages/verta-protocol/Cargo.toml --workspace
+    run_gate "verta-cargo-clippy" "${CARGO_BIN}" clippy --locked --manifest-path packages/verta-protocol/Cargo.toml --workspace --all-targets --all-features -- -D warnings
+    run_gate "verta-cargo-test" "${CARGO_BIN}" test --locked --manifest-path packages/verta-protocol/Cargo.toml --workspace
   fi
 fi
 
 if scope_enabled services helix-node && changed_prefix services/helix-node; then
   if ensure_cargo; then
     run_gate "helix-node-fmt" "${CARGO_BIN}" fmt --manifest-path services/helix-node/Cargo.toml --all -- --check
-    run_gate "helix-node-clippy" "${CARGO_BIN}" clippy --manifest-path services/helix-node/Cargo.toml --all-targets --all-features -- -D warnings
-    run_gate "helix-node-test" "${CARGO_BIN}" test --manifest-path services/helix-node/Cargo.toml
+    run_gate "helix-node-clippy" "${CARGO_BIN}" clippy --locked --manifest-path services/helix-node/Cargo.toml --all-targets --all-features -- -D warnings
+    run_gate "helix-node-test" "${CARGO_BIN}" test --locked --manifest-path services/helix-node/Cargo.toml
   fi
 fi
 
 if scope_enabled services helix-adapter && changed_prefix services/helix-adapter; then
   if ensure_cargo; then
     run_gate "helix-adapter-fmt" "${CARGO_BIN}" fmt --manifest-path services/helix-adapter/Cargo.toml --all -- --check
-    run_gate "helix-adapter-clippy" "${CARGO_BIN}" clippy --manifest-path services/helix-adapter/Cargo.toml --all-targets --all-features -- -D warnings
-    run_gate "helix-adapter-test" "${CARGO_BIN}" test --manifest-path services/helix-adapter/Cargo.toml
+    run_gate "helix-adapter-clippy" "${CARGO_BIN}" clippy --locked --manifest-path services/helix-adapter/Cargo.toml --all-targets --all-features -- -D warnings
+    run_gate "helix-adapter-test" "${CARGO_BIN}" test --locked --manifest-path services/helix-adapter/Cargo.toml
   fi
 fi
 
@@ -637,8 +643,8 @@ if scope_enabled desktop apps/desktop-client && changed_prefix apps/desktop-clie
   if [[ -f apps/desktop-client/src-tauri/Cargo.toml ]]; then
     if ensure_cargo; then
       run_gate "desktop-rust-fmt" "${CARGO_BIN}" fmt --manifest-path apps/desktop-client/src-tauri/Cargo.toml --all -- --check
-      run_gate "desktop-rust-clippy" "${CARGO_BIN}" clippy --manifest-path apps/desktop-client/src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
-      run_gate "desktop-rust-test" "${CARGO_BIN}" test --manifest-path apps/desktop-client/src-tauri/Cargo.toml
+      run_gate "desktop-rust-clippy" "${CARGO_BIN}" clippy --locked --manifest-path apps/desktop-client/src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+      run_gate "desktop-rust-test" "${CARGO_BIN}" test --locked --manifest-path apps/desktop-client/src-tauri/Cargo.toml
     fi
   fi
 fi

@@ -48,29 +48,40 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
   /// Loading state for async operations
   bool _isLoading = false;
 
+  ProviderSubscription<bool>? _twoFactorStatusSubscription;
+
   // ---- Lifecycle -----------------------------------------------------------
 
   @override
   void initState() {
     super.initState();
     unawaited(enableProtection());
-    _initializeState();
+    _currentState = ref.read(is2FAEnabledProvider)
+        ? TwoFactorState.enabled
+        : TwoFactorState.notEnabled;
+    _twoFactorStatusSubscription = ref.listenManual<bool>(
+      is2FAEnabledProvider,
+      (previous, next) {
+        // Keep the local setup flow intact while the profile refreshes. Once
+        // setup completes, the action handlers own the next state transition.
+        if (!mounted || _currentState == TwoFactorState.setup) return;
+
+        final nextState = next
+            ? TwoFactorState.enabled
+            : TwoFactorState.notEnabled;
+        if (_currentState != nextState) {
+          setState(() => _currentState = nextState);
+        }
+      },
+    );
   }
 
   @override
   void dispose() {
     unawaited(disableProtection());
+    _twoFactorStatusSubscription?.close();
     _codeController.dispose();
     super.dispose();
-  }
-
-  /// Initialize the screen state based on current 2FA status
-  void _initializeState() {
-    final is2FAEnabled = ref.read(is2FAEnabledProvider);
-    setState(() {
-      _currentState =
-          is2FAEnabled ? TwoFactorState.enabled : TwoFactorState.notEnabled;
-    });
   }
 
   // ---- Build ---------------------------------------------------------------
@@ -82,9 +93,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: Text(l10n.profileTwoFactorAuth),
-      ),
+      appBar: AppBar(title: Text(l10n.profileTwoFactorAuth)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(Spacing.md),
@@ -98,7 +107,8 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
               // Conditional content based on state
               if (_currentState == TwoFactorState.notEnabled)
                 _buildNotEnabledView(theme, l10n),
-              if (_currentState == TwoFactorState.setup) _buildSetupView(theme, l10n),
+              if (_currentState == TwoFactorState.setup)
+                _buildSetupView(theme, l10n),
               if (_currentState == TwoFactorState.enabled)
                 _buildEnabledView(theme, l10n),
 
@@ -144,11 +154,14 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isEnabled ? l10n.profileTwoFactorEnabled : l10n.profileTwoFactorDisabledStatus,
+                  isEnabled
+                      ? l10n.profileTwoFactorEnabled
+                      : l10n.profileTwoFactorDisabledStatus,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color:
-                        isEnabled ? CyberColors.matrixGreen : colorScheme.error,
+                    color: isEnabled
+                        ? CyberColors.matrixGreen
+                        : colorScheme.error,
                   ),
                 ),
                 const SizedBox(height: Spacing.xs),
@@ -217,9 +230,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
         // Enable button
         FilledButton(
           onPressed: _isLoading ? null : _handleEnablePress,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-          ),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
           child: Text(l10n.profileTwoFactorEnable),
         ),
       ],
@@ -243,11 +254,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
             color: CyberColors.matrixGreen.withAlpha(25),
             borderRadius: BorderRadius.circular(Radii.sm),
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: CyberColors.matrixGreen,
-          ),
+          child: Icon(icon, size: 20, color: CyberColors.matrixGreen),
         ),
         const SizedBox(width: Spacing.md),
         Expanded(
@@ -404,9 +411,7 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
         // Verify button
         FilledButton(
           onPressed: _canVerify && !_isLoading ? _handleVerifyPress : null,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-          ),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
           child: Text(l10n.profileTwoFactorVerifyAndEnable),
         ),
         const SizedBox(height: Spacing.sm),
@@ -637,132 +642,145 @@ class _TwoFactorScreenState extends ConsumerState<TwoFactorScreen>
   }
 
   /// Show dialog to input TOTP code for disabling 2FA
-  Future<String?> _showCodeInputDialog() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
+  Future<String?> _showCodeInputDialog() {
+    return showDialog<String>(
       context: context,
-      builder: (context) {
-        final dialogL10n = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(dialogL10n.profileTwoFactorEnterVerificationCode),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(dialogL10n.profileTwoFactorEnterCodeShort),
-              const SizedBox(height: Spacing.md),
-              TextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: dialogL10n.profileTwoFactorCodeLabel,
-                  hintText: '000000',
-                  counterText: '',
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(6),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(dialogL10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: Text(dialogL10n.confirm),
-            ),
-          ],
-        );
-      },
+      builder: (context) => const _VerificationCodeDialog(),
     );
-    controller.dispose();
-    return result;
   }
 
   /// Show backup codes dialog
   void _showBackupCodesDialog(ThemeData theme) {
     if (_backupCodes == null) return;
 
-    unawaited(showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        final dialogL10n = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(dialogL10n.profileTwoFactorBackupCodes),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dialogL10n.profileTwoFactorBackupCodesInstructions,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: Spacing.md),
-                Container(
-                  padding: const EdgeInsets.all(Spacing.md),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(Radii.sm),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          final dialogL10n = AppLocalizations.of(context);
+          return AlertDialog(
+            title: Text(dialogL10n.profileTwoFactorBackupCodes),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dialogL10n.profileTwoFactorBackupCodesInstructions,
+                    style: theme.textTheme.bodyMedium,
                   ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: _backupCodes!.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: Spacing.xs),
-                    itemBuilder: (context, index) {
-                      final code = _backupCodes![index];
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              code,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontFamily: 'monospace',
-                              ),
+                  const SizedBox(height: Spacing.md),
+                  Container(
+                    padding: const EdgeInsets.all(Spacing.md),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(Radii.sm),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (index, code) in _backupCodes!.indexed) ...[
+                          Text(
+                            code,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontFamily: 'monospace',
                             ),
                           ),
+                          if (index != _backupCodes!.length - 1)
+                            const SizedBox(height: Spacing.xs),
                         ],
-                      );
-                    },
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            FilledButton.icon(
-              onPressed: () {
-                unawaited(_copyToClipboard(_backupCodes!.join('\n')));
-              },
-              icon: const Icon(Icons.copy),
-              label: Text(dialogL10n.profileTwoFactorCopyAll),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(dialogL10n.commonClose),
-            ),
-          ],
-        );
-      },
-    ));
+            actions: [
+              FilledButton.icon(
+                onPressed: () {
+                  unawaited(_copyToClipboard(_backupCodes!.join('\n')));
+                },
+                icon: const Icon(Icons.copy),
+                label: Text(dialogL10n.profileTwoFactorCopyAll),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(dialogL10n.commonClose),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   /// Generate backup codes using cryptographically secure random
   List<String> _generateBackupCodes() {
     final random = Random.secure();
-    return List.generate(
-      8,
-      (index) {
-        final part1 = random.nextInt(10000).toString().padLeft(4, '0');
-        final part2 = random.nextInt(10000).toString().padLeft(4, '0');
-        return '$part1-$part2';
-      },
+    return List.generate(8, (index) {
+      final part1 = random.nextInt(10000).toString().padLeft(4, '0');
+      final part2 = random.nextInt(10000).toString().padLeft(4, '0');
+      return '$part1-$part2';
+    });
+  }
+}
+
+class _VerificationCodeDialog extends StatefulWidget {
+  const _VerificationCodeDialog();
+
+  @override
+  State<_VerificationCodeDialog> createState() =>
+      _VerificationCodeDialogState();
+}
+
+class _VerificationCodeDialogState extends State<_VerificationCodeDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return AlertDialog(
+      title: Text(l10n.profileTwoFactorEnterVerificationCode),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(l10n.profileTwoFactorEnterCodeShort),
+          const SizedBox(height: Spacing.md),
+          TextField(
+            controller: _controller,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l10n.profileTwoFactorCodeLabel,
+              hintText: '000000',
+              counterText: '',
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          child: Text(l10n.confirm),
+        ),
+      ],
     );
   }
 }

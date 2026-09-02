@@ -515,7 +515,7 @@ class RedeemGiftCodeUseCase:
     ) -> RedeemedGiftCodeResult:
         started_at = perf_counter()
         result_label = "failure"
-        growth_code = await self._codes.get_code_by_hash(hash_growth_code(code), code_type="gift")
+        growth_code = await self._codes.get_gift_code_by_hash_for_update(hash_growth_code(code))
         if growth_code is None:
             observe_gift_redemption_failure(
                 surface=CUSTOMER_REDEEM_SURFACE,
@@ -588,6 +588,7 @@ class RedeemGiftCodeUseCase:
             auth_realm_id=UUID(current_realm.realm_id),
             provider_name="remnawave",
             origin_storefront_id=growth_code.storefront_id,
+            allow_pending_remnawave_binding=True,
         )
         expires_at = datetime.now(UTC) + timedelta(days=int(policy.duration_days or 0))
         grant = await self._entitlements.execute(

@@ -239,6 +239,7 @@ class CapturePartnerAttributionUseCase:
             source="partner_attribution_capture",
         )
         locale = normalize_customer_locale(link_model.locale if link_model and link_model.locale else command.locale)
+        raw_destination_path: str | None
         if link_model is not None:
             raw_destination_path = link_model.destination_path
         else:
@@ -616,6 +617,8 @@ class CapturePartnerAttributionUseCase:
             now=now,
         ):
             return
+        if existing is None:
+            raise RuntimeError("Stale capture predicate accepted a missing attribution")
         existing.capture_idempotency_key_hash = None
         existing.updated_at = now
         await self._session.flush()

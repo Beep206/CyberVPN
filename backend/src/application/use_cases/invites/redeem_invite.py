@@ -348,6 +348,7 @@ class RedeemInviteUseCase:
             auth_realm_id=UUID(current_realm.realm_id),
             provider_name="remnawave",
             origin_storefront_id=shadow_code.storefront_id,
+            allow_pending_remnawave_binding=True,
         )
         grant = await self._entitlements.execute(
             service_identity_id=service_identity.service_identity.id,
@@ -504,6 +505,7 @@ class RedeemInviteUseCase:
             auth_realm_id=UUID(current_realm.realm_id),
             provider_name="remnawave",
             origin_storefront_id=shadow_code.storefront_id,
+            allow_pending_remnawave_binding=True,
         )
         grant = await self._entitlements.execute(
             service_identity_id=service_identity.service_identity.id,

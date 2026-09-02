@@ -9,6 +9,7 @@ from src.application.use_cases.subscriptions.stage1_credential_regeneration impo
     Stage1CredentialRegenerationRequest,
     Stage1CredentialRegenerationResult,
 )
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
 
@@ -23,12 +24,15 @@ class RemnawaveStage1CredentialRegenerationGateway:
         request: Stage1CredentialRegenerationRequest,
     ) -> Stage1CredentialRegenerationResult:
         try:
-            remnawave_uuid = UUID(request.remnawave_uuid)
+            remnawave_uuid = UUID(request.remnawave_uuid) if request.remnawave_uuid else None
         except ValueError as exc:
             raise Stage1CredentialRegenerationError("Existing Remnawave UUID is invalid") from exc
 
+        if request.remnawave_user_id is None:
+            raise Stage1CredentialRegenerationError("Existing Remnawave numeric identity is not reconciled")
+        target = RemnawaveUserRef(id=request.remnawave_user_id, legacy_uuid=remnawave_uuid)
         user = await self._user_gateway.revoke_subscription(
-            remnawave_uuid,
+            target,
             revoke_only_passwords=request.revoke_only_passwords,
         )
         subscription_url_changed = bool(
@@ -37,7 +41,7 @@ class RemnawaveStage1CredentialRegenerationGateway:
 
         return Stage1CredentialRegenerationResult(
             customer_account_id=request.customer_account_id,
-            remnawave_uuid=str(user.uuid),
+            remnawave_uuid=str(user.uuid) if user.uuid is not None else request.remnawave_uuid,
             status=user.status.value.lower() if hasattr(user.status, "value") else str(user.status).lower(),
             regenerated_at=request.requested_at,
             previous_short_uuid=request.previous_short_uuid,
@@ -46,4 +50,5 @@ class RemnawaveStage1CredentialRegenerationGateway:
             subscription_url_changed=subscription_url_changed,
             revoke_only_passwords=request.revoke_only_passwords,
             expires_at=user.expires_at,
+            remnawave_user_id=getattr(user, "remnawave_id", None),
         )

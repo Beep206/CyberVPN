@@ -17,9 +17,18 @@ Design decisions:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AliasChoices,
+    AliasPath,
+    BaseModel,
+    ConfigDict,
+    Field,
+    IPvAnyAddress,
+    field_validator,
+    model_validator,
+)
 
 # ---------------------------------------------------------------------------
 # Shared / generic helpers
@@ -116,7 +125,7 @@ class RemnawaveUserResponse(RemnawaveBaseResponse):
     optional metadata that the admin dashboard needs for the user detail view.
     """
 
-    uuid: str = Field(..., description="User UUID")
+    uuid: str | None = Field(default=None, description="Legacy Remnawave 2.x user UUID retained for rollback")
     username: str = Field(..., description="Unique username")
     status: str = Field(..., description="User status (active/disabled/limited/expired)")
     short_uuid: str = Field(default="", alias="shortUuid", description="Short UUID for display")
@@ -129,6 +138,27 @@ class RemnawaveUserResponse(RemnawaveBaseResponse):
     )
     subscription_url: str | None = Field(default=None, alias="subscriptionUrl", description="User subscription URL")
     expire_at: datetime | None = Field(default=None, alias="expireAt", description="Expiration timestamp")
+    auto_renew: bool | None = Field(
+        default=None,
+        alias="autoRenew",
+        validation_alias=AliasChoices("autoRenew", "auto_renew"),
+        description="Legacy 2.8 renewal opt-in captured only during expand reconciliation",
+    )
+    traffic_limit_strategy: str | None = Field(
+        default=None,
+        alias="trafficLimitStrategy",
+        description="Traffic reset strategy returned by Remnawave 3.x",
+    )
+    active_internal_squads: list[str | dict[str, Any]] | None = Field(
+        default=None,
+        alias="activeInternalSquads",
+        description="Assigned internal squads as UUID strings or expanded squad objects",
+    )
+    external_squad_uuid: str | None = Field(
+        default=None,
+        alias="externalSquadUuid",
+        description="Assigned external squad UUID",
+    )
 
     # Traffic counters
     traffic_limit_bytes: int | None = Field(
@@ -178,6 +208,16 @@ class RemnawaveUserResponse(RemnawaveBaseResponse):
         validation_alias=AliasChoices("id", "userId", "numericId"),
         description="Optional numeric identifier returned by newer Remnawave APIs",
     )
+
+    @field_validator("remnawave_numeric_id", mode="before")
+    @classmethod
+    def require_exact_positive_numeric_identity(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError("Remnawave numeric user id must be an exact positive integer")
+        return value
+
     used_traffic_percentage: float | None = Field(
         default=None,
         alias="usedTrafficPercentage",
@@ -200,6 +240,12 @@ class RemnawaveUserResponse(RemnawaveBaseResponse):
         default=None, alias="activeUserInbounds", description="Active inbound assignments"
     )
 
+    @model_validator(mode="after")
+    def require_user_identity(self) -> RemnawaveUserResponse:
+        if self.remnawave_numeric_id is None and not self.uuid:
+            raise ValueError("Remnawave user response requires id or legacy uuid")
+        return self
+
 
 class RemnawaveUserListResponse(RemnawaveBaseResponse):
     """Wrapper returned by ``GET /api/users`` when the upstream paginates."""
@@ -213,13 +259,32 @@ class RemnawaveUserListResponse(RemnawaveBaseResponse):
 # ---------------------------------------------------------------------------
 
 
+class RemnawaveNodeIpResponse(RemnawaveBaseResponse):
+    """One typed IP assignment from the Remnawave 3.4 node contract."""
+
+    ip: IPvAnyAddress
+    status: Literal[
+        "INBOUND",
+        "OUTBOUND",
+        "MANAGEMENT",
+        "TRANSIT",
+        "MONITORING",
+        "RESERVE",
+        "BLOCKED",
+        "FLAGGED",
+        "DEPRECATED",
+        "UNKNOWN",
+    ]
+
+
 class RemnawaveNodeResponse(RemnawaveBaseResponse):
     """Node (server) object from the Remnawave ``/api/nodes`` endpoints."""
 
     uuid: str = Field(..., description="Node UUID")
+    id: int | None = Field(default=None, gt=0, description="Remnawave 3.x numeric node identifier")
     name: str = Field(..., description="Node display name")
     address: str = Field(default="", description="Node address or hostname")
-    port: int = Field(0, description="Node port")
+    port: int | None = Field(default=None, description="Node port")
     is_connected: bool = Field(False, alias="isConnected", description="Connection status")
     is_disabled: bool = Field(False, alias="isDisabled", description="Disabled flag")
     is_connecting: bool = Field(False, alias="isConnecting", description="Currently connecting")
@@ -267,6 +332,15 @@ class RemnawaveNodeResponse(RemnawaveBaseResponse):
     note: str | None = Field(default=None, description="Operator note")
     proxy_url: str | None = Field(default=None, alias="proxyUrl", description="Optional upstream node proxy URL")
     tags: list[str] = Field(default_factory=list, description="Node tags when returned by upstream")
+    ips: list[RemnawaveNodeIpResponse] = Field(
+        default_factory=list,
+        description="Remnawave 3.x node IPv4/IPv6 address inventory",
+    )
+    integration_uuids: list[str] = Field(
+        default_factory=list,
+        alias="integrationUuids",
+        description="Remnawave integrations assigned to this node",
+    )
     cpu_load_1m: float | None = Field(
         default=None,
         alias="cpuLoad1m",
@@ -420,6 +494,11 @@ class RemnawaveHostResponse(RemnawaveBaseResponse):
         default=None,
         alias="excludeHostsByTags",
         description="Response-rule host tag exclusion policy when embedded",
+    )
+    internal_squads: dict[str, Any] | None = Field(
+        default=None,
+        alias="internalSquads",
+        description="Remnawave 3.x host squad selector: {mode, squads}",
     )
 
     @model_validator(mode="after")

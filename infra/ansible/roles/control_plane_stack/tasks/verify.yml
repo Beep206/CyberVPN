@@ -52,8 +52,110 @@
     that:
       - control_plane_stack_remnawave_container.State.Running | bool
       - control_plane_stack_remnawave_container.Config.Image == control_plane_stack_remnawave_image
+      - control_plane_stack_remnawave_container.HostConfig.PortBindings['3000/tcp'][0].HostIp == '127.0.0.1'
+      - control_plane_stack_remnawave_container.HostConfig.PortBindings['3001/tcp'][0].HostIp == '127.0.0.1'
     fail_msg: "Remnawave container is not running with the expected image."
   when: control_plane_stack_enable_remnawave
+
+- name: Control plane | Check private subscription-page health
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ control_plane_stack_subscription_page_container_name }}"
+      - curl
+      - -fsS
+      - -o
+      - /dev/null
+      - --max-time
+      - "2"
+      - "http://127.0.0.1:{{ control_plane_stack_subscription_page_app_port }}/internal/health"
+  changed_when: false
+  when: control_plane_stack_enable_subscription_page
+
+- name: Control plane | Inspect private subscription-page container
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_subscription_page_container_name }}"
+  register: control_plane_stack_subscription_page_inspect
+  changed_when: false
+  when: control_plane_stack_enable_subscription_page
+  no_log: true
+
+- name: Control plane | Parse private subscription-page inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_subscription_page_container: >-
+      {{ (control_plane_stack_subscription_page_inspect.stdout | from_json | first) }}
+  when: control_plane_stack_enable_subscription_page
+  no_log: true
+
+- name: Control plane | Assert subscription-page is isolated and hardened
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_subscription_page_container.State.Running | bool
+      - control_plane_stack_subscription_page_container.State.Health.Status == 'healthy'
+      - control_plane_stack_subscription_page_container.Config.Image == control_plane_stack_subscription_page_image
+      - control_plane_stack_subscription_page_container.Config.User == '1000:1000'
+      - control_plane_stack_subscription_page_container.HostConfig.ReadonlyRootfs | bool
+      - "'ALL' in (control_plane_stack_subscription_page_container.HostConfig.CapDrop | default([]))"
+      - "'no-new-privileges:true' in (control_plane_stack_subscription_page_container.HostConfig.SecurityOpt | default([]))"
+      - control_plane_stack_subscription_page_container.HostConfig.PortBindings[(control_plane_stack_subscription_page_app_port | string) ~ '/tcp'][0].HostIp == '127.0.0.1'
+      - (control_plane_stack_subscription_page_container.NetworkSettings.Networks | length) == 1
+      - control_plane_stack_subscription_page_ipv4 in (control_plane_stack_subscription_page_container.NetworkSettings.Networks.values() | map(attribute='IPAddress') | list)
+      - control_plane_stack_subscription_page_remnawave_ipv4 in (control_plane_stack_remnawave_container.NetworkSettings.Networks.values() | map(attribute='IPAddress') | list)
+    fail_msg: >-
+      subscription-page must run the promoted image as uid 1000 with a
+      read-only rootfs, no capabilities, loopback-only publish, healthy
+      /internal/health, and only the dedicated private panel network.
+  when: control_plane_stack_enable_subscription_page
+  no_log: true
+
+- name: Control plane | Inspect private Node SSH broker proxy
+  ansible.builtin.command:
+    argv:
+      - docker
+      - inspect
+      - "{{ control_plane_stack_node_ssh_proxy_container_name }}"
+  register: control_plane_stack_node_ssh_proxy_inspect
+  changed_when: false
+  when: control_plane_stack_enable_node_ssh_proxy
+
+- name: Control plane | Parse private Node SSH broker proxy inspection
+  ansible.builtin.set_fact:
+    control_plane_stack_node_ssh_proxy_container: >-
+      {{ (control_plane_stack_node_ssh_proxy_inspect.stdout | from_json | first) }}
+  when: control_plane_stack_enable_node_ssh_proxy
+
+- name: Control plane | Assert Node SSH proxy is private and hardened
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_node_ssh_proxy_container.State.Running | bool
+      - control_plane_stack_node_ssh_proxy_container.Config.Image == control_plane_stack_node_ssh_proxy_image
+      - control_plane_stack_node_ssh_proxy_container.HostConfig.ReadonlyRootfs | bool
+      - "'ALL' in (control_plane_stack_node_ssh_proxy_container.HostConfig.CapDrop | default([]))"
+      - (control_plane_stack_node_ssh_proxy_container.HostConfig.PortBindings | default({}, true)) | length == 0
+      - control_plane_stack_node_ssh_proxy_ipv4 in (control_plane_stack_node_ssh_proxy_container.NetworkSettings.Networks.values() | map(attribute='IPAddress') | list)
+      - control_plane_stack_node_ssh_remnawave_ipv4 in (control_plane_stack_remnawave_container.NetworkSettings.Networks.values() | map(attribute='IPAddress') | list)
+    fail_msg: >-
+      Node SSH broker proxy must use the reviewed digest, a read-only rootfs,
+      dropped capabilities, no host ports, and the exact private-network peers.
+  when: control_plane_stack_enable_node_ssh_proxy
+
+- name: Control plane | Check private Node SSH broker proxy health
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - "{{ control_plane_stack_node_ssh_proxy_container_name }}"
+      - wget
+      - --quiet
+      - --tries=1
+      - --spider
+      - "http://localhost:{{ control_plane_stack_node_ssh_proxy_port }}/internal/health"
+  changed_when: false
+  when: control_plane_stack_enable_node_ssh_proxy
 
 - name: Control plane | Wait for backend health
   ansible.builtin.uri:

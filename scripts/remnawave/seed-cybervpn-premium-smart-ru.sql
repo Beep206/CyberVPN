@@ -24,7 +24,28 @@ declare
     v_raw_dest_override jsonb;
     v_xhttp record;
     v_xhttp_count integer;
+    v_invalid_reality_min_client_ver_tags text[];
 begin
+    select array_agg(tag order by tag)
+    into v_invalid_reality_min_client_ver_tags
+    from config_profile_inbounds
+    where tag in (
+        'VLESS_REALITY_443',
+        'VLESS_XHTTP_REALITY_8443',
+        'DE_SMART_REALITY_443',
+        'DE_SMART_XHTTP_REALITY_8443',
+        'MSK_SMART_REALITY_443',
+        'MSK_SMART_XHTTP_REALITY_8443'
+    )
+      and raw_inbound #>> '{streamSettings,realitySettings,minClientVer}'
+            is distinct from '26.3.27';
+
+    if coalesce(cardinality(v_invalid_reality_min_client_ver_tags), 0) > 0 then
+        raise exception
+            'CyberVPN Reality inbounds must use minClientVer=26.3.27; invalid tags=%',
+            v_invalid_reality_min_client_ver_tags;
+    end if;
+
     select count(*)
     into v_raw_count
     from config_profile_inbounds

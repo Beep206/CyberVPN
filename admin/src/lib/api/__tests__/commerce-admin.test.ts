@@ -916,39 +916,48 @@ describe('publicCatalogApi operations', () => {
 });
 
 describe('subscriptionsApi admin operations', () => {
-  it('creates a subscription template with config data', async () => {
+  it('sends the exact 3.4.3 create shape and preserves the safety-disabled failure', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
       http.post(MATCH_ANY_API_ORIGIN.subscriptions, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-
-        return HttpResponse.json({
-          uuid: 'sub_001',
-          name: 'VLESS Vision',
-          templateType: 'vless',
-          hostUuid: 'host_001',
-          inboundTag: 'vless-in',
-          flow: 'xtls-rprx-vision',
-          configData: { security: 'reality' },
-        });
+        return HttpResponse.json(
+          { detail: { code: 'REMNAWAVE_SUBSCRIPTION_TEMPLATE_CREATE_SAFETY_DISABLED' } },
+          { status: 503 },
+        );
       }),
     );
 
-    const response = await subscriptionsApi.create({
+    await expect(subscriptionsApi.create({
       name: 'VLESS Vision',
-      template_type: 'vless',
-      host_uuid: 'host_001',
-      inbound_tag: 'vless-in',
-      flow: 'xtls-rprx-vision',
-      config_data: { security: 'reality' },
+      templateType: 'XRAY_JSON',
+    })).rejects.toMatchObject({ response: { status: 503 } });
+
+    expect(capturedBody).toEqual({ name: 'VLESS Vision', templateType: 'XRAY_JSON' });
+  });
+
+  it('updates only mutable target fields and exposes accepted-pending status', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+
+    server.use(
+      http.put(MATCH_ANY_API_ORIGIN.subscriptionById, async ({ request }) => {
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 202 });
+      }),
+    );
+
+    const response = await subscriptionsApi.update('sub_001', {
+      name: 'VLESS Vision 3.4',
+      templateJson: { outbounds: [] },
+      encodedTemplateYaml: 'bWl4ZWQtcG9ydDogNzg5MA==',
     });
 
-    expect(response.status).toBe(200);
-    expect(response.data.uuid).toBe('sub_001');
-    expect(capturedBody).toMatchObject({
-      template_type: 'vless',
-      inbound_tag: 'vless-in',
+    expect(response.status).toBe(202);
+    expect(capturedBody).toEqual({
+      name: 'VLESS Vision 3.4',
+      templateJson: { outbounds: [] },
+      encodedTemplateYaml: 'bWl4ZWQtcG9ydDogNzg5MA==',
     });
   });
 
@@ -958,13 +967,13 @@ describe('subscriptionsApi admin operations', () => {
     server.use(
       http.delete(MATCH_ANY_API_ORIGIN.subscriptionById, ({ request }) => {
         deletedUuid = new URL(request.url).pathname.split('/').at(-1) ?? '';
-        return HttpResponse.json({ ok: true });
+        return new HttpResponse(null, { status: 204 });
       }),
     );
 
     const response = await subscriptionsApi.remove('sub_001');
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(204);
     expect(deletedUuid).toBe('sub_001');
   });
 });

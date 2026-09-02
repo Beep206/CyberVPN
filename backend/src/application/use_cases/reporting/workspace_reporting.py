@@ -162,7 +162,7 @@ class BuildPartnerWorkspaceReportingUseCase:
         refund_map = await self._load_refunds_by_order(order_ids)
         dispute_map = await self._load_disputes_by_order(order_ids)
 
-        partner_code_ids = {
+        raw_partner_code_ids = {
             renewal_order.effective_partner_code_id
             if renewal_order is not None and renewal_order.effective_partner_code_id is not None
             else attribution_result.partner_code_id
@@ -170,7 +170,7 @@ class BuildPartnerWorkspaceReportingUseCase:
             else None
             for _order, attribution_result, _evaluation, renewal_order in order_rows
         }
-        partner_code_ids.discard(None)
+        partner_code_ids = {partner_code_id for partner_code_id in raw_partner_code_ids if partner_code_id is not None}
         code_by_id = await self._load_partner_codes_by_id(list(partner_code_ids))
 
         items: list[dict[str, Any]] = []
@@ -188,7 +188,9 @@ class BuildPartnerWorkspaceReportingUseCase:
                     "attribution_result": attribution_result,
                     "evaluation": evaluation,
                     "renewal_order": renewal_order,
-                    "partner_code": code_by_id.get(effective_partner_code_id),
+                    "partner_code": (
+                        code_by_id.get(effective_partner_code_id) if effective_partner_code_id is not None else None
+                    ),
                     "disputes": dispute_map.get(order.id, []),
                     "refunds": refund_map.get(order.id, []),
                 }

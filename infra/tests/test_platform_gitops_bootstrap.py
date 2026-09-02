@@ -41,7 +41,7 @@ class PlatformGitopsBootstrapTests(unittest.TestCase):
             }
 
             actual = {
-                str(path.relative_to(target))
+                path.relative_to(target).as_posix()
                 for path in target.rglob("*")
                 if path.is_file()
             }

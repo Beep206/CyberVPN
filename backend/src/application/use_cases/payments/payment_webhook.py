@@ -1,4 +1,3 @@
-import hashlib
 import logging
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -18,6 +17,7 @@ from src.application.use_cases.webhooks.webhook_log_redaction import (
     build_cryptobot_webhook_log_payload,
     cryptobot_event_type,
     signature_fingerprint,
+    webhook_log_fingerprint,
 )
 from src.domain.enums import PaymentAttemptStatus
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
@@ -276,9 +276,4 @@ def _settlement_result_payload(result: SettlementResult) -> dict:
 
 
 def _provider_reference_fingerprint(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = str(value).strip()
-    if not normalized:
-        return None
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return webhook_log_fingerprint(value, namespace="payment_provider_reference")

@@ -460,7 +460,17 @@
     "serverStatus": "SUNUCU DURUMU",
     "statusLabel": "SİSTEM DURUMU:",
     "statusValue": "OPTİMAL",
-    "title": "VPN KOMUTA MERKEZİ"
+    "title": "VPN KOMUTA MERKEZİ",
+    "vpnServiceStatus": {
+      "available": "Kullanılabilir",
+      "connections": "Bağlantılar",
+      "degraded": "Kısmen aksadı",
+      "devices": "Cihazlar",
+      "loading": "VPN hizmet durumu yükleniyor",
+      "title": "VPN hizmeti kullanılabilirliği",
+      "unavailable": "Kullanılamıyor",
+      "usage": "Kullanım"
+    }
   },
   "DeleteAccount": {
     "contact": {

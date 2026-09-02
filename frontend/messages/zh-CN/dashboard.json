@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN 服务可用性",
+    "connections": "连接",
+    "usage": "用量",
+    "devices": "设备",
+    "available": "可用",
+    "unavailable": "不可用",
+    "loading": "正在加载 VPN 服务状态",
+    "degraded": "部分降级"
   }
 }

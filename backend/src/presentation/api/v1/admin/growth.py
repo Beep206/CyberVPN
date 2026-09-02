@@ -307,6 +307,13 @@ def _serialize_user_summary(user: MobileUserModel | None) -> AdminGrowthUserSumm
     )
 
 
+def _serialize_required_user_summary(user: MobileUserModel) -> AdminGrowthUserSummary:
+    summary = _serialize_user_summary(user)
+    if summary is None:  # pragma: no cover - guarded by the non-optional input contract
+        raise ValueError("Admin growth response user is missing")
+    return summary
+
+
 def _serialize_referral_commission(
     commission: ReferralCommissionModel,
     users_by_id: dict[UUID, MobileUserModel],
@@ -390,7 +397,9 @@ def _serialize_referral_reward_record(
         source_model="growth_reward",
         created_at=allocation.allocated_at,
         referrer=_serialize_user_summary(users_by_id.get(allocation.beneficiary_user_id)),
-        referred_user=_serialize_user_summary(users_by_id.get(referred_user_id)),
+        referred_user=_serialize_user_summary(
+            users_by_id.get(referred_user_id) if referred_user_id is not None else None
+        ),
     )
 
 
@@ -400,7 +409,7 @@ def _serialize_partner_list_item(
 ) -> AdminPartnerListItemResponse:
     resolved_stats = stats or {}
     return AdminPartnerListItemResponse(
-        user=_serialize_user_summary(user),
+        user=_serialize_required_user_summary(user),
         promoted_at=user.partner_promoted_at,
         code_count=_row_int(resolved_stats, "code_count"),
         active_code_count=_row_int(resolved_stats, "active_code_count"),
@@ -1129,7 +1138,7 @@ async def get_referral_overview(
         recent_commissions=recent_items[:10],
         top_referrers=[
             AdminReferralReferrerRow(
-                user=_serialize_user_summary(users_by_id.get(referrer_user_id)),
+                user=_serialize_required_user_summary(users_by_id[referrer_user_id]),
                 commission_count=stat["commission_count"],
                 referred_users=int(referred_user_count_map.get(referrer_user_id, 0)),
                 total_earned=stat["total_earned"],
@@ -1143,7 +1152,7 @@ async def get_referral_overview(
                 ),
                 reverse=True,
             )[:10]
-            if users_by_id.get(referrer_user_id) is not None
+            if referrer_user_id in users_by_id
         ],
     )
 
@@ -1849,7 +1858,7 @@ async def get_referral_user_detail(
 
     route_operations_total.labels(route="admin_referrals", action="user_detail", status="success").inc()
     return AdminReferralUserDetailResponse(
-        user=_serialize_user_summary(user),
+        user=_serialize_required_user_summary(user),
         referred_by_user_id=user.referred_by_user_id,
         commission_count=_row_int(stats, "commission_count") + _row_int(reward_stats, "reward_count"),
         referred_users=referred_users,

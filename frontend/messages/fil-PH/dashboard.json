@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Availability ng serbisyo ng VPN",
+    "connections": "Mga koneksyon",
+    "usage": "Paggamit",
+    "devices": "Mga device",
+    "available": "Magagamit",
+    "unavailable": "Hindi magagamit",
+    "loading": "Nilo-load ang status ng serbisyo ng VPN",
+    "degraded": "Bahagyang limitado"
   }
 }

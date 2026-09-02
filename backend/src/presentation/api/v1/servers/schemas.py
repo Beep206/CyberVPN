@@ -9,15 +9,21 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from src.domain.enums import ServerStatus
 
 
+class ServerIpResponse(BaseModel):
+    ip: str
+    status: str
+
+
 class ServerResponse(BaseModel):
     """Response schema for a Remnawave VPN server."""
 
     model_config = ConfigDict(from_attributes=True)
 
     uuid: UUID
+    id: int | None = None
     name: str
     address: str
-    port: int
+    port: int | None
     status: ServerStatus
     is_connected: bool
     is_disabled: bool
@@ -31,6 +37,8 @@ class ServerResponse(BaseModel):
     node_version: str | None = None
     vpn_protocol: str | None = None
     active_plugin_uuid: UUID | None = None
+    ips: list[ServerIpResponse] = Field(default_factory=list)
+    integration_uuids: list[UUID] = Field(default_factory=list)
 
 
 class CreateServerRequest(BaseModel):

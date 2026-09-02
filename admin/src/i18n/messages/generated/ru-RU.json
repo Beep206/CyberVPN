@@ -126,7 +126,7 @@
         "antiPhishing": "Управление кодом, который показывается в исходящих письмах.",
         "passkeys": "Управление входом по ключу доступа, личными учётными данными и профилем соответствия админов.",
         "posture": "Оценка сигналов доверия и смена пароля аккаунта.",
-        "reviewQueue": "Работа с очередью risk review, evidence attachments и governance actions из одного внутреннего workflow rail.",
+        "reviewQueue": "Работа с очередью risk review, evidence attachments и управление actions из одного внутреннего workflow rail.",
         "sessions": "Просмотр активных устройств и отзыв устаревших или подозрительных сессий.",
         "twoFactor": "Настройка TOTP, проверка статуса и отключение 2FA с повторной авторизацией."
       },
@@ -277,15 +277,15 @@
         "submit": "Прикрепить evidence",
         "title": "Прикрепить evidence"
       },
-      "description": "Обрабатывайте канонические risk review, прикладывайте evidence, фиксируйте governance actions и резолвите решения из одной внутренней очереди.",
+      "description": "Обрабатывайте канонические risk review, прикладывайте evidence, фиксируйте управление actions и резолвите решения из одной внутренней очереди.",
       "detail": {
         "attachmentsTitle": "Attachments",
-        "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные governance actions.",
+        "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные управление actions.",
         "empty": "Выберите review из очереди для просмотра деталей.",
-        "governanceTitle": "Governance actions",
+        "governanceTitle": "Управленческие действия",
         "loadError": "Не удалось загрузить выбранный review.",
         "noAttachments": "К этому review ещё не привязаны attachments.",
-        "noGovernanceActions": "К этому review ещё не привязаны governance actions.",
+        "noGovernanceActions": "К этой проверке ещё не привязаны управленческие действия.",
         "review": "Review",
         "subject": "Subject",
         "title": "Детали проверки",
@@ -294,9 +294,9 @@
       "eyebrow": "RISK WORKFLOW",
       "feedback": {
         "attachmentCreated": "Evidence прикреплена к review.",
-        "governanceActionCreated": "Governance action записана.",
+        "governanceActionCreated": "Управленческое действие записано.",
         "invalidAttachmentMetadata": "Attachment metadata должна быть валидным JSON object.",
-        "invalidGovernancePayload": "Governance payload должен быть валидным JSON object.",
+        "invalidGovernancePayload": "Данные управленческого действия должны быть корректным JSON-объектом.",
         "invalidResolutionEvidence": "Resolution evidence должна быть валидным JSON object.",
         "reviewResolved": "Review успешно завершён.",
         "selectReview": "Сначала выберите review из очереди."
@@ -308,14 +308,14 @@
           "applyNow": "Применить сразу",
           "payload": "Payload JSON",
           "reason": "Причина",
-          "reasonPlaceholder": "Опишите, почему эта governance action нужна.",
+          "reasonPlaceholder": "Опишите, почему эта управление action нужна.",
           "targetRef": "Target reference",
           "targetRefPlaceholder": "ppa_demo_001",
           "targetType": "Target type",
           "targetTypePlaceholder": "partner_payout_account"
         },
         "submit": "Записать action",
-        "title": "Governance action"
+        "title": "Управленческое действие"
       },
       "metaTitle": "Очередь проверок - Ozoxy Admin",
       "metrics": {
@@ -324,7 +324,7 @@
         "blocking": "Блокирующие",
         "blockingHint": "решения hold или block",
         "governanceActions": "Actions",
-        "governanceActionsHint": "governance records, связанные с очередью",
+        "governanceActionsHint": "управление records, связанные с очередью",
         "openReviews": "Очередь",
         "openReviewsHint": "активные review items"
       },
@@ -332,7 +332,7 @@
         "attachments": "attachments: {count}",
         "description": "Каждая строка — каноническая запись risk review, поднятая из backend queue.",
         "empty": "В очереди сейчас нет элементов на обработку.",
-        "governanceActions": "governance actions: {count}",
+        "governanceActions": "управление actions: {count}",
         "loadError": "Не удалось загрузить очередь risk review.",
         "reviewRef": "Review #{reviewId} / Subject #{subjectId}",
         "subject": "Principal subject",
@@ -893,6 +893,7 @@
       "inactive": "Неактивен",
       "inboundTag": "Inbound tag",
       "isActive": "Тариф активен",
+      "loading": "Загрузка",
       "maxDevices": "Макс. устройств",
       "method": "Метод",
       "name": "Название",
@@ -900,6 +901,7 @@
       "price": "Цена",
       "provider": "Провайдер",
       "reset": "Сбросить",
+      "retry": "Повторить",
       "save": "Сохранить",
       "saving": "Сохранение...",
       "status": "Статус",
@@ -949,7 +951,6 @@
       },
       "modulesDescription": "Ниже собраны основные маршруты Commerce, чтобы быстро перейти от обзора к нужной рабочей очереди.",
       "modulesTitle": "Операционные маршруты",
-      "noFlow": "Без flow",
       "paymentsDescription": "Свежие платежи по всем провайдерам с текущим состоянием расчётов.",
       "paymentsTitle": "Последние платежи",
       "routes": {
@@ -962,8 +963,11 @@
         "wallets": "Поиск кошелька по UUID пользователя и ручные top-up операции при необходимости.",
         "withdrawals": "Подтверждение или отклонение заявок на вывод с заметкой оператора."
       },
+      "templateEmpty": "Нет payload шаблона",
+      "templateJson": "JSON-шаблон",
       "templatesDescription": "Последние subscription templates, доступные операторам.",
       "templatesTitle": "Инвентарь шаблонов",
+      "templateYaml": "Закодированный YAML-шаблон",
       "title": "Управление Commerce",
       "withdrawalsDescription": "Заявки на вывод, ожидающие решения сотрудника.",
       "withdrawalsTitle": "Очередь выводов"
@@ -1146,30 +1150,43 @@
       }
     },
     "subscriptionTemplates": {
+      "configured": "Настроено",
       "createAction": "Создать шаблон",
       "createTitle": "Создать шаблон",
+      "createUnavailable": "Создание шаблона временно недоступно: безопасный durable settlement ещё не включён. Существующие шаблоны можно редактировать.",
       "deleteConfirm": "Удалить этот subscription template?",
       "deleteTitle": "Удалить шаблон",
-      "description": "Управление шаблонами Remnawave, привязкой к host, flow и config payload, используемыми для выдачи конфигураций.",
+      "description": "Управление точными полями Remnawave 3.4.3: именем, JSON payload и закодированным YAML payload.",
       "editTitle": "Изменить шаблон",
       "empty": "Шаблоны подписок не найдены.",
       "eyebrow": "ШАБЛОНЫ ДОСТАВКИ",
+      "fields": {
+        "encodedTemplateYaml": "Закодированный YAML шаблона",
+        "tags": "Теги",
+        "templateJson": "JSON шаблона"
+      },
       "form": {
         "configPlaceholder": "{\n  \"security\": \"reality\"\n}",
         "namePlaceholder": "VLESS Vision Template"
       },
+      "loadFailed": "Не удалось загрузить шаблоны подписок. Пустое состояние не подставлено.",
       "metaTitle": "Шаблоны подписок - Ozoxy Admin",
       "metrics": {
-        "hostBound": "Привязаны к host",
-        "hostBoundHint": "шаблонов с host binding",
         "jsonConfig": "JSON config",
-        "jsonConfigHint": "шаблонов с config payload",
+        "jsonConfigHint": "шаблонов с JSON payload",
+        "tagged": "С тегами",
+        "taggedHint": "шаблонов с одним или несколькими тегами",
         "total": "Шаблоны",
         "totalHint": "записей шаблонов",
-        "withFlow": "С flow",
-        "withFlowHint": "шаблонов с flow control"
+        "yamlConfig": "YAML config",
+        "yamlConfigHint": "шаблонов с закодированным YAML"
       },
-      "title": "Subscription Templates"
+      "title": "Subscription Templates",
+      "updatePending": "Remnawave принял обновление шаблона, но authoritative reconciliation ещё выполняется. Не отправляйте операцию повторно.",
+      "updateSuccess": "Шаблон подписки обновлён.",
+      "validation": {
+        "jsonObjectRequired": "JSON шаблона должен быть JSON-объектом."
+      }
     },
     "wallets": {
       "activeLookup": "Текущий lookup",
@@ -2511,7 +2528,7 @@
       "coverageDescription": "Консоль вызывает generated capabilities и generated v3 FX admin endpoints.",
       "coverageTitle": "Backend Coverage",
       "degraded": {
-        "description": "FX status не удалось загрузить из generated admin endpoint. Operator actions остаются read-only, пока backend не ответит.",
+        "description": "Не удалось загрузить состояние FX из сгенерированной административной конечной точки. Действия оператора остаются доступны только для чтения, пока бэкенд не ответит.",
         "ratesDescription": "FX snapshots не удалось загрузить из generated admin endpoint. Approval controls остаются отключёнными.",
         "title": "Admin FX API ограничен"
       },
@@ -2697,7 +2714,7 @@
         "campaignCreated": "Invite campaign создана из backend response.",
         "campaignCreateFailed": "Создать invite campaign не удалось. Проверьте уникальность key, plan targeting и backend validation.",
         "campaignPublished": "Invite campaign version опубликована.",
-        "campaignPublishFailed": "Publish invite campaign не удался. Проверьте campaign version и permissions.",
+        "campaignPublishFailed": "Publish invite campaign не удался. Проверьте campaign version и права доступа.",
         "exported": "{count} invite-кодов экспортировано для выбранного batch.",
         "exportFailed": "Export invite batch не удался. Проверьте batch access и backend audit policy.",
         "redemptionReversed": "Погашение invite откатилось, зависимый доступ отозван.",
@@ -3492,7 +3509,7 @@
       "badges": {
         "attachments": "{count} attachments",
         "count": "{count} сигналов",
-        "governance": "{count} governance actions",
+        "governance": "{count} управление actions",
         "users": "{count} пользователей"
       },
       "breakdownDescription": "Текущая referral reward-поза после hold, risk-block и availability transition.",
@@ -3515,11 +3532,11 @@
         "totalRedemptions": "Всего Redemption'ов",
         "totalRedemptionsHint": "Объём redemption, уже привязанный к lifecycle growth-кодов."
       },
-      "riskReviewsDescription": "Open security review queue из generated risk-review API, только с masked subject identifiers.",
-      "riskReviewsEmpty": "Открытых risk reviews для growth operations сейчас не видно.",
-      "riskReviewsLoadFailed": "Risk review queue не удалось загрузить.",
-      "riskReviewsLoading": "Загружаем risk review queue...",
-      "riskReviewsTitle": "Security Risk Reviews",
+      "riskReviewsDescription": "Open security очередь проверок из generated risk-review API, только с masked subject identifiers.",
+      "riskReviewsEmpty": "Открытых проверки рисков для growth operations сейчас не видно.",
+      "riskReviewsLoadFailed": "Risk очередь проверок не удалось загрузить.",
+      "riskReviewsLoading": "Загружаем risk очередь проверок...",
+      "riskReviewsTitle": "Security Проверки рисков",
       "title": "Referral-Сигналы"
     },
     "risk": {
@@ -3535,7 +3552,7 @@
       "description": "Risk operations console для model lifecycle, decisions и manual review resolution.",
       "emptyDecisions": "По текущему query risk decisions не найдены.",
       "emptyModels": "По текущему query risk models не найдены.",
-      "emptyReviews": "По текущему query open risk reviews не найдены.",
+      "emptyReviews": "По текущему query open проверки рисков не найдены.",
       "errors": {
         "capabilities": "Risk capabilities не удалось загрузить."
       },
@@ -3880,7 +3897,7 @@
     },
     "v6": {
       "common": {
-        "actionFailed": "Действие не выполнено. Проверьте backend validation и permissions.",
+        "actionFailed": "Действие не выполнено. Проверьте backend validation и права доступа.",
         "available": "Доступно",
         "degraded": "Ограничено",
         "disabled": "Отключено",
@@ -3974,6 +3991,7 @@
       "heartbeat": "Heartbeat",
       "hostHeader": "Host header",
       "inbounds": "Inbounds",
+      "loading": "Загрузка",
       "manifestVersion": "Manifest version",
       "maxMembers": "Макс. участников",
       "members": "Участники",
@@ -3991,6 +4009,7 @@
       "profile": "Профиль",
       "protocol": "Протокол",
       "reset": "Сбросить",
+      "retry": "Повторить",
       "revokeOnError": "Отозвать при ошибке манифеста",
       "rolloutId": "Rollout ID",
       "save": "Сохранить",
@@ -4009,7 +4028,7 @@
       "validation": {
         "helixPublishInvalid": "Укажите rollout ID, batch ID и manifest version.",
         "helixTargetsRequired": "Добавьте хотя бы один target node ID.",
-        "hostFormInvalid": "Укажите название, адрес и корректный порт.",
+        "hostFormInvalid": "Комментарий, адрес, порт, пары UUID, enum и JSON-поля должны соответствовать контракту Remnawave host.",
         "nameRequired": "Укажите название.",
         "profileFormInvalid": "Укажите название, тип профиля и содержимое.",
         "serverFormInvalid": "Укажите название, адрес и корректный порт.",
@@ -4074,12 +4093,42 @@
       "createDescription": "Добавьте новую host-запись с TLS-метаданными и опциональными path/header override.",
       "createSuccess": "Host создан.",
       "createTitle": "Создать host",
+      "createUnavailable": "Создание host временно недоступно: безопасный durable settlement ещё не включён. Существующие hosts можно редактировать.",
+      "createUnavailableTitle": "Защитная блокировка создания",
       "deleteSuccess": "Host удалён.",
       "description": "Управление delivery-хостами, TLS-метаданными, path-routing и состоянием отключения.",
       "editDescription": "Обновите выбранный host при изменениях SNI, header или path.",
       "editTitle": "Изменить host",
       "empty": "Хосты не найдены.",
       "eyebrow": "КОНТУР HOSTS",
+      "fields": {
+        "configProfileInboundUuid": "UUID inbound профиля конфигурации",
+        "configProfileUuid": "UUID профиля конфигурации",
+        "excludeFromSubscriptionTypes": "Исключённые типы подписок",
+        "finalMask": "Final mask JSON",
+        "fingerprint": "Fingerprints",
+        "internalSquads": "UUID внутренних squads",
+        "internalSquadsMode": "Режим внутренних squads",
+        "isHidden": "Скрытый",
+        "keepSniBlank": "Оставлять SNI пустым",
+        "mihomoIpVersion": "Версия IP Mihomo",
+        "mihomoX25519": "Mihomo X25519",
+        "muxParams": "Mux-параметры JSON",
+        "nodes": "UUID нод",
+        "overrideSniFromAddress": "Подставлять SNI из address",
+        "pinnedPeerCertSha256": "Закреплённые SHA-256 сертификатов",
+        "remark": "Комментарий",
+        "securityLayer": "Уровень безопасности",
+        "serverDescription": "Описание сервера",
+        "shuffleHost": "Перемешивать host",
+        "sockoptParams": "Socket options JSON",
+        "tags": "Теги",
+        "verifyPeerCertByName": "Имена сертификата peer",
+        "vlessRouteId": "VLESS route ID",
+        "xhttpExtraParams": "Дополнительные XHTTP-параметры JSON",
+        "xrayJsonTemplateUuid": "UUID Xray JSON template"
+      },
+      "loadFailed": "Не удалось загрузить список hosts. Пустое состояние не подставлено.",
       "metaTitle": "Хосты - Ozoxy Admin",
       "metrics": {
         "disabled": "Отключены",
@@ -4093,7 +4142,11 @@
       },
       "selectedHost": "Выбранный host",
       "title": "Консоль хостов",
-      "updateSuccess": "Host обновлён."
+      "updatePending": "Remnawave принял обновление, но authoritative reconciliation ещё выполняется. Не отправляйте операцию повторно.",
+      "updateSuccess": "Host обновлён.",
+      "validation": {
+        "jsonInvalid": "Поля JSON-параметров должны содержать корректный JSON."
+      }
     },
     "inbounds": {
       "description": "Просмотр inbound-listener, привязанных нод, security-параметров и полного payload.",
@@ -4201,6 +4254,622 @@
       "totalServers": "Всего серверов",
       "totalUsers": "Всего пользователей",
       "usersOnline": "пользователей онлайн"
+    },
+    "remnawave": {
+      "capabilities": {
+        "description": "Безопасный статус функций текущего адаптера CyberVPN. Node SSH остаётся только для администраторов: эта страница не показывает terminal tickets, vault-данные, хосты или credentials.",
+        "empty": "В этом развёртывании не включены возможности Remnawave 3.4.",
+        "eyebrow": "КОНТРАКТ РАЗВЁРТЫВАНИЯ",
+        "items": {
+          "connections": {
+            "description": "События подключений доступны операционному контуру обработки.",
+            "title": "Телеметрия подключений"
+          },
+          "geo_check": {
+            "description": "Поддерживается административный статус заданий GeoCheck.",
+            "title": "Задания GeoCheck"
+          },
+          "host_mapper": {
+            "description": "Поддерживается контракт host base64 mapper версии 3.4.",
+            "title": "Host mapper"
+          },
+          "node_integrations": {
+            "description": "Контур управления поддерживает назначения интеграций нод.",
+            "title": "Интеграции нод"
+          },
+          "node_ssh": {
+            "description": "Привилегированный SSH доступен только через консоль доверенного администратора с подтверждением passkey на этой странице.",
+            "title": "Node SSH (только admin)"
+          },
+          "numeric_user_ids": {
+            "description": "Интеграции используют числовые идентификаторы пользователей Remnawave.",
+            "title": "Числовые ID пользователей"
+          },
+          "redis_stream_export": {
+            "description": "Ограниченные операционные потоки событий экспортируются потребителям CyberVPN.",
+            "title": "Экспорт Redis-потоков"
+          },
+          "root_snippets": {
+            "description": "Доступна синхронизация сниппетов верхнего уровня.",
+            "title": "Корневые сниппеты"
+          },
+          "shared_lists": {
+            "description": "Поддерживаются иерархические маршруты общих списков.",
+            "title": "Общие списки"
+          },
+          "tags": {
+            "description": "Теги доступны поддерживаемым ресурсам Remnawave в рамках существующего RBAC.",
+            "title": "Теги ресурсов"
+          }
+        },
+        "title": "Глобальные возможности"
+      },
+      "degraded": {
+        "streams": "Redis-потоки со статусом degraded или unknown: {count}.",
+        "title": "Операционные данные частично недоступны"
+      },
+      "description": "Доступный только администраторам реестр возможностей и состояние Redis-потоков по сохранённым receipt для контракта panel 3.4.3 и node 3.4.1.",
+      "disabled": "Недоступно",
+      "enabled": "Доступно",
+      "error": {
+        "description": "Последний запрос завершился ошибкой. Остальные разделы админки продолжают работать; повторите загрузку снимка только для чтения.",
+        "title": "Статус Remnawave недоступен"
+      },
+      "eyebrow": "КОНТУР УПРАВЛЕНИЯ REMNAWAVE",
+      "forbidden": {
+        "description": "Эта операционная поверхность доступна только администраторам с правом диагностики Remnawave. Данные контура управления не загружались.",
+        "title": "Нужны права администратора"
+      },
+      "grants": {
+        "columns": {
+          "actions": "Действия",
+          "grantedAt": "Выдано",
+          "permissions": "Разрешения",
+          "resource": "Ресурс",
+          "status": "Статус",
+          "workspace": "Workspace"
+        },
+        "create": {
+          "action": "Выдать разрешение",
+          "description": "Используйте канонические UUID workspace и ресурса. SSH намеренно недоступен как партнёрское разрешение.",
+          "pending": "Выдача…",
+          "title": "Выдать явное разрешение"
+        },
+        "description": "Выдача и отзыв явных разрешений workspace/resource. Автоматической выдачи нет: каждая операция требует причину и фиксируется в admin-аудите после commit.",
+        "empty": "Активных объектных разрешений Remnawave нет.",
+        "eyebrow": "ГРАНИЦА РЕСУРСОВ ПАРТНЁРА",
+        "feedback": {
+          "alreadyRevoked": "Разрешение уже отозвано или изменилось. Обновите список.",
+          "conflict": "Для этого workspace и ресурса уже существует активное разрешение.",
+          "created": "Объектное разрешение выдано и записано в аудит.",
+          "failed": "Операция завершилась ошибкой. Успешное состояние не применено.",
+          "revoked": "Объектное разрешение отозвано и записано в аудит.",
+          "validation": "Укажите корректные UUID, выберите хотя бы одно разрешение и причину длиной не менее 5 символов."
+        },
+        "fields": {
+          "permissions": "Разрешения партнёра",
+          "reason": "Причина для аудита",
+          "resourceType": "Тип ресурса",
+          "resourceUuid": "UUID ресурса",
+          "workspaceId": "UUID workspace"
+        },
+        "includeRevoked": "Показывать отозванные разрешения",
+        "loadError": "Не удалось загрузить разрешения. Повторите безопасный запрос чтения.",
+        "loading": "Загрузка объектных разрешений Remnawave",
+        "permissionDenied": "Для управления объектными разрешениями требуется право управления администраторами. Данные не запрашивались.",
+        "permissions": {
+          "remnawave_execute": "Выполнение разрешённой операции ресурса",
+          "remnawave_read": "Чтение назначенного ресурса",
+          "remnawave_write": "Изменение назначенного ресурса"
+        },
+        "refresh": "Обновить разрешения",
+        "resourceTypes": {
+          "host": "Хост",
+          "integration": "Интеграция",
+          "node": "Нода",
+          "profile": "Профиль",
+          "service_identity": "Сервисная идентичность",
+          "shared_list": "Общий список",
+          "squad": "Группа",
+          "tag": "Тег"
+        },
+        "retry": "Повторить",
+        "revoke": {
+          "cancel": "Отмена",
+          "confirmAction": "Подтвердить отзыв",
+          "description": "Укажите точную причину для аудита. Доступ изменится только после commit на backend.",
+          "pending": "Отзыв…",
+          "selectAction": "Отозвать",
+          "title": "Отозвать разрешение"
+        },
+        "status": {
+          "active": "Активно",
+          "revoked": "Отозвано"
+        },
+        "tableCaption": "Явные объектные разрешения Remnawave для workspace",
+        "title": "Объектные разрешения Remnawave"
+      },
+      "loading": "Загружаем возможности Remnawave и состояние receipt потоков",
+      "metaTitle": "Статус Remnawave 3.4 - Ozoxy Admin",
+      "metrics": {
+        "capabilities": "Возможности",
+        "capabilitiesHint": "включено в этом развёртывании",
+        "contract": "Контракт: {version}",
+        "nodeTarget": "Целевая нода",
+        "panelTarget": "Цель: {version}",
+        "panelVersion": "Версия панели",
+        "streams": "Потоки без зафиксированных проблем",
+        "streamsHint": "из {total} наблюдений по receipt"
+      },
+      "nodeSsh": {
+        "commandPlaceholder": "Введите данные терминала",
+        "connect": "Подтвердить и подключиться",
+        "connectPending": "Создание защищённой сессии…",
+        "description": "Одноразовый терминальный доступ через backend CyberVPN с подтверждением passkey. Backend проверяет администратора, realm, сессию, origin, исходный IP, allowlist нод и отзыв доступа.",
+        "disabled": "Браузерный SSH недоступен этому администратору или развёртыванию. Реестр нод и terminal ticket не запрашивались.",
+        "disconnect": "Отключиться и отозвать",
+        "eyebrow": "ТОЛЬКО ДОВЕРЕННЫЕ АДМИНИСТРАТОРЫ",
+        "feedback": {
+          "closed": "Терминальный relay закрыт, backend-процедура отзыва запущена.",
+          "commandInvalid": "Ввод терминала должен содержать от 1 до 4096 символов.",
+          "connected": "Аудируемый терминальный relay подключён.",
+          "connectFailed": "Не удалось создать защищённую сессию. Любой выданный ticket отозван.",
+          "permissionDenied": "Свежая passkey-аутентификация или доступ доверенного администратора отклонены.",
+          "relayError": "Ошибка terminal relay. Отключитесь для очистки локальной сессии и отзыва доступа.",
+          "revoked": "Терминальная сессия закрыта, её ticket отозван.",
+          "unavailable": "Браузерный SSH недоступен для этой ноды или развёртывания.",
+          "validation": "Выберите валидную ноду и введите причину длиной не менее 8 символов."
+        },
+        "fields": {
+          "command": "Ввод терминала",
+          "node": "Нода",
+          "reason": "Причина доступа для аудита"
+        },
+        "loadingNodes": "Загрузка диагностики разрешённых нод",
+        "nodesEmpty": "Нет валидных нод для выбора терминала.",
+        "nodesError": "Диагностика нод недоступна. Терминальная сессия не открыта.",
+        "phases": {
+          "authenticating": "Проверка passkey",
+          "closed": "Закрыто",
+          "connected": "Подключено",
+          "connecting": "Подключение",
+          "disconnecting": "Отзыв",
+          "error": "Ошибка",
+          "idle": "Ожидание"
+        },
+        "privacyNote": "Одноразовый ticket хранится только в оперативной памяти, не отображается и не сохраняется; при остановке или размонтировании консоли он отзывается.",
+        "retry": "Повторить загрузку нод",
+        "selectNode": "Выберите ноду",
+        "send": "Отправить",
+        "terminalEmpty": "Вывод терминала появится после подключения одноразовой сессии.",
+        "terminalLabel": "Вывод SSH-терминала ноды Remnawave",
+        "title": "Браузерный SSH к ноде"
+      },
+      "operatorHub": {
+        "description": "Ссылки с учётом разрешений открывают только разделы CyberVPN Admin с защищённым backend-контрактом. Возможность без admin-операции CyberVPN явно отмечена как недоступная.",
+        "eyebrow": "МАРШРУТЫ ОПЕРАТОРА",
+        "items": {
+          "connections": {
+            "description": "Просмотр топологии по пользователю или ноде и операция отключения с receipt.",
+            "title": "Управление подключениями пользователей"
+          },
+          "geoCheck": {
+            "description": "Запуск ограниченного GeoCheck ноды и опрос результата без повторения неоднозначной мутации.",
+            "title": "GeoCheck"
+          },
+          "hosts": {
+            "description": "Управление хостами выдачи, TLS-метаданными, путями и поддерживаемыми полями host mapper.",
+            "title": "Хосты и мапперы"
+          },
+          "integrations": {
+            "description": "Управление ограниченными интеграциями нод Remnawave; конфигурация видима только в явно открытой защищённой форме.",
+            "title": "Интеграции нод"
+          },
+          "nodes": {
+            "description": "Управление существующим реестром серверов, их состоянием и трафиком.",
+            "title": "Ноды и серверы"
+          },
+          "plugins": {
+            "description": "Управление плагинами нод и аудируемыми командами без универсального shell-прокси.",
+            "title": "Плагины и выполнение"
+          },
+          "profiles": {
+            "description": "Шаблоны экспортируемых клиентских профилей, доступные через CyberVPN.",
+            "title": "Профили конфигурации"
+          },
+          "responseRules": {
+            "description": "Текущий контракт групп не содержит responseHeadersAdd/Remove mutations, поэтому редактирование недоступно.",
+            "title": "Правила заголовков ответа"
+          },
+          "sharedLists": {
+            "description": "Создание, изменение, удаление, просмотр и синхронизация иерархических shared lists через защищённый operator API.",
+            "title": "Общие списки"
+          },
+          "snippets": {
+            "description": "Создание и просмотр переиспользуемых сниппетов выдачи и порядка их выполнения.",
+            "title": "Корневые сниппеты"
+          },
+          "squads": {
+            "description": "Управление внутренними и внешними группами через существующий ограниченный API.",
+            "title": "Группы"
+          },
+          "stats": {
+            "description": "Сводная панель активных подключений, использования, состояния и трафика.",
+            "title": "Подключения и статистика"
+          },
+          "systemConfig": {
+            "description": "Контролируемый реестр настроек и выделенные семейства системной конфигурации.",
+            "title": "Системная конфигурация"
+          },
+          "tags": {
+            "description": "Просмотр всех поддерживаемых наборов тегов и назначение через точные изменяемые контракты ресурсов.",
+            "title": "Теги Remnawave"
+          },
+          "users": {
+            "description": "Поиск клиентов и существующие аудируемые операции с подписками и учётными данными.",
+            "title": "Пользователи"
+          }
+        },
+        "open": "Открыть раздел",
+        "states": {
+          "disabled": "Эта возможность отключена в текущем развёртывании.",
+          "locked": "У роли администратора нет необходимого разрешения.",
+          "notExposed": "CyberVPN пока не публикует ограниченную admin-операцию для этой возможности.",
+          "open": "Доступно"
+        },
+        "title": "Центр управления Remnawave"
+      },
+      "retry": "Обновить статус",
+      "streams": {
+        "columns": {
+          "deadLetters": "Dead letters",
+          "lag": "Переданный lag",
+          "lastConsumed": "Последнее чтение",
+          "pending": "Переданный pending",
+          "retention": "Хранение",
+          "status": "Статус",
+          "stream": "Поток"
+        },
+        "description": "Состояние рассчитано по сохранённым committed receipt, открытым разрывам reconciliation и dead-letter. Lag и pending показываются только при наличии данных; этот снимок не доказывает актуальную свежесть consumer и не определяет права клиента.",
+        "empty": "Данные receipt Redis-потоков пока отсутствуют.",
+        "eyebrow": "ЗДОРОВЬЕ ОБРАБОТКИ",
+        "items": {
+          "node_connections": "Подключения нод",
+          "subscription_requests": "Запросы подписок",
+          "user_usage": "Использование трафика"
+        },
+        "retentionDays": "{count} дн.",
+        "status": {
+          "degraded": "Ограничено",
+          "healthy": "Проблемы не зафиксированы",
+          "unknown": "Неизвестно"
+        },
+        "title": "Состояние receipt Redis-потоков"
+      },
+      "title": "Готовность Remnawave 3.4",
+      "unknown": "Неизвестно"
+    },
+    "remnawaveConnections": {
+      "actions": {
+        "inspectNode": "Проверить ноду",
+        "inspectUser": "Проверить пользователя",
+        "retryRead": "Повторить чтение"
+      },
+      "description": "Асинхронная admin-only проверка по числовому ID пользователя Remnawave или UUID ноды. IP-адреса и топология остаются только в защищённой поверхности оператора.",
+      "drop": {
+        "action": "Отключить соединения",
+        "allNodes": "Все ноды",
+        "alreadyAttempted": "Этот точный payload уже отправлялся в текущей сессии. Выполните новый запрос чтения для сверки; повторной отправки не будет.",
+        "byIpAddresses": "IP-адресам",
+        "byLabel": "Искать подключения по",
+        "byUserIds": "Числовым ID пользователей",
+        "capabilityUnavailable": "Backend не подтвердил receipt-backed идемпотентный контракт отключения для этого развёртывания.",
+        "capabilityUnverified": "Сначала проверьте пользователя или ноду. Отключение недоступно, пока backend не подтвердит финальный контракт receipt и идемпотентности.",
+        "commaSeparated": "Введите значения через запятую; не более 1 000 целей.",
+        "confirm": "Я подтверждаю отключение этих активных соединений и понимаю, что неоднозначный результат нужно сверять, а не повторять вслепую.",
+        "description": "Критичная операция с одним локальным idempotency key для точного payload. Интерфейс никогда автоматически не повторяет неоднозначную мутацию.",
+        "ipAddressesLabel": "IP-адреса",
+        "noBlindRetry": "Не повторяйте эту мутацию вслепую; выполните новый запрос подключений для сверки.",
+        "nodeUuidsLabel": "UUID нод",
+        "outcomeWarning": "Провайдер может вернуть неизвестный результат. Сохраните receipt и выполните новый запрос чтения для сверки.",
+        "pending": "Отправляем один раз…",
+        "receipt": {
+          "accepted": "Запрос отключения принят один раз и записан backend.",
+          "outcome_unknown": "Upstream-результат неизвестен. Backend сохранил receipt и запретил повтор."
+        },
+        "receiptId": "Receipt: {receiptId}",
+        "retrySameKey": "Безопасно повторить с тем же ключом",
+        "specificNodes": "Выбранные ноды",
+        "targetLabel": "Целевые ноды",
+        "title": "Отключить активные соединения",
+        "userIdsLabel": "ID пользователей",
+        "validation": "Введите корректные ограниченные цели и подтвердите операцию."
+      },
+      "errors": {
+        "conflict": "Запрошенная учётная запись или idempotency-состояние конфликтует с канонической записью.",
+        "expired": "Запрос подключений больше не существует или истёк. Создайте новый запрос чтения.",
+        "forbidden": "Роль администратора не разрешает эту операцию. Топология не загружалась.",
+        "generic": "Запрос подключений завершился ошибкой. Успешное состояние не применено.",
+        "invalidProviderResponse": "Remnawave вернул некорректный ответ подключений. Частичная топология не показана.",
+        "unavailable": "Подключения Remnawave временно недоступны.",
+        "validation": "Запрос не соответствует ограниченному контракту подключений."
+      },
+      "eyebrow": "УПРАВЛЕНИЕ ПОДКЛЮЧЕНИЯМИ REMNAWAVE",
+      "metaTitle": "Подключения Remnawave - Ozoxy Admin",
+      "node": {
+        "description": "Запрос ограниченного upstream-снимка для одного канонического UUID ноды Remnawave.",
+        "label": "UUID ноды",
+        "placeholder": "00000000-0000-4000-8000-000000000000",
+        "title": "Подключения ноды",
+        "validation": "Введите корректный UUID ноды Remnawave."
+      },
+      "reconciliation": {
+        "actions": {
+          "next": "Следующая страница",
+          "previous": "Предыдущая страница",
+          "reconcile": "Записать результат",
+          "reconciling": "Записываем один раз…",
+          "refresh": "Обновить очередь",
+          "select": "Проверить receipt"
+        },
+        "audiences": {
+          "admin": "Администратор",
+          "customer": "Клиент",
+          "partner": "Партнёр"
+        },
+        "description": "Фиксируйте результат провайдера только после проверки администратором authoritative postcondition. Очередь не раскрывает секреты receipt и не позволяет менять retention или защитные метаданные.",
+        "errors": {
+          "conflict": "Для receipt уже записан другой финальный результат. Обновите authoritative очередь.",
+          "generic": "Запрос сверки завершился ошибкой. Финальный результат не предполагался.",
+          "notFound": "Этот receipt больше не существует. Обновите очередь перед следующим действием.",
+          "unavailable": "Durable-хранилище receipt или аудита временно недоступно. Результат не записан."
+        },
+        "form": {
+          "accepted": "Accepted — отключение применено",
+          "confirm": "Я проверил authoritative результат провайдера или состояние соединений и подтверждаю корректность этого необратимого финального результата.",
+          "outcome": "Финальный результат",
+          "reason": "Основание проверки",
+          "reference": "Номер обращения или инцидента",
+          "referenceHelp": "Используйте 11–64 заглавных символа: префикс CASE-, INC-, REQ-, TKT- или RW- и ограниченный идентификатор обращения.",
+          "rejected": "Rejected — отключение не применено",
+          "title": "Записать проверенный результат",
+          "validation": "Выберите совместимые результат и основание, укажите корректную ограниченную ссылку и подтвердите проверку."
+        },
+        "pagination": {
+          "label": "Страницы неоднозначных receipts"
+        },
+        "reasons": {
+          "postcondition_confirmed_applied": "Состояние соединений подтверждает применение отключения",
+          "postcondition_confirmed_not_applied": "Состояние соединений подтверждает, что отключение не применено",
+          "provider_confirmed_applied": "Провайдер подтвердил применение отключения",
+          "provider_confirmed_not_applied": "Провайдер подтвердил, что отключение не применено"
+        },
+        "states": {
+          "empty": "Неоднозначных receipts отключения соединений нет.",
+          "loading": "Загружаем неоднозначные receipts…",
+          "success": {
+            "accepted": "Проверенный результат accepted записан и удалён из очереди сверки.",
+            "rejected": "Проверенный результат rejected записан и удалён из очереди сверки."
+          }
+        },
+        "table": {
+          "action": "Действие",
+          "audience": "Контур",
+          "caption": "Неоднозначные receipts отключения, ожидающие сверки администратором",
+          "created": "Создан",
+          "receipt": "Receipt",
+          "updated": "Обновлён"
+        },
+        "title": "Неоднозначные receipts отключения"
+      },
+      "states": {
+        "jobFailed": "Remnawave не смог завершить запрос подключений.",
+        "nodeEmpty": "Введите UUID ноды, чтобы запросить асинхронный снимок подключений.",
+        "noNodeConnections": "Для ноды не получено активных подключений пользователей.",
+        "noUserConnections": "Для пользователя не получено активных IP-подключений.",
+        "polling": "Запрос выполняется. Результаты обновятся автоматически.",
+        "pollingProgress": "Запрос выполняется: {percent}%.",
+        "requesting": "Создаём запрос…",
+        "userEmpty": "Введите ID пользователя, чтобы запросить асинхронный снимок подключений."
+      },
+      "tables": {
+        "country": "Страна",
+        "ip": "IP-адрес",
+        "lastSeen": "Последняя активность",
+        "node": "Нода",
+        "nodeCaption": "IP-подключения выбранной ноды по числовым ID пользователей Remnawave",
+        "userCaption": "IP-подключения выбранного пользователя по нодам Remnawave",
+        "userId": "Числовой ID пользователя"
+      },
+      "title": "Консоль подключений",
+      "user": {
+        "description": "Запрос ограниченного upstream-снимка для одного канонического числового ID пользователя Remnawave.",
+        "label": "Числовой ID пользователя",
+        "placeholder": "Например: 1842",
+        "title": "Подключения пользователя",
+        "validation": "Введите положительный числовой ID пользователя Remnawave."
+      }
+    },
+    "remnawaveOperator": {
+      "accessDenied": "Для этой страницы требуется роль Admin или выше с правом server-read. Операторские данные Remnawave не запрашивались.",
+      "accessDeniedTitle": "Требуется право на инфраструктуру",
+      "actions": {
+        "refreshCapabilities": "Обновить возможности",
+        "retry": "Повторить"
+      },
+      "capabilityUnavailable": "Возможность выключена в текущем развёртывании. Операторский запрос не отправлялся.",
+      "degraded": "Состояние возможностей ограничено: {reason}",
+      "description": "Admin-only управление GeoCheck, тегами ресурсов, интеграциями нод, shared lists и точными root snippets. Мутации отправляются один раз, неоднозначные результаты остаются на сверке.",
+      "errors": {
+        "forbidden": "Роль администратора не разрешает доступ к этому ресурсу. Защищённые данные не показаны.",
+        "loadFailed": "Не удалось загрузить authoritative данные. Пустое состояние не подставлено."
+      },
+      "eyebrow": "ОПЕРАТОРСКИЙ КОНТУР REMNAWAVE 3.4.3",
+      "feedback": {
+        "accepted": "Backend принял фоновую операцию. Применение не считается завершённым; перед следующим действием обновите authoritative состояние.",
+        "failed": "Мутация завершилась ошибкой. Успешное состояние не предполагалось.",
+        "receipt": "Receipt сверки: {attemptId}",
+        "reconciliation": "Запрос принят, но authoritative результат требует сверки. Не отправляйте его повторно вслепую."
+      },
+      "geoCheck": {
+        "continuePolling": "Продолжить безопасный опрос",
+        "description": "Поставьте один ограниченный GeoCheck в очередь выбранной ноды, затем опрашивайте выданный job без повторной мутации.",
+        "failed": "GeoCheck завершился ошибкой.",
+        "interface": "Сетевой интерфейс",
+        "ip": "Исходный IP-адрес",
+        "job": "Job: {jobId}",
+        "nodeUuid": "UUID ноды",
+        "polling": "Ожидаем результат ноды…",
+        "pollLimitReached": "Автоматический опрос остановлен после 30 ограниченных чтений. Job повторно не запускался.",
+        "queued": "GeoCheck поставлен в очередь; результат job опрашивается.",
+        "queueing": "Отправляем один раз…",
+        "rawReport": "Структурированный отчёт ноды",
+        "reportImage": "Сетевой отчёт GeoCheck",
+        "run": "Запустить GeoCheck",
+        "source": "Переопределение источника",
+        "sources": {
+          "interface": "Сетевой интерфейс",
+          "ip": "IP-адрес",
+          "none": "Настройка ноды"
+        },
+        "success": "GeoCheck пройден",
+        "title": "GeoCheck ноды",
+        "validation": "Укажите корректный UUID ноды и, если выбран, ровно один непустой источник."
+      },
+      "integrations": {
+        "action": "Действие",
+        "cancel": "Закрыть защищённую форму",
+        "caption": "Интеграции нод Remnawave без значений конфигурации",
+        "config": "JSON конфигурации",
+        "configPrivacy": "Защищённое значение: не вставляйте секреты в логи или обращения поддержки. Конфигурация видима только в этой явно открытой форме.",
+        "confirmDelete": "Я подтверждаю удаление именно этой интеграции. Действие аудируется и не повторяется автоматически.",
+        "create": "Создать интеграцию",
+        "created": "Backend зафиксировал интеграцию.",
+        "createTitle": "Создать интеграцию ноды",
+        "delete": "Удалить интеграцию",
+        "deleted": "Backend зафиксировал удаление интеграции.",
+        "description": "Управляйте интеграциями нод Remnawave. Значения конфигурации не показываются в списке и открываются только явным действием редактирования.",
+        "descriptionColumn": "Описание",
+        "descriptionField": "Описание (необязательно)",
+        "edit": "Безопасно изменить",
+        "editNamed": "Изменить интеграцию {name} и открыть её конфигурацию в защищённой форме",
+        "editTitle": "Изменить выбранную интеграцию",
+        "empty": "Интеграции нод не настроены.",
+        "loading": "Загружаем интеграции нод",
+        "name": "Название",
+        "restartNodes": "Перезапустить затронутые ноды после обновления",
+        "saving": "Отправляем один раз…",
+        "title": "Интеграции нод",
+        "update": "Обновить интеграцию",
+        "updated": "Backend зафиксировал обновление интеграции.",
+        "validation": "Используйте название длиной 2-30 символов и корректный JSON-объект в пределах контракта."
+      },
+      "loading": "Загружаем контракт операторских возможностей",
+      "metaTitle": "Операторская консоль Remnawave - Ozoxy Admin",
+      "metrics": {
+        "access": "Текущий доступ",
+        "accessHint": "backend-авторизация остаётся authoritative",
+        "enabled": "Операторские возможности",
+        "enabledHint": "включено контрактом развёртывания",
+        "none": "НЕТ ДОСТУПА",
+        "read": "ТОЛЬКО ЧТЕНИЕ",
+        "write": "ЧТЕНИЕ + ЗАПИСЬ"
+      },
+      "readOnly": "У вашей роли есть только чтение инфраструктуры. Мутации требуют server-update и дополнительно проверяются backend.",
+      "sections": {
+        "geoCheck": "GeoCheck",
+        "integrations": "Интеграции нод",
+        "sharedLists": "Shared lists",
+        "snippets": "Root snippets",
+        "tags": "Теги"
+      },
+      "sharedLists": {
+        "actions": "Действия",
+        "cancel": "Отменить изменение",
+        "caption": "Превью shared lists Remnawave",
+        "confirmDelete": "Я подтверждаю удаление именно этого shared list. Ссылающимся плагинам может потребоваться сверка.",
+        "create": "Создать shared list",
+        "created": "Backend зафиксировал shared list.",
+        "createTitle": "Создать shared list",
+        "delete": "Удалить shared list",
+        "deleted": "Backend зафиксировал удаление shared list.",
+        "description": "Управляйте иерархической конфигурацией shared lists и явно синхронизируйте зависимые плагины с активными нодами.",
+        "edit": "Изменить",
+        "editNamed": "Изменить shared list {name}",
+        "editTitle": "Изменить выбранный shared list",
+        "empty": "Shared lists не настроены.",
+        "loading": "Загружаем превью shared lists",
+        "name": "Название",
+        "preview": "{type}; элементов: {count}",
+        "saving": "Отправляем один раз…",
+        "summary": "Превью",
+        "sync": "Синхронизировать",
+        "synced": "Backend зафиксировал синхронизацию shared list.",
+        "syncNamed": "Синхронизировать shared list {name} с активными нодами",
+        "title": "Shared lists",
+        "update": "Обновить shared list",
+        "updated": "Backend зафиксировал обновление shared list.",
+        "validation": "Используйте корректное иерархическое имя и ограниченный JSON-объект.",
+        "value": "JSON-объект конфигурации"
+      },
+      "snippets": {
+        "actions": "Действия",
+        "cancel": "Отменить изменение",
+        "caption": "Root snippets Remnawave",
+        "confirmDelete": "Я подтверждаю удаление именно этого root snippet. Затронутым профилям может потребоваться сверка.",
+        "create": "Создать snippet",
+        "created": "Backend зафиксировал root snippet.",
+        "createTitle": "Создать root snippet",
+        "delete": "Удалить snippet",
+        "deleted": "Backend зафиксировал удаление root snippet.",
+        "description": "Создавайте, изменяйте, удаляйте и синхронизируйте массивы root snippets, используемые профилями конфигурации Remnawave.",
+        "edit": "Изменить",
+        "editNamed": "Изменить root snippet {name}",
+        "editTitle": "Изменить выбранный root snippet",
+        "empty": "Root snippets не настроены.",
+        "loading": "Загружаем root snippets",
+        "name": "Название",
+        "preview": "JSON-объектов: {count}",
+        "saving": "Отправляем один раз…",
+        "summary": "Payload",
+        "sync": "Синхронизировать",
+        "synced": "Backend зафиксировал синхронизацию root snippet.",
+        "syncNamed": "Синхронизировать root snippet {name} с затронутыми профилями",
+        "title": "Точные root snippets",
+        "update": "Обновить snippet",
+        "updated": "Backend зафиксировал обновление root snippet.",
+        "validation": "Используйте корректное имя root snippet и ограниченный JSON-массив только из объектов.",
+        "value": "JSON-массив snippet"
+      },
+      "tablist": "Операторские возможности Remnawave",
+      "tags": {
+        "description": "Просматривайте наборы тегов всех поддерживаемых типов ресурсов и назначайте их только через изменяемые upstream-контракты.",
+        "empty": "Для этого типа ресурсов теги не зарегистрированы.",
+        "help": "Уникальные значения верхнего регистра через запятую; A-Z, 0-9, подчёркивание и двоеточие; не более 10.",
+        "inventory": "Доступные теги",
+        "inventoryOnly": "Для этого upstream-ресурса доступен только набор тегов. Назначение здесь недоступно.",
+        "loading": "Загружаем набор тегов",
+        "resource": "Тип ресурса",
+        "resources": {
+          "config-profiles": "Профили конфигурации",
+          "external-squads": "Внешние squads",
+          "hosts": "Хосты",
+          "internal-squads": "Внутренние squads",
+          "node-plugins": "Плагины нод",
+          "nodes": "Ноды",
+          "subscription-page-configs": "Конфигурации страницы подписки",
+          "subscription-templates": "Шаблоны подписок",
+          "users": "Пользователи"
+        },
+        "save": "Назначить теги",
+        "saved": "Backend зафиксировал точное назначение тегов.",
+        "saving": "Назначаем один раз…",
+        "title": "Теги ресурсов",
+        "uuid": "UUID ресурса",
+        "validation": "Укажите корректный UUID ресурса и не более 10 уникальных тегов верхнего регистра.",
+        "values": "Теги"
+      },
+      "title": "Операторская консоль Remnawave"
     },
     "servers": {
       "createAction": "Создать сервер",
@@ -4333,7 +5002,7 @@
         "runtime": "Runtime"
       },
       "permission": {
-        "readOnly": "Эта роль может смотреть состояние VPN Tester, но мутации требуют server update или plan-management permissions."
+        "readOnly": "Эта роль может смотреть состояние VPN Tester, но мутации требуют server update или plan-management права доступа."
       },
       "recommendationStatus": {
         "acknowledged": "Принято",
@@ -4385,7 +5054,7 @@
         "title": "Расписания"
       },
       "settings": {
-        "description": "Текущие permissions оператора и feature flags, влияющие на VPN Tester controls.",
+        "description": "Текущие права доступа оператора и feature flags, влияющие на VPN Tester controls.",
         "title": "Settings"
       },
       "status": {
@@ -5388,7 +6057,7 @@
       "infrastructure": "VPN-инфраструктура",
       "infrastructureHint": "Серверы, профили, Xray",
       "integrations": "Интеграции",
-      "integrationsHint": "Telegram, пуш-уведомления, события в реальном времени",
+      "integrationsHint": "Telegram, push, реалтайм",
       "operations": "Операции",
       "operationsHint": "Здоровье, очереди, инциденты",
       "security": "Безопасность",
@@ -5399,7 +6068,7 @@
     "infrastructure": "ИНФРАСТРУКТУРА",
     "infrastructureHint": "Серверы, ноды, развертывания",
     "integrations": "ИНТЕГРАЦИИ",
-    "integrationsHint": "Telegram, пуш-уведомления, события в реальном времени",
+    "integrationsHint": "Telegram, push, реалтайм",
     "item": {
       "addons": "Дополнения",
       "addonsHint": "Платные дополнения",
@@ -5475,6 +6144,12 @@
       "realtimeHint": "Темы и обращения в реальном времени",
       "referrals": "Рефералы",
       "referralsHint": "Реферальные сигналы и риски",
+      "remnawaveConnections": "Подключения Remnawave",
+      "remnawaveConnectionsHint": "Топология по пользователям и нодам",
+      "remnawaveOperator": "Операторская консоль Remnawave",
+      "remnawaveOperatorHint": "GeoCheck, теги, интеграции и общие ресурсы",
+      "remnawaveStatus": "Статус Remnawave 3.4",
+      "remnawaveStatusHint": "Возможности и состояние receipt потоков",
       "reporting": "Отчётность",
       "reportingHint": "Сводки, подписки и экспорты",
       "reviewQueue": "Очередь проверки",

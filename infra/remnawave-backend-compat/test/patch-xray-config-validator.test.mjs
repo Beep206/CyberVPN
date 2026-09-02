@@ -1,25 +1,25 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import test from 'node:test';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const patchScript = resolve(testDir, '..', 'patch-xray-config-validator.mjs');
-const fixture = resolve(testDir, 'fixtures', 'xray-config.validator.upstream.js');
+const fixture = resolve(testDir, 'fixtures', 'xray-config.validator.upstream.ts');
 
 const expectedVlessBlock = `            case 'vless':
                 if (!inbound.settings) {
                     inbound.settings = {};
                 }
                 inbound.settings.clients ??= [];
+
                 for (const user of users) {
                     inbound.settings.clients.push({
                         id: user.vlessUuid,
-                        email: user.tId.toString(),
+                        email: user.id.toString(),
                     });
                 }
                 break;`;
@@ -36,12 +36,12 @@ function runPatch(targetPath) {
 
 function makeTempFixture() {
   const dir = mkdtempSync(join(tmpdir(), 'cybervpn-remnawave-compat-'));
-  const target = join(dir, 'xray-config.validator.js');
+  const target = join(dir, 'xray-config.validator.ts');
   copyFileSync(fixture, target);
   return { dir, target };
 }
 
-test('patch adds Vision flow to RAW VLESS clients and omits empty flow clients', async () => {
+test('source patch adds Vision flow to RAW VLESS clients and omits empty flow', async () => {
   const { dir, target } = makeTempFixture();
   try {
     const result = runPatch(target);
@@ -49,22 +49,21 @@ test('patch adds Vision flow to RAW VLESS clients and omits empty flow clients',
 
     const patchedSource = readFileSync(target, 'utf8');
     assert.equal(patchedSource.includes(expectedVlessBlock), false);
-    assert.equal(
-      (patchedSource.match(/const vlessFlow = \(0, get_vless_flow_1\.getVlessFlow\)\(inbound\);/g) ?? [])
-        .length,
-      1,
-    );
+    assert.equal((patchedSource.match(/const vlessFlow = getVlessFlow\(inbound\);/g) ?? []).length, 1);
+    assert.equal((patchedSource.match(/email: user\.id\.toString\(\),/g) ?? []).length, 4);
+    assert.equal(patchedSource.includes('user.tId'), false);
 
-    const require = createRequire(import.meta.url);
-    const { XRayConfigHarness } = require(target);
+    const moduleUrl = `${pathToFileURL(target).href}?test=${Date.now()}`;
+    const { XRayConfigHarness } = await import(moduleUrl);
     const harness = new XRayConfigHarness();
-    const users = [{ vlessUuid: 'raw-user-id', tId: 101 }];
+    const users = [{ vlessUuid: 'raw-user-id', id: 101n }];
 
     const rawInbound = {
       protocol: 'vless',
       settings: {},
-      __testFlow: 'xtls-rprx-vision',
+      testFlow: 'xtls-rprx-vision',
     };
+    harness.cleanInboundClients(rawInbound);
     harness.addUsersToInbound(rawInbound, users);
     assert.equal(Object.hasOwn(rawInbound.settings, 'flow'), false);
     assert.deepEqual(rawInbound.settings.clients, [
@@ -78,8 +77,9 @@ test('patch adds Vision flow to RAW VLESS clients and omits empty flow clients',
     const xhttpInbound = {
       protocol: 'vless',
       settings: {},
-      __testFlow: '',
+      testFlow: '',
     };
+    harness.cleanInboundClients(xhttpInbound);
     harness.addUsersToInbound(xhttpInbound, users);
     assert.equal(Object.hasOwn(xhttpInbound.settings, 'flow'), false);
     assert.deepEqual(xhttpInbound.settings.clients, [
@@ -94,7 +94,7 @@ test('patch adds Vision flow to RAW VLESS clients and omits empty flow clients',
   }
 });
 
-test('patch fails closed when the expected VLESS block is ambiguous', () => {
+test('source patch fails closed when the expected VLESS block is ambiguous', () => {
   const { dir, target } = makeTempFixture();
   try {
     const before = `${readFileSync(target, 'utf8')}\n${expectedVlessBlock}\n`;
@@ -102,29 +102,32 @@ test('patch fails closed when the expected VLESS block is ambiguous', () => {
 
     const result = runPatch(target);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /expected VLESS addUsersToInbound block exactly once/);
+    assert.match(result.stderr, /expected 3\.4\.2 TypeScript VLESS addUsersToInbound block exactly once/);
     assert.equal(readFileSync(target, 'utf8'), before);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('patch fails closed when the expected VLESS block is missing', () => {
+test('source patch fails closed when upstream numeric user id mapping drifts', () => {
   const { dir, target } = makeTempFixture();
   try {
-    const before = readFileSync(target, 'utf8').replace(expectedVlessBlock, '');
+    const before = readFileSync(target, 'utf8').replace(
+      'email: user.id.toString(),',
+      'email: user.legacyId.toString(),',
+    );
     writeFileSync(target, before);
 
     const result = runPatch(target);
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /expected VLESS addUsersToInbound block exactly once/);
+    assert.match(result.stderr, /numeric user id mapping/);
     assert.equal(readFileSync(target, 'utf8'), before);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('patch fails closed when rerun against an already patched source', () => {
+test('source patch fails closed when rerun against already patched source', () => {
   const { dir, target } = makeTempFixture();
   try {
     const firstResult = runPatch(target);
@@ -133,7 +136,7 @@ test('patch fails closed when rerun against an already patched source', () => {
 
     const secondResult = runPatch(target);
     assert.notEqual(secondResult.status, 0);
-    assert.match(secondResult.stderr, /expected VLESS addUsersToInbound block exactly once/);
+    assert.match(secondResult.stderr, /expected 3\.4\.2 TypeScript VLESS addUsersToInbound block exactly once/);
     assert.equal(readFileSync(target, 'utf8'), beforeSecondRun);
   } finally {
     rmSync(dir, { recursive: true, force: true });

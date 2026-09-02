@@ -431,9 +431,9 @@ def _build_payout_views(
 
     for execution in payout_executions:
         execution_id = str(execution["id"])
-        instruction_id = _string_or_none(execution.get("payout_instruction_id"))
-        instruction = instruction_by_id.get(instruction_id or "")
-        if instruction is None:
+        execution_instruction_id = _string_or_none(execution.get("payout_instruction_id"))
+        matched_instruction = instruction_by_id.get(execution_instruction_id or "")
+        if matched_instruction is None:
             mismatches.append(
                 SettlementMismatch(
                     code="payout_execution_without_instruction",
@@ -441,13 +441,13 @@ def _build_payout_views(
                     object_family="payout_execution",
                     source_reference=execution_id,
                     message="Payout execution does not map to a canonical payout instruction.",
-                    details={"payout_instruction_id": instruction_id},
+                    details={"payout_instruction_id": execution_instruction_id},
                 )
             )
             continue
 
         mismatch_details: dict[str, Any] = {}
-        instruction_partner_account_id = _string_or_none(instruction.get("partner_account_id"))
+        instruction_partner_account_id = _string_or_none(matched_instruction.get("partner_account_id"))
         execution_partner_account_id = _string_or_none(execution.get("partner_account_id"))
         if instruction_partner_account_id != execution_partner_account_id:
             mismatch_details["partner_account_id"] = {

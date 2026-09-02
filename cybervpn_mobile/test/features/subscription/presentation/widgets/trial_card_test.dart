@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cybervpn_mobile/core/errors/failures.dart' as failures;
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
@@ -17,47 +19,59 @@ import '../../../../helpers/mock_repositories.dart';
 
 Widget buildTestableTrialCard({
   Map<String, dynamic>? trialStatusData,
-  bool shouldSucceed = true,
+  bool fetchShouldSucceed = true,
+  bool activationShouldSucceed = true,
+  Completer<Result<Map<String, dynamic>>>? trialStatusCompleter,
+  Completer<Result<SubscriptionEntity>>? activationCompleter,
 }) {
   final mockRepo = MockSubscriptionRepository();
 
-  if (shouldSucceed && trialStatusData != null) {
-    when(mockRepo.getTrialStatus)
-        .thenAnswer((_) async => Success<Map<String, dynamic>>(trialStatusData));
-  } else if (!shouldSucceed) {
+  if (trialStatusCompleter != null) {
+    when(
+      mockRepo.getTrialStatus,
+    ).thenAnswer((_) => trialStatusCompleter.future);
+  } else if (fetchShouldSucceed && trialStatusData != null) {
+    when(
+      mockRepo.getTrialStatus,
+    ).thenAnswer((_) async => Success<Map<String, dynamic>>(trialStatusData));
+  } else if (!fetchShouldSucceed) {
     when(mockRepo.getTrialStatus).thenAnswer(
       (_) async => const Failure<Map<String, dynamic>>(
-          failures.ServerFailure(message: 'Failed to load trial status')),
+        failures.ServerFailure(message: 'Failed to load trial status'),
+      ),
     );
   }
 
   when(mockRepo.activateTrial).thenAnswer(
-    (_) async => shouldSucceed
-        ? Success<SubscriptionEntity>(SubscriptionEntity(
-            id: 'trial-sub',
-            planId: 'trial-plan',
-            userId: 'user-1',
-            status: SubscriptionStatus.trial,
-            startDate: DateTime.now(),
-            endDate: DateTime.now().add(const Duration(days: 7)),
-            trafficUsedBytes: 0,
-            trafficLimitBytes: 100 * 1024 * 1024 * 1024,
-            maxDevices: 5,
-          ))
-        : const Failure<SubscriptionEntity>(
-            failures.ServerFailure(message: 'Failed to activate trial')),
+    (_) =>
+        activationCompleter?.future ??
+        Future.value(
+          activationShouldSucceed
+              ? Success<SubscriptionEntity>(
+                  SubscriptionEntity(
+                    id: 'trial-sub',
+                    planId: 'trial-plan',
+                    userId: 'user-1',
+                    status: SubscriptionStatus.trial,
+                    startDate: DateTime.now(),
+                    endDate: DateTime.now().add(const Duration(days: 7)),
+                    trafficUsedBytes: 0,
+                    trafficLimitBytes: 100 * 1024 * 1024 * 1024,
+                    maxDevices: 5,
+                  ),
+                )
+              : const Failure<SubscriptionEntity>(
+                  failures.ServerFailure(message: 'Failed to activate trial'),
+                ),
+        ),
   );
 
   return ProviderScope(
-    overrides: [
-      subscriptionRepositoryProvider.overrideWithValue(mockRepo),
-    ],
+    overrides: [subscriptionRepositoryProvider.overrideWithValue(mockRepo)],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: TrialCard(),
-      ),
+      home: Scaffold(body: TrialCard()),
     ),
   );
 }
@@ -96,7 +110,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(ElevatedButton, 'Start Trial'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Start Trial'), findsOneWidget);
     });
   });
 
@@ -160,13 +174,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byType(TrialCard), findsNothing);
+      expect(find.byKey(const Key('trial_card_eligible')), findsNothing);
+      expect(find.byKey(const Key('trial_card_active')), findsNothing);
     });
   });
 
   group('TrialCard - Activation Flow', () {
-    testWidgets('test_shows_loading_indicator_during_activation',
-        (tester) async {
+    testWidgets('test_shows_loading_indicator_during_activation', (
+      tester,
+    ) async {
+      final activationCompleter = Completer<Result<SubscriptionEntity>>();
       await tester.pumpWidget(
         buildTestableTrialCard(
           trialStatusData: {
@@ -174,6 +191,7 @@ void main() {
             'days_remaining': null,
             'trial_used': false,
           },
+          activationCompleter: activationCompleter,
         ),
       );
       await tester.pumpAndSettle();
@@ -202,11 +220,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Trial activated successfully'), findsOneWidget);
+      expect(find.text('Trial activated successfully!'), findsOneWidget);
     });
 
-    testWidgets('test_shows_error_snackbar_on_activation_failure',
-        (tester) async {
+    testWidgets('test_shows_error_snackbar_on_activation_failure', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildTestableTrialCard(
           trialStatusData: {
@@ -214,7 +233,7 @@ void main() {
             'days_remaining': null,
             'trial_used': false,
           },
-          shouldSucceed: false,
+          activationShouldSucceed: false,
         ),
       );
       await tester.pumpAndSettle();
@@ -223,36 +242,33 @@ void main() {
       await tester.tap(startButton);
       await tester.pumpAndSettle();
 
-      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
       expect(find.text('Failed to activate trial'), findsOneWidget);
     });
   });
 
   group('TrialCard - Loading State', () {
-    testWidgets('test_shows_loading_indicator_initially', (tester) async {
+    testWidgets('test_hides_nonessential_card_while_loading', (tester) async {
+      final trialStatusCompleter = Completer<Result<Map<String, dynamic>>>();
       await tester.pumpWidget(
-        buildTestableTrialCard(
-          trialStatusData: {
-            'is_eligible': true,
-            'days_remaining': null,
-            'trial_used': false,
-          },
-        ),
+        buildTestableTrialCard(trialStatusCompleter: trialStatusCompleter),
       );
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.byKey(const Key('trial_card_eligible')), findsNothing);
     });
   });
 
   group('TrialCard - Error State', () {
-    testWidgets('test_shows_error_message_on_fetch_failure', (tester) async {
+    testWidgets('test_hides_card_on_fetch_failure', (tester) async {
       await tester.pumpWidget(
-        buildTestableTrialCard(shouldSucceed: false),
+        buildTestableTrialCard(fetchShouldSucceed: false),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Failed to load trial status'), findsOneWidget);
+      expect(find.byKey(const Key('trial_card_eligible')), findsNothing);
+      expect(find.byKey(const Key('trial_card_active')), findsNothing);
     });
   });
 }

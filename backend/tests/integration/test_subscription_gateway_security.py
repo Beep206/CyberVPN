@@ -19,6 +19,7 @@ from src.config.settings import settings
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.remnawave_upgrade_model import RemnawaveIdentityReconciliationModel
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.subscription_proxy import SubscriptionProxyResponse
@@ -36,19 +37,22 @@ from tests.helpers.realm_auth import (
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 
 PROVIDER_SUBJECT_REF = "e131349d-1d45-4a21-ac66-4e98fa54c22d"
+PROVIDER_NUMERIC_SUBJECT_ID = 4201
 SHORT_UUID = "abcdefghijklmnop"
 ACTIVE_FROM = datetime(2020, 1, 1, tzinfo=UTC)
 _DEFAULT_GRANT_SNAPSHOT = object()
 
 
 class _RemnawaveClient:
-    def __init__(self) -> None:
+    def __init__(self, *, provider_uuid: str | None = PROVIDER_SUBJECT_REF) -> None:
         self.paths: list[str] = []
+        self.provider_uuid = provider_uuid
 
     async def get(self, path: str) -> dict[str, object]:
         self.paths.append(path)
         return {
-            "uuid": PROVIDER_SUBJECT_REF,
+            "id": PROVIDER_NUMERIC_SUBJECT_ID,
+            "uuid": self.provider_uuid,
             "status": "ACTIVE",
             "externalSquadUuid": "409147a7-a03c-4db5-bccf-33d3caaf8d52",
         }
@@ -84,6 +88,7 @@ async def test_provider_subject_conflict_older_than_newest_three_fails_closed() 
                 plan_code="premium_smart_ru",
                 created_at=base_created_at + timedelta(minutes=3),
                 grant_status="active",
+                reconciliation_state=None,
             )
             _insert_identity_with_optional_grant(
                 db,
@@ -92,6 +97,7 @@ async def test_provider_subject_conflict_older_than_newest_three_fails_closed() 
                 plan_code="unrelated_plan",
                 created_at=base_created_at + timedelta(minutes=2),
                 grant_status="active",
+                reconciliation_state=None,
             )
             _insert_identity_with_optional_grant(
                 db,
@@ -100,6 +106,7 @@ async def test_provider_subject_conflict_older_than_newest_three_fails_closed() 
                 plan_code="premium_smart_ru",
                 created_at=base_created_at + timedelta(minutes=1),
                 grant_status=None,
+                reconciliation_state=None,
             )
             oldest_conflicting_spb = _insert_identity_with_optional_grant(
                 db,
@@ -108,6 +115,7 @@ async def test_provider_subject_conflict_older_than_newest_three_fails_closed() 
                 plan_code="premium_spb_de_exceptions",
                 created_at=base_created_at,
                 grant_status="active",
+                reconciliation_state=None,
             )
             db.commit()
 
@@ -246,6 +254,7 @@ async def test_provider_subject_unsupported_conflict_older_than_newest_three_fai
                 plan_code="premium_smart_ru",
                 created_at=base_created_at + timedelta(minutes=3),
                 grant_status="active",
+                reconciliation_state=None,
             )
             _insert_identity_with_optional_grant(
                 db,
@@ -254,6 +263,7 @@ async def test_provider_subject_unsupported_conflict_older_than_newest_three_fai
                 plan_code="premium_smart_ru",
                 created_at=base_created_at + timedelta(minutes=2),
                 grant_status=None,
+                reconciliation_state=None,
             )
             _insert_identity_with_optional_grant(
                 db,
@@ -262,6 +272,7 @@ async def test_provider_subject_unsupported_conflict_older_than_newest_three_fai
                 plan_code="premium_smart_ru",
                 created_at=base_created_at + timedelta(minutes=1),
                 grant_status=None,
+                reconciliation_state=None,
             )
             oldest_unsupported_conflict = _insert_identity_with_optional_grant(
                 db,
@@ -270,6 +281,7 @@ async def test_provider_subject_unsupported_conflict_older_than_newest_three_fai
                 plan_code="unrelated_plan",
                 created_at=base_created_at,
                 grant_status="active",
+                reconciliation_state=None,
             )
             db.commit()
 
@@ -511,6 +523,95 @@ async def test_public_gateway_returns_503_for_task2_identity_with_sparse_active_
         cleanup_sqlite_file(sqlite_path)
 
 
+@pytest.mark.parametrize(
+    (
+        "reconciliation_state",
+        "reconciliation_numeric_subject_id",
+        "reconciliation_legacy_uuid",
+        "provider_uuid",
+    ),
+    [
+        (None, PROVIDER_NUMERIC_SUBJECT_ID, PROVIDER_SUBJECT_REF, PROVIDER_SUBJECT_REF),
+        ("pending", PROVIDER_NUMERIC_SUBJECT_ID, PROVIDER_SUBJECT_REF, PROVIDER_SUBJECT_REF),
+        ("conflict", PROVIDER_NUMERIC_SUBJECT_ID, PROVIDER_SUBJECT_REF, PROVIDER_SUBJECT_REF),
+        ("mapped", 9999, PROVIDER_SUBJECT_REF, PROVIDER_SUBJECT_REF),
+        (
+            "mapped",
+            PROVIDER_NUMERIC_SUBJECT_ID,
+            "f165a822-c652-48c4-a29b-fb93962c155c",
+            PROVIDER_SUBJECT_REF,
+        ),
+        (
+            "mapped",
+            PROVIDER_NUMERIC_SUBJECT_ID,
+            PROVIDER_SUBJECT_REF,
+            "f165a822-c652-48c4-a29b-fb93962c155c",
+        ),
+    ],
+)
+async def test_public_gateway_returns_503_without_proxy_for_inexact_service_identity_ledger(
+    reconciliation_state: str | None,
+    reconciliation_numeric_subject_id: int,
+    reconciliation_legacy_uuid: str,
+    provider_uuid: str,
+) -> None:
+    sessionmaker, engine, sqlite_path = create_realm_test_sessionmaker()
+    await initialize_realm_test_database(engine)
+    realm_id = uuid.uuid4()
+
+    try:
+        with sessionmaker() as db:
+            _insert_realm(db, realm_id)
+            identity = _insert_identity_with_optional_grant(
+                db,
+                realm_id=realm_id,
+                sequence=41,
+                plan_code="premium_smart_ru",
+                created_at=datetime(2026, 1, 1, tzinfo=UTC),
+                grant_status="active",
+                reconciliation_state=reconciliation_state,
+                reconciliation_numeric_subject_id=reconciliation_numeric_subject_id,
+                reconciliation_legacy_uuid=reconciliation_legacy_uuid,
+            )
+            db.commit()
+
+            management_client = _RemnawaveClient(provider_uuid=provider_uuid)
+            proxy = _CaptureSubscriptionProxy()
+            app = FastAPI()
+            app.include_router(subscription_gateway_routes.router)
+
+            async def _db_override():
+                yield cast(AsyncSession, SyncSessionAdapter(db))
+
+            async def _management_override():
+                return cast(RemnawaveClient, management_client)
+
+            async def _proxy_override():
+                return proxy
+
+            app.dependency_overrides[get_db] = _db_override
+            app.dependency_overrides[get_remnawave_client] = _management_override
+            app.dependency_overrides[get_remnawave_subscription_proxy_client] = _proxy_override
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="https://cyber-vpn.org",
+            ) as client:
+                response = await client.get(f"/api/sub/{SHORT_UUID}", headers={"User-Agent": "INCY/3.4.2"})
+
+            assert response.status_code == 503
+            assert response.text == "Subscription service unavailable"
+            assert response.headers["cache-control"] == "no-store"
+            assert response.headers["retry-after"] == "30"
+            assert management_client.paths == [f"/users/by-short-uuid/{SHORT_UUID}"]
+            assert proxy.headers is None
+            assert identity.provider_numeric_subject_id == PROVIDER_NUMERIC_SUBJECT_ID
+            assert identity.provider_subject_ref == PROVIDER_SUBJECT_REF
+    finally:
+        engine.dispose()
+        cleanup_sqlite_file(sqlite_path)
+
+
 def _insert_realm(db, realm_id: uuid.UUID) -> None:
     db.add(
         AuthRealmModel(
@@ -538,6 +639,9 @@ def _insert_identity_with_optional_grant(
     grant_snapshot: object = _DEFAULT_GRANT_SNAPSHOT,
     expires_at: datetime | None = None,
     xray_failover_canary: bool = False,
+    reconciliation_state: str | None = "mapped",
+    reconciliation_numeric_subject_id: int = PROVIDER_NUMERIC_SUBJECT_ID,
+    reconciliation_legacy_uuid: str | None = PROVIDER_SUBJECT_REF,
 ) -> ServiceIdentityModel:
     customer_id = uuid.uuid4()
     service_identity_id = uuid.uuid4()
@@ -560,6 +664,7 @@ def _insert_identity_with_optional_grant(
         identity_scope="subscription",
         subscription_key=subscription_key,
         provider_subject_ref=PROVIDER_SUBJECT_REF,
+        provider_numeric_subject_id=PROVIDER_NUMERIC_SUBJECT_ID,
         identity_status="active",
         service_context={
             "plan_code": plan_code,
@@ -570,6 +675,21 @@ def _insert_identity_with_optional_grant(
         updated_at=created_at,
     )
     db.add(identity)
+    if reconciliation_state is not None:
+        db.add(
+            RemnawaveIdentityReconciliationModel(
+                id=uuid.uuid4(),
+                subject_type="service_identity",
+                subject_id=service_identity_id,
+                legacy_uuid=reconciliation_legacy_uuid,
+                numeric_user_id=reconciliation_numeric_subject_id,
+                reconciliation_state=reconciliation_state,
+                evidence={"source": "subscription_gateway_security"},
+                reconciled_at=created_at if reconciliation_state == "mapped" else None,
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
     if grant_status is not None:
         resolved_grant_snapshot = (
             {"plan_code": grant_plan_code or plan_code} if grant_snapshot is _DEFAULT_GRANT_SNAPSHOT else grant_snapshot

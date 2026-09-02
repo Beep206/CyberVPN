@@ -1,0 +1,18 @@
+{
+  "response": [
+    {
+      "id": 18,
+      "uuid": "550e8400-e29b-41d4-a716-446655440011",
+      "name": "ams-01",
+      "address": "ams-01.example.com",
+      "isConnected": true,
+      "isDisabled": false,
+      "isConnecting": false,
+      "countryCode": "NL",
+      "activePluginUuid": null,
+      "versions": {"node": "3.4.1", "xray": "26.7.31"},
+      "ips": [{"ip": "203.0.113.18", "status": "INBOUND"}],
+      "integrationUuids": []
+    }
+  ]
+}

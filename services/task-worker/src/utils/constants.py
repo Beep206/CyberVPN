@@ -64,6 +64,7 @@ SCHEDULE_WEBHOOK_RETRY: Final[str] = "*/30 * * * *"  # Every 30 minutes
 SCHEDULE_CLEANUP: Final[str] = "0 2 * * *"  # Daily at 2 AM UTC
 SCHEDULE_CLEANUP_NOTIFICATIONS: Final[str] = "0 1 * * *"  # Daily at 1 AM UTC
 SCHEDULE_CLEANUP_CACHE: Final[str] = "0 4 * * *"  # Daily at 4 AM UTC
+SCHEDULE_REMNAWAVE_STREAM_RETENTION: Final[str] = "15 3 * * *"  # Daily at 03:15 UTC
 SCHEDULE_CLEANUP_WEEKLY: Final[str] = "0 3 * * 0"  # Sunday at 3 AM UTC
 SCHEDULE_CLEANUP_WEBHOOK_WEEKLY: Final[str] = "0 3 * * 1"  # Monday at 3 AM UTC
 SCHEDULE_REPORT_DAILY: Final[str] = "0 6 * * *"  # Daily at 6 AM UTC (09:00 MSK)

@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPNサービスの可用性",
+    "connections": "接続",
+    "usage": "使用量",
+    "devices": "デバイス",
+    "available": "利用可能",
+    "unavailable": "利用不可",
+    "loading": "VPNサービスの状態を読み込み中",
+    "degraded": "一部で障害"
   }
 }

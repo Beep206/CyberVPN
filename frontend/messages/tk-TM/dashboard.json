@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN hyzmatynyň elýeterliligi",
+    "connections": "Birikmeler",
+    "usage": "Ulanyş",
+    "devices": "Enjamlar",
+    "available": "Elýeterli",
+    "unavailable": "Elýeterli däl",
+    "loading": "VPN hyzmatynyň ýagdaýy ýüklenýär",
+    "degraded": "Bölekleýin çäklendirilen"
   }
 }

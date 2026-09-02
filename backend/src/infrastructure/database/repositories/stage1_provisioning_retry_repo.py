@@ -6,10 +6,12 @@ from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.remnawave_identity_access import resolve_exact_mapped_mobile_user_ref
 from src.application.use_cases.subscriptions.stage1_provisioning_retry import (
     STAGE1_PROVISIONING_RETRY_QUEUE_NAME,
     Stage1ProvisioningRetryJob,
@@ -17,6 +19,8 @@ from src.application.use_cases.subscriptions.stage1_provisioning_retry import (
     Stage1ProvisioningRetryOperation,
     Stage1ProvisioningRetryReason,
 )
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.stage1_provisioning_retry_model import Stage1ProvisioningRetryJobModel
 from src.presentation.api.shared.stage1_contract import (
     JsonScalar,
@@ -33,6 +37,7 @@ ACTIVE_RETRY_STATES = (
 TERMINAL_RETRY_STATES = (
     Stage1ProvisioningRetryJobState.SUCCEEDED.value,
     Stage1ProvisioningRetryJobState.DEAD_LETTER.value,
+    Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED.value,
 )
 
 
@@ -59,6 +64,12 @@ class Stage1ProvisioningRetryJobRepository:
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def resolve_current_remnawave_user_ref(self, customer_account_id: UUID) -> RemnawaveUserRef | None:
+        customer = await self._session.get(MobileUserModel, customer_account_id)
+        if customer is None:
+            raise LookupError("Provisioning retry customer no longer exists")
+        return await resolve_exact_mapped_mobile_user_ref(self._session, customer)
 
     async def save_retry_job(self, job: Stage1ProvisioningRetryJob) -> Stage1ProvisioningRetryJob:
         """Persist a retry job idempotently by ``operation + correlation_id``."""
@@ -142,6 +153,9 @@ class Stage1ProvisioningRetryJobRepository:
                 "queued": int(counts.get(Stage1ProvisioningRetryJobState.QUEUED.value, 0)),
                 "retrying": int(counts.get(Stage1ProvisioningRetryJobState.RETRYING.value, 0)),
                 "dead_letter": int(counts.get(Stage1ProvisioningRetryJobState.DEAD_LETTER.value, 0)),
+                "reconciliation_required": int(
+                    counts.get(Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED.value, 0)
+                ),
                 "succeeded": int(counts.get(Stage1ProvisioningRetryJobState.SUCCEEDED.value, 0)),
             },
             "max_job_age_seconds": max_age_seconds,
@@ -229,7 +243,7 @@ class Stage1ProvisioningRetryJobRepository:
     ) -> Stage1ProvisioningRetryJob:
         updated = replace(
             job,
-            state=Stage1ProvisioningRetryJobState.DEAD_LETTER,
+            state=Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED,
             provisioning_state=Stage1ProvisioningState.RECONCILIATION_REQUIRED,
             support_state=Stage1SupportState.OPS_ESCALATION,
             completed_at=_ensure_aware_utc(completed_at),

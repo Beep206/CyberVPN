@@ -460,7 +460,17 @@
     "serverStatus": "MATSAYIN SABIS",
     "statusLabel": "MATSAYIN TSARIN:",
     "statusValue": "MAFI KYAU",
-    "title": "CIBIYAR KULA DA VPN"
+    "title": "CIBIYAR KULA DA VPN",
+    "vpnServiceStatus": {
+      "available": "Akwai",
+      "connections": "Haɗin kai",
+      "degraded": "An rage aiki a wani ɓangare",
+      "devices": "Na’urori",
+      "loading": "Ana loda matsayin sabis na VPN",
+      "title": "Samuwar sabis na VPN",
+      "unavailable": "Babu",
+      "usage": "Amfani"
+    }
   },
   "DeleteAccount": {
     "contact": {

@@ -43,6 +43,7 @@ const SAFE_FORWARD_HEADERS = new Set([
   'user-agent',
   'x-correlation-id',
   'x-csrf-token',
+  'x-fresh-auth-grant-id',
   'x-idempotency-key',
   'x-request-id',
   'x-requested-with',

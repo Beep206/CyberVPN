@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:cybervpn_mobile/features/settings/presentation/widgets/settings_tile.dart';
 
 void main() {
   Widget buildTestWidget(Widget child) {
-    return MaterialApp(
-      home: Scaffold(body: child),
+    return ProviderScope(
+      child: MaterialApp(home: Scaffold(body: child)),
     );
   }
 
@@ -33,10 +34,7 @@ void main() {
     testWidgets('shows chevron icon', (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
-          SettingsTile.navigation(
-            title: 'Language',
-            onTap: () {},
-          ),
+          SettingsTile.navigation(title: 'Language', onTap: () {}),
         ),
       );
 
@@ -61,12 +59,7 @@ void main() {
 
     testWidgets('renders without subtitle', (tester) async {
       await tester.pumpWidget(
-        buildTestWidget(
-          SettingsTile.navigation(
-            title: 'Theme',
-            onTap: () {},
-          ),
-        ),
+        buildTestWidget(SettingsTile.navigation(title: 'Theme', onTap: () {})),
       );
 
       expect(find.text('Theme'), findsOneWidget);
@@ -150,8 +143,9 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('SettingsTile.radio', () {
-    testWidgets('renders Radio selected when value matches groupValue',
-        (tester) async {
+    testWidgets('renders Radio selected when value matches groupValue', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildTestWidget(
           SettingsTile.radio(
@@ -166,14 +160,16 @@ void main() {
       expect(find.text('VLESS-Reality'), findsOneWidget);
 
       // RadioGroup ancestor manages the groupValue; verify via RadioGroup
-      final radioGroup =
-          tester.widget<RadioGroup<dynamic>>(find.byType(RadioGroup<dynamic>));
+      final radioGroup = tester.widget<RadioGroup<dynamic>>(
+        find.byType(RadioGroup<dynamic>),
+      );
       final radio = tester.widget<Radio<dynamic>>(find.byType(Radio<dynamic>));
       expect(radio.value, equals(radioGroup.groupValue));
     });
 
-    testWidgets('renders Radio unselected when value differs from groupValue',
-        (tester) async {
+    testWidgets('renders Radio unselected when value differs from groupValue', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildTestWidget(
           SettingsTile.radio(
@@ -185,14 +181,16 @@ void main() {
         ),
       );
 
-      final radioGroup =
-          tester.widget<RadioGroup<dynamic>>(find.byType(RadioGroup<dynamic>));
+      final radioGroup = tester.widget<RadioGroup<dynamic>>(
+        find.byType(RadioGroup<dynamic>),
+      );
       final radio = tester.widget<Radio<dynamic>>(find.byType(Radio<dynamic>));
       expect(radio.value, isNot(equals(radioGroup.groupValue)));
     });
 
-    testWidgets('calls onChanged with value when tile is tapped',
-        (tester) async {
+    testWidgets('calls onChanged with value when tile is tapped', (
+      tester,
+    ) async {
       dynamic changedValue;
 
       await tester.pumpWidget(

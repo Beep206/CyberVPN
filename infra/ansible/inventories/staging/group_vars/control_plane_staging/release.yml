@@ -3,8 +3,15 @@ control_plane_release_name: ""
 control_plane_release_source_commit: ""
 control_plane_release_source_run_url: ""
 control_plane_release_created_at: ""
+control_plane_remnawave_preupgrade_auth_secret_sha256: ""
 
 control_plane_release_images:
+  remnawave: ""
   backend: ""
   worker: ""
   helix_adapter: ""
+  node: ""
+  subscription_page: ""
+  node_ssh_proxy: ""
+
+control_plane_release_supply_chain: {}

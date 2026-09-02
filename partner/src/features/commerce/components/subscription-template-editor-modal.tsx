@@ -8,21 +8,20 @@ import { Modal } from '@/shared/ui/modal';
 
 interface SubscriptionTemplateFormValues {
   name: string;
-  template_type: string;
-  host_uuid: string;
-  inbound_tag: string;
-  flow: string;
-  config_data: string;
+  templateType: TemplateType;
+  templateJson: string;
+  encodedTemplateYaml: string;
 }
+
+type CreateTemplatePayload = Parameters<typeof import('@/lib/api/subscriptions').subscriptionsApi.create>[0];
+type TemplateType = CreateTemplatePayload['templateType'];
 
 interface EditableSubscriptionTemplate {
   uuid: string;
   name: string;
-  templateType: string;
-  hostUuid?: string | null;
-  inboundTag?: string | null;
-  flow?: string | null;
-  configData?: Record<string, unknown> | null;
+  templateType: TemplateType;
+  templateJson: Record<string, unknown> | null;
+  encodedTemplateYaml: string | null;
 }
 
 interface SubscriptionTemplateEditorModalProps {
@@ -33,21 +32,26 @@ interface SubscriptionTemplateEditorModalProps {
   onClose: () => void;
   onSubmit: (payload: {
     name: string;
-    template_type: string;
-    host_uuid?: string;
-    inbound_tag?: string;
-    flow?: string;
-    config_data?: Record<string, unknown>;
+    templateType: TemplateType;
+    templateJson: Record<string, unknown> | null;
+    encodedTemplateYaml: string | null;
   }) => Promise<void> | void;
 }
 
+const TEMPLATE_TYPES: readonly TemplateType[] = [
+  'XRAY_JSON',
+  'XRAY_BASE64',
+  'MIHOMO',
+  'STASH',
+  'CLASH',
+  'SINGBOX',
+];
+
 const EMPTY_VALUES: SubscriptionTemplateFormValues = {
   name: '',
-  template_type: '',
-  host_uuid: '',
-  inbound_tag: '',
-  flow: '',
-  config_data: '',
+  templateType: 'XRAY_JSON',
+  templateJson: '',
+  encodedTemplateYaml: '',
 };
 
 function buildFormValues(
@@ -59,14 +63,16 @@ function buildFormValues(
 
   return {
     name: initialTemplate.name,
-    template_type: initialTemplate.templateType,
-    host_uuid: initialTemplate.hostUuid ?? '',
-    inbound_tag: initialTemplate.inboundTag ?? '',
-    flow: initialTemplate.flow ?? '',
-    config_data: initialTemplate.configData
-      ? JSON.stringify(initialTemplate.configData, null, 2)
+    templateType: initialTemplate.templateType,
+    templateJson: initialTemplate.templateJson
+      ? JSON.stringify(initialTemplate.templateJson, null, 2)
       : '',
+    encodedTemplateYaml: initialTemplate.encodedTemplateYaml ?? '',
   };
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export function SubscriptionTemplateEditorModal({
@@ -91,6 +97,7 @@ export function SubscriptionTemplateEditorModal({
     >
       <SubscriptionTemplateEditorModalForm
         key={`${mode}:${initialTemplate?.uuid ?? 'create'}`}
+        mode={mode}
         initialTemplate={initialTemplate}
         isSubmitting={isSubmitting}
         onClose={onClose}
@@ -101,13 +108,14 @@ export function SubscriptionTemplateEditorModal({
 }
 
 function SubscriptionTemplateEditorModalForm({
+  mode,
   initialTemplate,
   isSubmitting = false,
   onClose,
   onSubmit,
 }: Pick<
   SubscriptionTemplateEditorModalProps,
-  'initialTemplate' | 'isSubmitting' | 'onClose' | 'onSubmit'
+  'mode' | 'initialTemplate' | 'isSubmitting' | 'onClose' | 'onSubmit'
 >) {
   const t = useTranslations('Commerce');
   const [values, setValues] = useState<SubscriptionTemplateFormValues>(() =>
@@ -124,15 +132,15 @@ function SubscriptionTemplateEditorModalForm({
       return;
     }
 
-    if (!values.template_type.trim()) {
-      setError(t('common.validation.templateTypeRequired'));
-      return;
-    }
-
-    let parsedConfigData: Record<string, unknown> | undefined;
-    if (values.config_data.trim()) {
+    let parsedTemplateJson: Record<string, unknown> | null = null;
+    if (mode === 'edit' && values.templateJson.trim()) {
       try {
-        parsedConfigData = JSON.parse(values.config_data) as Record<string, unknown>;
+        const parsed = JSON.parse(values.templateJson) as unknown;
+        if (!isJsonObject(parsed)) {
+          setError(t('common.validation.configJsonInvalid'));
+          return;
+        }
+        parsedTemplateJson = parsed;
       } catch {
         setError(t('common.validation.configJsonInvalid'));
         return;
@@ -141,11 +149,10 @@ function SubscriptionTemplateEditorModalForm({
 
     await onSubmit({
       name: values.name.trim(),
-      template_type: values.template_type.trim(),
-      host_uuid: values.host_uuid.trim() || undefined,
-      inbound_tag: values.inbound_tag.trim() || undefined,
-      flow: values.flow.trim() || undefined,
-      config_data: parsedConfigData,
+      templateType: values.templateType,
+      templateJson: parsedTemplateJson,
+      encodedTemplateYaml:
+        mode === 'edit' ? values.encodedTemplateYaml.trim() || null : null,
     });
   }
 
@@ -167,67 +174,62 @@ function SubscriptionTemplateEditorModalForm({
             <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
               {t('common.templateType')}
             </span>
-            <Input
-              value={values.template_type}
+            <select
+              value={values.templateType}
+              disabled={mode === 'edit'}
               onChange={(event) =>
-                setValues((current) => ({ ...current, template_type: event.target.value }))
+                setValues((current) => ({
+                  ...current,
+                  templateType: event.target.value as TemplateType,
+                }))
               }
-              placeholder="vless"
-            />
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-              {t('common.hostUuid')}
-            </span>
-            <Input
-              value={values.host_uuid}
-              onChange={(event) =>
-                setValues((current) => ({ ...current, host_uuid: event.target.value }))
-              }
-              placeholder={t('common.optional')}
-            />
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-              {t('common.inboundTag')}
-            </span>
-            <Input
-              value={values.inbound_tag}
-              onChange={(event) =>
-                setValues((current) => ({ ...current, inbound_tag: event.target.value }))
-              }
-              placeholder={t('common.optional')}
-            />
+              className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {TEMPLATE_TYPES.map((templateType) => (
+                <option key={templateType} value={templateType}>
+                  {templateType}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
 
-        <label className="space-y-2 block">
-          <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-            {t('common.flow')}
-          </span>
-          <Input
-            value={values.flow}
-            onChange={(event) => setValues((current) => ({ ...current, flow: event.target.value }))}
-            placeholder="xtls-rprx-vision"
-          />
-        </label>
+        {mode === 'edit' ? (
+          <>
+            <label className="block space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('common.configData')}
+              </span>
+              <textarea
+                value={values.templateJson}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, templateJson: event.target.value }))
+                }
+                rows={8}
+                placeholder={t('subscriptionTemplates.form.configPlaceholder')}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </label>
 
-        <label className="block space-y-2">
-          <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-            {t('common.configData')}
-          </span>
-          <textarea
-            value={values.config_data}
-            onChange={(event) =>
-              setValues((current) => ({ ...current, config_data: event.target.value }))
-            }
-            rows={8}
-            placeholder={t('subscriptionTemplates.form.configPlaceholder')}
-            className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </label>
+            <label className="block space-y-2">
+              <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
+                {t('subscriptionTemplates.form.encodedYaml')}
+              </span>
+              <textarea
+                value={values.encodedTemplateYaml}
+                onChange={(event) =>
+                  setValues((current) => ({
+                    ...current,
+                    encodedTemplateYaml: event.target.value,
+                  }))
+                }
+                rows={6}
+                placeholder={t('subscriptionTemplates.form.encodedYamlPlaceholder')}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </label>
+          </>
+        ) : null}
 
         {error ? (
           <div className="rounded-xl border border-neon-pink/25 bg-neon-pink/10 px-4 py-3 text-sm font-mono text-neon-pink">

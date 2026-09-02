@@ -1294,19 +1294,19 @@ def _followup_summary_from_subscription(
             is_overdue=due_at <= now,
             action_required=True,
         )
-    due_at = _coerce_utc(item.governance_followup_due_at) if item.governance_followup_due_at else None
+    existing_due_at = _coerce_utc(item.governance_followup_due_at) if item.governance_followup_due_at else None
     opened_at = _coerce_utc(item.governance_followup_opened_at) if item.governance_followup_opened_at else None
     last_notified_at = (
         _coerce_utc(item.governance_followup_last_notified_at) if item.governance_followup_last_notified_at else None
     )
     resolved_at = _coerce_utc(item.governance_followup_resolved_at) if item.governance_followup_resolved_at else None
     status = item.governance_followup_status or "none"
-    is_overdue = bool(status == "open" and due_at and due_at <= now)
+    is_overdue = bool(status == "open" and existing_due_at and existing_due_at <= now)
     return GrowthReportingGovernanceFollowupSummary(
         status=status,
         reason_code=item.governance_followup_reason_code,
         opened_at=opened_at,
-        due_at=due_at,
+        due_at=existing_due_at,
         last_notified_at=last_notified_at,
         resolved_at=resolved_at,
         resolution_code=item.governance_followup_resolution_code,

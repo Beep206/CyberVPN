@@ -19,6 +19,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.application.events import EventOutboxService, OutboxActorContext
 from src.application.services.auth_session_issuer import hash_device_key
 from src.application.services.config_service import ConfigService
+from src.application.services.remnawave_create_attempts import (
+    RemnawaveCreateAttemptConflict,
+    RemnawaveCreateAttemptService,
+    remnawave_create_request_hash,
+    remnawave_customer_create_key,
+)
+from src.application.services.remnawave_identity_access import (
+    persist_runtime_mapped_mobile_identity,
+    resolve_exact_mapped_mobile_user_ref,
+)
 from src.application.use_cases.auth.permissions import Permission, has_permission
 from src.application.use_cases.growth_notifications.fanout import PlanCustomerGrowthNotificationFanoutUseCase
 from src.application.use_cases.invites.admin_create_invite import AdminCreateInviteUseCase
@@ -36,6 +46,9 @@ from src.application.use_cases.invites.campaigns import (
 )
 from src.application.use_cases.invites.redeem_invite import InviteRedemptionRuntimeContext, RedeemInviteUseCase
 from src.application.use_cases.service_access.entitlements import RevokeEntitlementGrantUseCase
+from src.application.use_cases.service_access.service_identities import (
+    BindProvisionedRemnawaveServiceIdentityUseCase,
+)
 from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningGateway,
     Stage1TrialProvisioningService,
@@ -49,6 +62,7 @@ from src.domain.exceptions import (
     InviteCodeExpiredError,
     InviteCodeNotFoundError,
 )
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.growth_benefit_model import InviteBatchModel
@@ -64,6 +78,7 @@ from src.infrastructure.database.models.subscription_plan_model import Subscript
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.system_config_repo import SystemConfigRepository
+from src.infrastructure.database.session import AsyncSessionLocal
 from src.infrastructure.monitoring.instrumentation.growth_codes import (
     ADMIN_GROWTH_SURFACE,
     CUSTOMER_REDEEM_SURFACE,
@@ -152,21 +167,116 @@ async def _provision_redeemed_invite_access(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mobile user not found")
 
     grant = await db.get(EntitlementGrantModel, result.entitlement_grant_id)
-    access_expires_at = grant.expires_at if grant is not None and grant.expires_at is not None else None
+    if grant is None:
+        raise RuntimeError("Invite entitlement grant is missing before provisioning")
+    if grant.customer_account_id != user_id or grant.auth_realm_id != user.auth_realm_id:
+        raise RuntimeError("Invite entitlement grant does not belong to the redeeming customer")
+    identity_binding = BindProvisionedRemnawaveServiceIdentityUseCase(db)
+    await identity_binding.validate_target(
+        service_identity_id=grant.service_identity_id,
+        customer_account_id=user_id,
+        auth_realm_id=grant.auth_realm_id,
+    )
+
+    access_expires_at = grant.expires_at
     if access_expires_at is None:
         access_expires_at = datetime.now(UTC) + timedelta(days=int(result.invite.free_days))
 
-    provisioning = await Stage1TrialProvisioningService(provisioning_gateway).provision(
-        customer_account_id=user_id,
-        email=user.email,
-        username=user.username,
-        telegram_id=user.telegram_id,
-        trial_expires_at=access_expires_at,
-        existing_remnawave_uuid=user.remnawave_uuid,
+    existing_ref = await resolve_exact_mapped_mobile_user_ref(db, user)
+    create_attempt_key: str | None = None
+    create_request_hash: str | None = None
+    if existing_ref is None:
+        create_attempt_key = remnawave_customer_create_key(user_id)
+        create_request_hash = remnawave_create_request_hash(
+            {
+                "customer_account_id": str(user_id),
+                "access_expires_at": access_expires_at,
+                "entitlement_grant_id": str(result.entitlement_grant_id),
+            }
+        )
+        try:
+            async with AsyncSessionLocal() as marker_db:
+                decision = await RemnawaveCreateAttemptService(marker_db).begin(
+                    scope="remnawave-customer:create",
+                    idempotency_key=create_attempt_key,
+                    request_hash=create_request_hash,
+                    customer_account_id=user_id,
+                )
+        except RemnawaveCreateAttemptConflict as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Invite Remnawave creation requires reconciliation",
+            ) from exc
+        if not decision.should_mutate:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Invite Remnawave creation requires reconciliation",
+            )
+    try:
+        provisioning = await Stage1TrialProvisioningService(provisioning_gateway).provision(
+            customer_account_id=user_id,
+            email=user.email,
+            username=user.username,
+            telegram_id=user.telegram_id,
+            trial_expires_at=access_expires_at,
+            existing_remnawave_uuid=(
+                str(existing_ref.legacy_uuid)
+                if existing_ref is not None and existing_ref.legacy_uuid is not None
+                else None
+            ),
+            existing_remnawave_user_id=(existing_ref.require_numeric_id() if existing_ref is not None else None),
+        )
+    except Exception as exc:
+        if create_attempt_key is not None and create_request_hash is not None:
+            async with AsyncSessionLocal() as marker_db:
+                marker_attempts = RemnawaveCreateAttemptService(marker_db)
+                marker_decision = await marker_attempts.begin(
+                    scope="remnawave-customer:create",
+                    idempotency_key=create_attempt_key,
+                    request_hash=create_request_hash,
+                    customer_account_id=user_id,
+                )
+                await marker_attempts.mark_reconciliation_required(marker_decision.record)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Invite Remnawave creation requires reconciliation",
+            ) from exc
+        raise
+    remnawave_user_id = provisioning.require_remnawave_user_id()
+    await persist_runtime_mapped_mobile_identity(
+        db,
+        customer=user,
+        remnawave_user_id=remnawave_user_id,
+        remnawave_uuid=provisioning.remnawave_uuid,
+        source="invite_redemption",
     )
-    user.remnawave_uuid = provisioning.remnawave_uuid
+    await identity_binding.execute(
+        service_identity_id=grant.service_identity_id,
+        customer_account_id=user_id,
+        auth_realm_id=grant.auth_realm_id,
+        remnawave_user_id=remnawave_user_id,
+        remnawave_uuid=provisioning.remnawave_uuid,
+        mapping_source="invite_redemption",
+    )
     user.subscription_url = provisioning.subscription_url
     await user_repo.update(user)
+    if create_attempt_key is not None and create_request_hash is not None:
+        create_attempts = RemnawaveCreateAttemptService(db)
+        completion_decision = await create_attempts.begin(
+            scope="remnawave-customer:create",
+            idempotency_key=create_attempt_key,
+            request_hash=create_request_hash,
+            customer_account_id=user_id,
+        )
+        if completion_decision.should_mutate:
+            raise RuntimeError("Invite Remnawave create marker disappeared before local commit")
+        await create_attempts.mark_completed(
+            completion_decision.record,
+            user_ref=RemnawaveUserRef(
+                id=remnawave_user_id,
+                legacy_uuid=(UUID(provisioning.remnawave_uuid) if provisioning.remnawave_uuid is not None else None),
+            ),
+        )
 
 
 @router.post(
@@ -1819,7 +1929,7 @@ async def admin_export_invite_batch(
         for invite in invites
         if invite.revoked_at is None
         and invite.status not in {"revoked", "expired"}
-        and (_coerce_utc(invite.expires_at) is None or _coerce_utc(invite.expires_at) > now)
+        and ((expires_at := _coerce_utc(invite.expires_at)) is None or expires_at > now)
     ]
     await _write_invite_batch_admin_audit(
         db=db,

@@ -17,3 +17,7 @@ class PartnerPermission(StrEnum):
     TRAFFIC_WRITE = "traffic_write"
     INTEGRATIONS_READ = "integrations_read"
     INTEGRATIONS_WRITE = "integrations_write"
+    REMNAWAVE_READ = "remnawave_read"
+    REMNAWAVE_WRITE = "remnawave_write"
+    REMNAWAVE_EXECUTE = "remnawave_execute"
+    REMNAWAVE_SSH = "remnawave_ssh"

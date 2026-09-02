@@ -1,15 +1,23 @@
 """Integration tests for subscription management flows (BM-5)."""
 
 import secrets
+import uuid
 from unittest.mock import patch
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, HTTPStatusError, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
-from tests.integration.conftest import admin_auth_headers, get_default_test_realm, issue_admin_access_token
+from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.remnawave_upgrade_model import RemnawaveIdentityReconciliationModel
+from src.infrastructure.remnawave.contracts import RemnawaveUserResponse
+from tests.integration.conftest import (
+    customer_auth_headers,
+    get_default_test_realm,
+    issue_customer_access_token,
+)
 
 
 async def _create_admin_user(db: AsyncSession) -> tuple[AdminUserModel, str]:
@@ -33,13 +41,48 @@ async def _create_admin_user(db: AsyncSession) -> tuple[AdminUserModel, str]:
     return user, password
 
 
+async def _create_mobile_user(db: AsyncSession) -> tuple[MobileUserModel, str]:
+    auth_service = AuthService()
+    suffix = secrets.token_hex(4)
+    customer_realm = await get_default_test_realm(db, "customer")
+    legacy_uuid = uuid.uuid4()
+    user = MobileUserModel(
+        auth_realm_id=customer_realm.id,
+        email=f"subscription-customer-{suffix}@example.com",
+        password_hash=await auth_service.hash_password("CustomerSubscriptionPassword123!"),
+        username=f"subscription-customer-{suffix}",
+        is_active=True,
+        status="active",
+        remnawave_user_id=secrets.randbelow(2_000_000_000) + 1,
+        remnawave_uuid=str(legacy_uuid),
+    )
+    db.add(user)
+    await db.flush()
+    db.add(
+        RemnawaveIdentityReconciliationModel(
+            subject_type="mobile_user",
+            subject_id=user.id,
+            legacy_uuid=str(legacy_uuid),
+            numeric_user_id=user.remnawave_user_id,
+            reconciliation_state="mapped",
+            evidence={"source": "integration-test"},
+        )
+    )
+    await db.commit()
+    await db.refresh(user)
+    return user, await issue_customer_access_token(db, user)
+
+
 def _remnawave_user_payload(
-    user: AdminUserModel,
+    user: AdminUserModel | MobileUserModel,
     **overrides,
 ):
+    username = user.login if isinstance(user, AdminUserModel) else user.username
+    remnawave_uuid = user.remnawave_uuid if isinstance(user, MobileUserModel) else str(user.id)
     payload = {
-        "uuid": str(user.id),
-        "username": user.login,
+        "id": user.remnawave_user_id if isinstance(user, MobileUserModel) else None,
+        "uuid": remnawave_uuid,
+        "username": username,
         "status": "active",
         "shortUuid": "SUB12345",
         "createdAt": "2025-01-01T00:00:00+00:00",
@@ -54,6 +97,12 @@ def _remnawave_user_payload(
     return payload
 
 
+def _remnawave_not_found() -> HTTPStatusError:
+    request = Request("GET", "https://remnawave.test/api/users/1")
+    response = Response(404, request=request)
+    return HTTPStatusError("Remnawave user not found", request=request, response=response)
+
+
 class TestActiveSubscriptionFlow:
     """Test getting active subscription information."""
 
@@ -63,15 +112,14 @@ class TestActiveSubscriptionFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, _password = await _create_admin_user(db)
-        access_token = await issue_admin_access_token(db, user)
+        user, access_token = await _create_mobile_user(db)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
             mock_get.return_value = _remnawave_user_payload(user)
 
             sub_response = await async_client.get(
                 "/api/v1/subscriptions/active",
-                headers=admin_auth_headers(access_token),
+                headers=customer_auth_headers(access_token),
             )
 
         assert sub_response.status_code == 200
@@ -100,21 +148,22 @@ class TestCancelSubscriptionFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, _password = await _create_admin_user(db)
-        access_token = await issue_admin_access_token(db, user)
+        user, access_token = await _create_mobile_user(db)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
-            with patch("src.infrastructure.remnawave.client.RemnawaveClient.patch") as mock_patch:
+            with patch("src.infrastructure.remnawave.client.RemnawaveClient.post_validated") as mock_post:
                 mock_get.return_value = _remnawave_user_payload(user)
-                mock_patch.return_value = _remnawave_user_payload(
-                    user,
-                    subRevokedAt="2026-04-11T12:00:00+00:00",
-                    updatedAt="2026-04-11T12:00:00+00:00",
+                mock_post.return_value = RemnawaveUserResponse.model_validate(
+                    _remnawave_user_payload(
+                        user,
+                        subRevokedAt="2026-04-11T12:00:00+00:00",
+                        updatedAt="2026-04-11T12:00:00+00:00",
+                    )
                 )
 
                 cancel_response = await async_client.post(
                     "/api/v1/subscriptions/cancel",
-                    headers=admin_auth_headers(access_token),
+                    headers=customer_auth_headers(access_token),
                 )
 
         assert cancel_response.status_code == 200
@@ -127,15 +176,14 @@ class TestCancelSubscriptionFlow:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, _password = await _create_admin_user(db)
-        access_token = await issue_admin_access_token(db, user)
+        user, access_token = await _create_mobile_user(db)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
-            mock_get.return_value = None
+            mock_get.side_effect = _remnawave_not_found()
 
             cancel_response = await async_client.post(
                 "/api/v1/subscriptions/cancel",
-                headers=admin_auth_headers(access_token),
+                headers=customer_auth_headers(access_token),
             )
 
         assert cancel_response.status_code == 404
@@ -158,28 +206,29 @@ class TestCancelSubscriptionRateLimiting:
         async_client: AsyncClient,
         db: AsyncSession,
     ):
-        user, _password = await _create_admin_user(db)
-        access_token = await issue_admin_access_token(db, user)
+        user, access_token = await _create_mobile_user(db)
 
         with patch("src.infrastructure.remnawave.client.RemnawaveClient.get") as mock_get:
-            with patch("src.infrastructure.remnawave.client.RemnawaveClient.patch") as mock_patch:
+            with patch("src.infrastructure.remnawave.client.RemnawaveClient.post_validated") as mock_post:
                 mock_get.return_value = _remnawave_user_payload(user)
-                mock_patch.return_value = _remnawave_user_payload(
-                    user,
-                    subRevokedAt="2026-04-11T12:00:00+00:00",
-                    updatedAt="2026-04-11T12:00:00+00:00",
+                mock_post.return_value = RemnawaveUserResponse.model_validate(
+                    _remnawave_user_payload(
+                        user,
+                        subRevokedAt="2026-04-11T12:00:00+00:00",
+                        updatedAt="2026-04-11T12:00:00+00:00",
+                    )
                 )
 
                 for _ in range(3):
                     response = await async_client.post(
                         "/api/v1/subscriptions/cancel",
-                        headers=admin_auth_headers(access_token),
+                        headers=customer_auth_headers(access_token),
                     )
                     assert response.status_code == 200
 
                 rate_limited_response = await async_client.post(
                     "/api/v1/subscriptions/cancel",
-                    headers=admin_auth_headers(access_token),
+                    headers=customer_auth_headers(access_token),
                 )
 
         assert rate_limited_response.status_code == 429

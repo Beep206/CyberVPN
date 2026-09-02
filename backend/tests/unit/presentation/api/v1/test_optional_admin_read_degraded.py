@@ -69,7 +69,8 @@ def test_optional_remnawave_admin_lists_degrade_when_upstream_endpoint_is_missin
     assert asyncio.run(host_routes.list_hosts(_current_user=object(), client=client)) == []
     assert asyncio.run(config_profile_routes.list_config_profiles(current_user=object(), client=client)) == []
     assert asyncio.run(inbound_routes.list_inbounds(current_user=object(), client=client)) == []
-    assert asyncio.run(setting_routes.get_settings(current_user=object(), client=client)) == []
+    with pytest.raises(httpx.HTTPStatusError):
+        asyncio.run(setting_routes.get_settings(current_user=object(), client=client))
     assert asyncio.run(snippet_routes.list_snippets(current_user=object(), client=client)) == []
 
     subscription_response = asyncio.run(
@@ -87,14 +88,8 @@ def test_optional_remnawave_admin_objects_degrade_to_safe_empty_shapes() -> None
     assert node_plugins.node_plugins == []
     assert node_plugins.model_dump(by_alias=True) == {"total": 0, "nodePlugins": []}
 
-    torrent_stats = asyncio.run(node_plugin_routes.get_torrent_blocker_stats(_current_user=object(), client=client))
-    assert torrent_stats.stats.total_reports == 0
-    assert torrent_stats.stats.reports_last_24_hours == 0
-    assert torrent_stats.top_users == []
-    assert torrent_stats.top_nodes == []
-    torrent_payload = torrent_stats.model_dump(by_alias=True)
-    assert {"distinctNodes", "distinctUsers", "totalReports", "reportsLast24Hours"} <= torrent_payload["stats"].keys()
-    assert {"topUsers", "topNodes"} <= torrent_payload.keys()
+    with pytest.raises(httpx.ConnectError):
+        asyncio.run(node_plugin_routes.get_torrent_blocker_stats(_current_user=object(), client=client))
 
     xray_config = asyncio.run(xray_routes.get_xray_config(current_user=object(), client=client))
     assert xray_config.inbounds == []
@@ -125,28 +120,47 @@ def test_optional_remnawave_admin_lists_accept_keyed_collection_envelopes() -> N
     ]
 
 
-def test_host_response_accepts_remnawave_2_8_host_shape() -> None:
+def test_host_response_accepts_remnawave_3_4_1_host_shape() -> None:
     host = HostResponse.model_validate(
         {
-            "uuid": "host-1",
+            "uuid": "11111111-1111-4111-8111-111111111111",
+            "viewPosition": 1,
             "remark": "Edge XHTTP",
             "address": "edge.example.net",
             "port": 443,
             "host": "cdn.example.net",
             "path": "/xhttp",
+            "sni": "edge.example.net",
             "alpn": "h2,http/1.1",
+            "fingerprint": "chrome",
             "isDisabled": False,
-            "securityLayer": "tls",
+            "securityLayer": "TLS",
+            "xhttpExtraParams": None,
+            "muxParams": None,
+            "sockoptParams": None,
+            "finalMask": None,
             "inbound": {
-                "configProfileUuid": "profile-1",
-                "configProfileInboundUuid": "inbound-1",
+                "configProfileUuid": "22222222-2222-4222-8222-222222222222",
+                "configProfileInboundUuid": "33333333-3333-4333-8333-333333333333",
             },
+            "serverDescription": None,
+            "vlessRouteId": None,
+            "pinnedPeerCertSha256": None,
+            "verifyPeerCertByName": None,
+            "shuffleHost": False,
+            "mihomoX25519": False,
+            "mihomoIpVersion": None,
+            "nodes": [],
+            "xrayJsonTemplateUuid": None,
+            "excludeFromSubscriptionTypes": [],
+            "mapper": {},
+            "internalSquads": {"mode": "EXCLUDE", "squads": []},
         }
     )
 
-    assert host.name == "Edge XHTTP"
-    assert host.host_header == "cdn.example.net"
-    assert host.alpn == ["h2", "http/1.1"]
+    assert host.remark == "Edge XHTTP"
+    assert host.host == "cdn.example.net"
+    assert host.alpn == "h2,http/1.1"
     assert host.is_disabled is False
 
 

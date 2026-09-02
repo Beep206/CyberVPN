@@ -19,7 +19,7 @@ void main() {
     return buildTestableAuthScreen(
       child: const RegisterScreen(),
       path: '/register',
-      overrides: authOverrides(mockAuthRepo),
+      overrides: authOverrides(mockAuthRepo, telegramLoginAvailable: true),
     );
   }
 
@@ -99,7 +99,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Continue with Telegram'), findsOneWidget);
-      expect(find.text('Continue with Facebook'), findsOneWidget);
+      expect(find.text('Continue with Facebook'), findsNothing);
     });
 
     testWidgets('does not render Apple social login button', (tester) async {
@@ -118,6 +118,8 @@ void main() {
         await tester.pumpWidget(buildSubject());
         await tester.pumpAndSettle();
 
+        await tester.ensureVisible(findRegisterButton());
+        await tester.pump();
         await tester.tap(findRegisterButton());
         await tester.pumpAndSettle();
 
@@ -132,6 +134,8 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.enterText(findEmailField(), kValidEmail);
+        await tester.ensureVisible(findRegisterButton());
+        await tester.pump();
         await tester.tap(findRegisterButton());
         await tester.pumpAndSettle();
 
@@ -144,6 +148,8 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.enterText(findEmailField(), 'bad-email');
+        await tester.ensureVisible(findRegisterButton());
+        await tester.pump();
         await tester.tap(findRegisterButton());
         await tester.pumpAndSettle();
 

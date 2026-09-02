@@ -37,7 +37,7 @@ class ManageServersUseCase:
         """
         return await self.gateway.get_by_uuid(uuid)
 
-    async def create(self, name: str, address: str, port: int, **kwargs: Any) -> Server:
+    async def create(self, name: str, address: str, port: int, **kwargs: Any) -> Server | None:
         """Create a new server.
 
         Args:
@@ -54,7 +54,7 @@ class ManageServersUseCase:
         """
         return await self.gateway.create(name=name, address=address, port=port, **kwargs)
 
-    async def update(self, uuid: UUID, **kwargs: Any) -> Server:
+    async def update(self, uuid: UUID, **kwargs: Any) -> Server | None:
         """Update a server.
 
         Args:

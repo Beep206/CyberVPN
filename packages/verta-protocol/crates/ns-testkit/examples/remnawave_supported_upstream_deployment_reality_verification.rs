@@ -46,8 +46,8 @@ const DEPLOYMENT_REALITY_DECISION_LABEL: &str =
 const DEPLOYMENT_REALITY_PROFILE: &str = "supported_upstream_deployment_reality_verification";
 const DEPLOYMENT_REALITY_SUMMARY_VERSION: u8 = 1;
 
-const SUPPORTED_UPSTREAM_VERSION_FLOOR: SimpleVersion = SimpleVersion::new(2, 7, 0);
-const SUPPORTED_UPSTREAM_VERSION_PREFERRED: SimpleVersion = SimpleVersion::new(2, 7, 4);
+const SUPPORTED_UPSTREAM_VERSION_FLOOR: SimpleVersion = SimpleVersion::new(3, 4, 1);
+const SUPPORTED_UPSTREAM_VERSION_PREFERRED: SimpleVersion = SimpleVersion::new(3, 4, 1);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum OutputFormat {
@@ -1677,7 +1677,7 @@ fn apply_source_version_override(
     mut snapshot: AccountSnapshot,
     source_version_override: Option<&str>,
 ) -> AccountSnapshot {
-    if snapshot.source_version.is_none() {
+    if source_version_override.is_some() {
         snapshot.source_version = source_version_override
             .map(str::trim)
             .filter(|value| !value.is_empty())
@@ -1803,8 +1803,8 @@ mod tests {
 
     #[derive(Debug, Deserialize)]
     struct ResolveBootstrapRequest {
-        bootstrap_subject_kind: String,
-        bootstrap_subject: String,
+        #[serde(rename = "shortUuid")]
+        short_uuid: String,
     }
 
     struct TestUpstreamState {
@@ -1822,7 +1822,7 @@ mod tests {
 
     fn supported_snapshot(version: &str) -> AccountSnapshot {
         AccountSnapshot {
-            account_id: "acct-1".to_owned(),
+            account_id: "42".to_owned(),
             bootstrap_subjects: vec![BootstrapSubject::ShortUuid("sub-1".to_owned())],
             lifecycle: AccountLifecycle::Active,
             verta_access: VertaAccess {
@@ -1845,27 +1845,36 @@ mod tests {
         State(state): State<Arc<TestUpstreamState>>,
         headers: HeaderMap,
         Json(request): Json<ResolveBootstrapRequest>,
-    ) -> Result<Json<AccountSnapshot>, StatusCode> {
+    ) -> Result<Json<serde_json::Value>, StatusCode> {
         if !authorized(&headers, &state.expected_token) {
             return Err(StatusCode::UNAUTHORIZED);
         }
-        if request.bootstrap_subject_kind != "short_uuid" || request.bootstrap_subject != "sub-1" {
+        if request.short_uuid != "sub-1" {
             return Err(StatusCode::NOT_FOUND);
         }
-        Ok(Json(
-            state
-                .snapshot
-                .lock()
-                .expect("test upstream state poisoned")
-                .clone(),
-        ))
+        let snapshot = state
+            .snapshot
+            .lock()
+            .expect("test upstream state poisoned")
+            .clone();
+        let id = snapshot
+            .account_id
+            .parse::<u64>()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(Json(json!({
+            "response": {
+                "id": id,
+                "username": "verta-test-user",
+                "shortUuid": "sub-1"
+            }
+        })))
     }
 
     async fn get_user(
         State(state): State<Arc<TestUpstreamState>>,
         headers: HeaderMap,
         AxumPath(account_id): AxumPath<String>,
-    ) -> Result<Json<AccountSnapshot>, StatusCode> {
+    ) -> Result<Json<serde_json::Value>, StatusCode> {
         if !authorized(&headers, &state.expected_token) {
             return Err(StatusCode::UNAUTHORIZED);
         }
@@ -1877,7 +1886,23 @@ mod tests {
         if snapshot.account_id != account_id {
             return Err(StatusCode::NOT_FOUND);
         }
-        Ok(Json(snapshot))
+        let status = match snapshot.lifecycle {
+            AccountLifecycle::Active => "ACTIVE",
+            AccountLifecycle::Disabled => "DISABLED",
+            AccountLifecycle::Revoked => "REVOKED",
+            AccountLifecycle::Expired => "EXPIRED",
+            AccountLifecycle::Limited => "LIMITED",
+        };
+        Ok(Json(json!({
+            "response": {
+                "id": account_id.parse::<u64>().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+                "shortUuid": "sub-1",
+                "username": "verta-test-user",
+                "status": status,
+                "hwidDeviceLimit": snapshot.verta_access.device_limit,
+                "subRevokedAt": null
+            }
+        })))
     }
 
     async fn spawn_test_upstream(snapshot: AccountSnapshot) -> ManagedRouter {
@@ -1936,7 +1961,7 @@ mod tests {
             bootstrap_subject: Some("sub-1".to_owned()),
             webhook_signature: Some("sig-ok".to_owned()),
             source_version_override: None,
-            expected_account_id: Some("acct-1".to_owned()),
+            expected_account_id: Some("42".to_owned()),
             store_auth_token: Some("store-secret".to_owned()),
             upstream_summary_path,
             lifecycle_summary_path,
@@ -1961,7 +1986,7 @@ mod tests {
             "supported_upstream_lifecycle_passed",
         );
 
-        let runtime = spawn_test_upstream(supported_snapshot("2.7.4")).await;
+        let runtime = spawn_test_upstream(supported_snapshot("3.4.1")).await;
         let summary = build_supported_upstream_deployment_reality_summary(&test_config(
             Some(runtime.base_url.clone()),
             Some("rw-token".to_owned()),

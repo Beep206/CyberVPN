@@ -26,6 +26,7 @@ from src.domain.exceptions.domain_errors import (
 from src.domain.exceptions.domain_errors import (
     ValidationError as DomainValidationError,
 )
+from src.infrastructure.remnawave.subscription_client import RemnawaveSubscriptionError
 from src.presentation.middleware.request_id import get_request_id
 from src.shared.logging.sanitization import sanitize_path_params
 
@@ -349,6 +350,31 @@ async def domain_error_handler(request: Request, exc: DomainError) -> JSONRespon
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
         content={"detail": exc.message},
+        headers=_get_request_id_header(),
+    )
+
+
+async def remnawave_subscription_error_handler(
+    request: Request,
+    exc: RemnawaveSubscriptionError,
+) -> JSONResponse:
+    """Return a stable dependency error without inventing an empty entitlement."""
+
+    logger.warning(
+        "Remnawave subscription dependency unavailable",
+        extra={
+            "path": _safe_request_path(request),
+            "method": request.method,
+            "exception_type": type(exc).__name__,
+            "request_id": get_request_id(),
+        },
+    )
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "detail": "Subscription service temporarily unavailable",
+            "code": "remnawave_subscription_unavailable",
+        },
         headers=_get_request_id_header(),
     )
 

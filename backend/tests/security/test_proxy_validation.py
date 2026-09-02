@@ -156,3 +156,32 @@ class TestSecurityProperties:
             validator.validate_single(data, SampleResponse, "GET /test")
 
         assert "upstream" in exc_info.value.detail.lower()
+
+    def test_validation_logs_do_not_retain_provider_payload_or_endpoint_pii(self, caplog):
+        """Provider input and PII-shaped paths are reduced to stable metadata."""
+        validator = RemnawaveResponseValidator()
+        leaks = (
+            "alice@example.com",
+            "provider-secret-token",
+            "https://subscription.example/live-key",
+        )
+        data = {
+            "id": {"secret": leaks[1]},
+            "name": leaks[0],
+            "status": leaks[2],
+        }
+        endpoint = f"GET /api/users/{leaks[0]}?token={leaks[1]}"
+
+        with caplog.at_level("ERROR"), pytest.raises(HTTPException) as exc_info:
+            validator.validate_single(data, SampleResponse, endpoint)
+
+        serialized_records = "\n".join(f"{record.getMessage()} {record.__dict__!r}" for record in caplog.records)
+        assert exc_info.value.status_code == 502
+        assert caplog.records[-1].__dict__["operation"] == "GET"
+        assert caplog.records[-1].__dict__["schema"] == "SampleResponse"
+        assert caplog.records[-1].__dict__["error_count"] == 1
+        assert caplog.records[-1].__dict__["error_codes"]
+        for leak in leaks:
+            assert leak not in serialized_records
+            assert leak not in str(exc_info.value)
+            assert leak not in repr(exc_info.value)

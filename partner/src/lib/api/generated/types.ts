@@ -2095,7 +2095,7 @@ export interface paths {
         };
         /**
          * Get User
-         * @description Get a specific VPN user by UUID.
+         * @description Get a specific VPN user by numeric Remnawave id.
          */
         get: operations["get_user_api_v1_users__user_id__get"];
         /**
@@ -2341,7 +2341,7 @@ export interface paths {
         };
         /**
          * List Servers
-         * @description List customer-visible Remnawave VPN servers.
+         * @description List global Remnawave VPN servers for authorized administrators.
          */
         get: operations["list_servers_api_v1_servers__get"];
         put?: never;
@@ -2365,7 +2365,7 @@ export interface paths {
         };
         /**
          * Get Server Stats
-         * @description Get customer-visible Remnawave server statistics by status.
+         * @description Get global Remnawave server statistics for authorized administrators.
          */
         get: operations["get_server_stats_api_v1_servers_stats_get"];
         put?: never;
@@ -2527,7 +2527,7 @@ export interface paths {
         put?: never;
         /**
          * Create Subscription Template
-         * @description Create a new subscription template (admin only)
+         * @description Refuse duplicate-prone create until CyberVPN owns durable settlement.
          */
         post: operations["create_subscription_template_api_v1_subscriptions__post"];
         delete?: never;
@@ -2545,7 +2545,7 @@ export interface paths {
         };
         /**
          * Generate Config
-         * @description Generate VPN configuration for the authenticated customer or an admin-selected user.
+         * @description Return a customer's live VPN credential through an object-authorized path.
          */
         get: operations["generate_config_api_v1_subscriptions_config__user_uuid__get"];
         put?: never;
@@ -2619,6 +2619,515 @@ export interface paths {
          * @description Delete subscription template (admin only)
          */
         delete: operations["delete_subscription_template_api_v1_subscriptions__uuid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/users/by-customer/{customer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve Numeric User For Worker
+         * @description Resolve worker payment/provisioning handoffs to the canonical 3.x id.
+         */
+        get: operations["resolve_numeric_user_for_worker_api_v1_internal_remnawave_users_by_customer__customer_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/users/by-remnawave-id/{remnawave_user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve Customer For Numeric User
+         * @description Resolve a provider numeric id without accepting a legacy UUID fallback.
+         */
+        get: operations["resolve_customer_for_numeric_user_api_v1_internal_remnawave_users_by_remnawave_id__remnawave_user_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/auto-renew/eligible": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * List Auto Renew Eligible Users
+         * @description Filter a bounded Remnawave scan through CyberVPN-owned consent.
+         */
+        post: operations["list_auto_renew_eligible_users_api_v1_internal_remnawave_auto_renew_eligible_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/users/{remnawave_user_id}/auto-renew-invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Auto Renew Invoice
+         * @description Create a tracked renewal invoice from CyberVPN billing authority.
+         */
+        post: operations["create_auto_renew_invoice_api_v1_internal_remnawave_users__remnawave_user_id__auto_renew_invoice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/stream-checkpoints/{stream_name}/observe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Observe Remnawave Stream Startup
+         * @description Compare live Valkey identity/range/group state with the durable checkpoint.
+         */
+        post: operations["observe_remnawave_stream_startup_api_v1_internal_remnawave_stream_checkpoints__stream_name__observe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/stream-gaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Remnawave Stream Gap
+         * @description Commit exact XAUTOCLAIM deleted IDs before the worker continues.
+         */
+        post: operations["register_remnawave_stream_gap_api_v1_internal_remnawave_stream_gaps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/stream-gaps/{gap_id}/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Transition Remnawave Stream Gap
+         * @description Advance a gap only after the trusted worker performs a safe upstream read.
+         */
+        patch: operations["transition_remnawave_stream_gap_api_v1_internal_remnawave_stream_gaps__gap_id__reconciliation_patch"];
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/stream-gaps/{gap_id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reconcile Remnawave Stream Gap
+         * @description Refresh recoverable current truth; never fabricate lost historical events.
+         */
+        post: operations["reconcile_remnawave_stream_gap_api_v1_internal_remnawave_stream_gaps__gap_id__reconcile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/retention/purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Purge Expired Remnawave Stream Rows
+         * @description Delete one deterministic bounded batch and commit before reporting success.
+         */
+        post: operations["purge_expired_remnawave_stream_rows_api_v1_internal_remnawave_retention_purge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/dead-letters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upsert Remnawave Dead Letter
+         * @description Durably upsert redacted DLQ metadata before a worker may ACK.
+         */
+        post: operations["upsert_remnawave_dead_letter_api_v1_internal_remnawave_dead_letters_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/internal/remnawave/streams/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Persist Stream Event
+         * @description Commit a validated event before the worker is allowed to XACK it.
+         */
+        post: operations["persist_stream_event_api_v1_internal_remnawave_streams_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/users/{user_id}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Admin User Connections */
+        post: operations["request_admin_user_connections_api_v1_admin_remnawave_connections_users__user_id__requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/users/{user_id}/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin User Connections */
+        get: operations["get_admin_user_connections_api_v1_admin_remnawave_connections_users__user_id__requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/nodes/{node_uuid}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Admin Node Connections */
+        post: operations["request_admin_node_connections_api_v1_admin_remnawave_connections_nodes__node_uuid__requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/nodes/{node_uuid}/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Node Connections */
+        get: operations["get_admin_node_connections_api_v1_admin_remnawave_connections_nodes__node_uuid__requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/drop-receipts/unresolved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Admin Unresolved Connection Drop Receipts */
+        get: operations["list_admin_unresolved_connection_drop_receipts_api_v1_admin_remnawave_connections_drop_receipts_unresolved_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/drop-receipts/{receipt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Connection Drop Receipt */
+        get: operations["get_admin_connection_drop_receipt_api_v1_admin_remnawave_connections_drop_receipts__receipt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/drop-receipts/{receipt_id}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reconcile Admin Connection Drop Receipt */
+        post: operations["reconcile_admin_connection_drop_receipt_api_v1_admin_remnawave_connections_drop_receipts__receipt_id__reconcile_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/connections/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Drop Admin Connections */
+        post: operations["drop_admin_connections_api_v1_admin_remnawave_connections_drop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/connections/nodes/{node_uuid}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Partner Node Connections */
+        post: operations["request_partner_node_connections_api_v1_partner_workspaces__workspace_id__remnawave_connections_nodes__node_uuid__requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/connections/nodes/{node_uuid}/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Node Connections */
+        get: operations["get_partner_node_connections_api_v1_partner_workspaces__workspace_id__remnawave_connections_nodes__node_uuid__requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/connections/nodes/{node_uuid}/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Drop Partner Node Connections */
+        post: operations["drop_partner_node_connections_api_v1_partner_workspaces__workspace_id__remnawave_connections_nodes__node_uuid__drop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/remnawave/connections/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Customer Connections */
+        post: operations["request_customer_connections_api_v1_customer_remnawave_connections_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/remnawave/connections/requests/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Connections */
+        get: operations["get_customer_connections_api_v1_customer_remnawave_connections_requests__request_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/remnawave/connections/drop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Drop Customer Connections */
+        post: operations["drop_customer_connections_api_v1_customer_remnawave_connections_drop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/capabilities-and-streams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Admin Remnawave Capabilities And Streams */
+        get: operations["get_admin_remnawave_capabilities_and_streams_api_v1_admin_remnawave_capabilities_and_streams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/vpn-service-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Vpn Service Status */
+        get: operations["get_partner_vpn_service_status_api_v1_partner_workspaces__workspace_id__vpn_service_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customer/vpn-service-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Customer Vpn Service Status */
+        get: operations["get_customer_vpn_service_status_api_v1_customer_vpn_service_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4985,6 +5494,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Partner Remnawave Resources */
+        get: operations["list_partner_remnawave_resources_api_v1_partner_workspaces__workspace_id__remnawave_resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/resources/{resource_type}/{resource_uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Partner Remnawave Resource */
+        get: operations["get_partner_remnawave_resource_api_v1_partner_workspaces__workspace_id__remnawave_resources__resource_type___resource_uuid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/resources/profile/{resource_uuid}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Partner Profile Tags
+         * @description Update only tags on an exact granted profile; topology stays private.
+         */
+        patch: operations["update_partner_profile_tags_api_v1_partner_workspaces__workspace_id__remnawave_resources_profile__resource_uuid__tags_patch"];
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/resources/integration/{resource_uuid}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Partner Integration Metadata
+         * @description Update allowlisted integration metadata without exposing config or restart controls.
+         */
+        patch: operations["update_partner_integration_metadata_api_v1_partner_workspaces__workspace_id__remnawave_resources_integration__resource_uuid__metadata_patch"];
+        trace?: never;
+    };
+    "/api/v1/partner-workspaces/{workspace_id}/remnawave/node-ssh/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Partner Browser Ssh
+         * @description Make the partner SSH boundary explicit even for otherwise privileged grants.
+         */
+        post: operations["reject_partner_browser_ssh_api_v1_partner_workspaces__workspace_id__remnawave_node_ssh_tickets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payouts/instructions": {
         parameters: {
             query?: never;
@@ -6451,13 +7054,15 @@ export interface paths {
         };
         /**
          * Get Billing Info
-         * @description Get user billing information and history
+         * @deprecated
+         * @description Reject the removed Remnawave billing proxy without provider I/O.
          */
         get: operations["get_billing_info_api_v1_billing__get"];
         put?: never;
         /**
          * Create Payment
-         * @description Create a new payment transaction
+         * @deprecated
+         * @description Reject the removed Remnawave payment proxy without provider I/O.
          */
         post: operations["create_payment_api_v1_billing__post"];
         delete?: never;
@@ -10691,6 +11296,325 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/remnawave/customer-create-attempts/{attempt_id}/settle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Settle Customer Create Attempt */
+        post: operations["settle_customer_create_attempt_api_v1_admin_remnawave_customer_create_attempts__attempt_id__settle_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/customer-create-attempts/{attempt_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Customer Create Attempt */
+        post: operations["reopen_customer_create_attempt_api_v1_admin_remnawave_customer_create_attempts__attempt_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/node-ssh/nodes/{node_uuid}/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue Remnawave Node Ssh Ticket */
+        post: operations["issue_remnawave_node_ssh_ticket_api_v1_admin_remnawave_node_ssh_nodes__node_uuid__tickets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/node-ssh/tickets/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Remnawave Node Ssh Ticket */
+        post: operations["revoke_remnawave_node_ssh_ticket_api_v1_admin_remnawave_node_ssh_tickets_revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/node-ssh/tickets/security-revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Security Revoke Remnawave Node Ssh Ticket
+         * @description Allow an active security supervisor to terminate any pending/active ticket.
+         */
+        post: operations["security_revoke_remnawave_node_ssh_ticket_api_v1_admin_remnawave_node_ssh_tickets_security_revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave/node-ssh/vault/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate Remnawave Node Ssh Vault */
+        post: operations["evaluate_remnawave_node_ssh_vault_api_v1_admin_remnawave_node_ssh_vault_evaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-resource-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Remnawave Resource Grants */
+        get: operations["list_remnawave_resource_grants_api_v1_admin_remnawave_resource_grants_get"];
+        put?: never;
+        /** Create Remnawave Resource Grant */
+        post: operations["create_remnawave_resource_grant_api_v1_admin_remnawave_resource_grants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-resource-grants/{grant_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Remnawave Resource Grant */
+        post: operations["revoke_remnawave_resource_grant_api_v1_admin_remnawave_resource_grants__grant_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/tags/{resource}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tags */
+        get: operations["list_tags_api_v1_admin_remnawave_operator_tags__resource__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Tags */
+        patch: operations["set_tags_api_v1_admin_remnawave_operator_tags__resource__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/geocheck/nodes/{node_uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Geocheck */
+        post: operations["start_geocheck_api_v1_admin_remnawave_operator_geocheck_nodes__node_uuid__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/geocheck/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Geocheck Result */
+        get: operations["get_geocheck_result_api_v1_admin_remnawave_operator_geocheck_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/node-integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Node Integrations */
+        get: operations["list_node_integrations_api_v1_admin_remnawave_operator_node_integrations_get"];
+        put?: never;
+        /** Create Node Integration */
+        post: operations["create_node_integration_api_v1_admin_remnawave_operator_node_integrations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Node Integration */
+        patch: operations["update_node_integration_api_v1_admin_remnawave_operator_node_integrations_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/node-integrations/{integration_uuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Node Integration */
+        delete: operations["delete_node_integration_api_v1_admin_remnawave_operator_node_integrations__integration_uuid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/shared-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Shared Lists */
+        get: operations["list_shared_lists_api_v1_admin_remnawave_operator_shared_lists_get"];
+        put?: never;
+        /** Create Shared List */
+        post: operations["create_shared_list_api_v1_admin_remnawave_operator_shared_lists_post"];
+        /** Delete Shared List */
+        delete: operations["delete_shared_list_api_v1_admin_remnawave_operator_shared_lists_delete"];
+        options?: never;
+        head?: never;
+        /** Update Shared List */
+        patch: operations["update_shared_list_api_v1_admin_remnawave_operator_shared_lists_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/shared-lists/by-name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Shared List */
+        get: operations["get_shared_list_api_v1_admin_remnawave_operator_shared_lists_by_name_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/shared-lists/actions/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync Shared List */
+        post: operations["sync_shared_list_api_v1_admin_remnawave_operator_shared_lists_actions_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/snippets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Snippets */
+        get: operations["list_snippets_api_v1_admin_remnawave_operator_snippets_get"];
+        put?: never;
+        /** Create Snippet */
+        post: operations["create_snippet_api_v1_admin_remnawave_operator_snippets_post"];
+        /** Delete Snippet */
+        delete: operations["delete_snippet_api_v1_admin_remnawave_operator_snippets_delete"];
+        options?: never;
+        head?: never;
+        /** Update Snippet */
+        patch: operations["update_snippet_api_v1_admin_remnawave_operator_snippets_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/remnawave-operator/snippets/actions/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync Snippet */
+        post: operations["sync_snippet_api_v1_admin_remnawave_operator_snippets_actions_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/vpn-tester/overview": {
         parameters: {
             query?: never;
@@ -11550,7 +12474,7 @@ export interface paths {
         };
         /**
          * Get User Config
-         * @description Get VPN configuration for a Telegram user.
+         * @description Get VPN configuration through the shared fresh-auth admin boundary.
          */
         get: operations["get_user_config_api_v1_telegram_user__telegram_id__config_get"];
         put?: never;
@@ -12064,7 +12988,7 @@ export interface paths {
         put?: never;
         /**
          * Create Host
-         * @description Create a new VPN host (admin only)
+         * @description Refuse duplicate-prone create until CyberVPN owns durable settlement.
          */
         post: operations["create_host_api_v1_hosts__post"];
         delete?: never;
@@ -12363,7 +13287,8 @@ export interface paths {
         put?: never;
         /**
          * Create Snippet
-         * @description Create a new configuration snippet (admin only)
+         * @deprecated
+         * @description Fail closed instead of replaying an unguarded legacy create mutation.
          */
         post: operations["create_snippet_api_v1_snippets__post"];
         delete?: never;
@@ -12381,7 +13306,8 @@ export interface paths {
         };
         /**
          * Get Public Key
-         * @description Get public key for signature verification
+         * @deprecated
+         * @description Reject the removed public-key operation without exposing node secrets.
          */
         get: operations["get_public_key_api_v1_keygen_public_key_get"];
         put?: never;
@@ -12403,7 +13329,8 @@ export interface paths {
         put?: never;
         /**
          * Sign Payload
-         * @description Sign a payload with the private key
+         * @deprecated
+         * @description Reject the removed sign-payload operation without provider I/O.
          */
         post: operations["sign_payload_api_v1_keygen_sign_payload_post"];
         delete?: never;
@@ -12461,19 +13388,24 @@ export interface paths {
         };
         /**
          * Get Settings
-         * @description Get system settings (admin only)
+         * @description Get the singleton Remnawave settings document (admin only).
          */
         get: operations["get_settings_api_v1_settings__get"];
         put?: never;
         /**
          * Create Setting
-         * @description Create a new system setting (admin only)
+         * @deprecated
+         * @description Reject the removed legacy create operation without provider I/O.
          */
         post: operations["create_setting_api_v1_settings__post"];
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Settings
+         * @description Patch the singleton Remnawave settings document (admin only).
+         */
+        patch: operations["update_settings_api_v1_settings__patch"];
         trace?: never;
     };
     "/api/v1/settings/{id}": {
@@ -12486,7 +13418,8 @@ export interface paths {
         get?: never;
         /**
          * Update Setting
-         * @description Update system setting (admin only)
+         * @deprecated
+         * @description Reject the removed legacy by-id operation without provider I/O.
          */
         put: operations["update_setting_api_v1_settings__id__put"];
         post?: never;
@@ -14715,11 +15648,10 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
-            /**
-             * Remnawave Uuid
-             * Format: uuid
-             */
-            remnawave_uuid: string;
+            /** Remnawave User Id */
+            remnawave_user_id?: number | null;
+            /** Remnawave Uuid */
+            remnawave_uuid?: string | null;
             /** Status */
             status: string;
             /**
@@ -14775,11 +15707,10 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
-            /**
-             * Remnawave Uuid
-             * Format: uuid
-             */
-            remnawave_uuid: string;
+            /** Remnawave User Id */
+            remnawave_user_id?: number | null;
+            /** Remnawave Uuid */
+            remnawave_uuid?: string | null;
             /** Status */
             status: string;
             /**
@@ -15233,6 +16164,8 @@ export interface components {
         AdminCustomerVpnUserResponse: {
             /** Exists */
             exists: boolean;
+            /** Remnawave User Id */
+            remnawave_user_id?: number | null;
             /** Remnawave Uuid */
             remnawave_uuid?: string | null;
             /** Username */
@@ -15257,6 +16190,44 @@ export interface components {
             updated_at?: string | null;
             /** Telegram Id */
             telegram_id?: number | null;
+        };
+        /** AdminDropByIpAddresses */
+        AdminDropByIpAddresses: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            by: "ipAddresses";
+            /** Ipaddresses */
+            ipAddresses: string[];
+        };
+        /** AdminDropByUserIds */
+        AdminDropByUserIds: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            by: "userIds";
+            /** Userids */
+            userIds: number[];
+        };
+        /** AdminDropOnAllNodes */
+        AdminDropOnAllNodes: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            target: "allNodes";
+        };
+        /** AdminDropOnSpecificNodes */
+        AdminDropOnSpecificNodes: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            target: "specificNodes";
+            /** Nodeuuids */
+            nodeUuids: string[];
         };
         /**
          * AdminExtendInviteBatchRequest
@@ -19643,6 +20614,8 @@ export interface components {
             telegram_id: number | null;
             /** Telegram Username */
             telegram_username: string | null;
+            /** Remnawave User Id */
+            remnawave_user_id: number | null;
             /** Remnawave Uuid */
             remnawave_uuid: string | null;
             /** Referral Code */
@@ -19695,6 +20668,8 @@ export interface components {
             telegram_id: number | null;
             /** Telegram Username */
             telegram_username: string | null;
+            /** Remnawave User Id */
+            remnawave_user_id: number | null;
             /** Remnawave Uuid */
             remnawave_uuid: string | null;
             /** Referral Code */
@@ -19719,6 +20694,8 @@ export interface components {
         AdminMobileUserSubscriptionSnapshotResponse: {
             /** Exists */
             exists: boolean;
+            /** Remnawave User Id */
+            remnawave_user_id?: number | null;
             /** Remnawave Uuid */
             remnawave_uuid?: string | null;
             /** Status */
@@ -19781,6 +20758,13 @@ export interface components {
             offset: number;
             /** Limit */
             limit: number;
+        };
+        /** AdminNodeIntegrationCollection */
+        AdminNodeIntegrationCollection: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["NodeIntegration"][];
         };
         /** AdminPartnerCodeResponse */
         AdminPartnerCodeResponse: {
@@ -20321,6 +21305,156 @@ export interface components {
             /** Recent Commissions */
             recent_commissions: components["schemas"]["AdminReferralCommissionRecord"][];
         };
+        /** AdminRemnawaveCapabilities */
+        AdminRemnawaveCapabilities: {
+            /** Numeric User Ids */
+            numeric_user_ids: boolean;
+            /** Connections */
+            connections: boolean;
+            /** Geo Check */
+            geo_check: boolean;
+            /** Node Integrations */
+            node_integrations: boolean;
+            /** Shared Lists */
+            shared_lists: boolean;
+            /** Node Ssh */
+            node_ssh: boolean;
+            /** Tags */
+            tags: boolean;
+            /** Host Mapper */
+            host_mapper: boolean;
+            /** Root Snippets */
+            root_snippets: boolean;
+            /** Redis Stream Export */
+            redis_stream_export: boolean;
+        };
+        /** AdminRemnawaveCapabilitiesAndStreams */
+        AdminRemnawaveCapabilitiesAndStreams: {
+            /** Panel Version */
+            panel_version: string | null;
+            /**
+             * Target Panel Version
+             * @constant
+             */
+            target_panel_version: "3.4.3";
+            /**
+             * Target Node Version
+             * @constant
+             */
+            target_node_version: "3.4.1";
+            /**
+             * Contract Version
+             * @constant
+             */
+            contract_version: "3.4.13";
+            capabilities: components["schemas"]["AdminRemnawaveCapabilities"];
+            /** Streams */
+            streams: components["schemas"]["AdminRemnawaveStreamHealth"][];
+            /** Degraded Reason */
+            degraded_reason: string | null;
+        };
+        /** AdminRemnawaveConnectionDropReceiptResponse */
+        AdminRemnawaveConnectionDropReceiptResponse: {
+            /** Receipt Id */
+            receipt_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "outcome_unknown" | "accepted" | "rejected";
+            /**
+             * Audience
+             * @enum {string}
+             */
+            audience: "admin" | "partner" | "customer";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Expires At */
+            expires_at: string | null;
+            /** Expires In Seconds */
+            expires_in_seconds?: number | null;
+            /** Requires Reconciliation */
+            requires_reconciliation: boolean;
+            /** Reconciled At */
+            reconciled_at: string | null;
+            reconciliation_reason: components["schemas"]["RemnawaveConnectionDropReconciliationReason"] | null;
+            /** Reconciliation Reference */
+            reconciliation_reference?: string | null;
+        };
+        /** AdminRemnawaveConnectionDropReconciliationRequest */
+        AdminRemnawaveConnectionDropReconciliationRequest: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "accepted" | "rejected";
+            reason: components["schemas"]["RemnawaveConnectionDropReconciliationReason"];
+            /** Reference */
+            reference: string;
+        };
+        /**
+         * AdminRemnawaveConnectionDropRequest
+         * @description Exact Remnawave 3.4.3 drop shape.
+         */
+        AdminRemnawaveConnectionDropRequest: {
+            /** Dropby */
+            dropBy: components["schemas"]["AdminDropByUserIds"] | components["schemas"]["AdminDropByIpAddresses"];
+            /** Targetnodes */
+            targetNodes: components["schemas"]["AdminDropOnAllNodes"] | components["schemas"]["AdminDropOnSpecificNodes"];
+        };
+        /** AdminRemnawaveConnectionDropUnresolvedPageResponse */
+        AdminRemnawaveConnectionDropUnresolvedPageResponse: {
+            /** Items */
+            items: components["schemas"]["AdminRemnawaveConnectionDropReceiptResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** AdminRemnawaveConnectionIpResponse */
+        AdminRemnawaveConnectionIpResponse: {
+            /** Ip */
+            ip: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+        };
+        /** AdminRemnawaveNodeConnectionUserResponse */
+        AdminRemnawaveNodeConnectionUserResponse: {
+            /** User Id */
+            user_id: number;
+            /** Ips */
+            ips: components["schemas"]["AdminRemnawaveConnectionIpResponse"][];
+        };
+        /** AdminRemnawaveNodeConnectionsResultResponse */
+        AdminRemnawaveNodeConnectionsResultResponse: {
+            /** Success */
+            success: boolean;
+            /**
+             * Node Uuid
+             * Format: uuid
+             */
+            node_uuid: string;
+            /** Users */
+            users: components["schemas"]["AdminRemnawaveNodeConnectionUserResponse"][];
+        };
+        /** AdminRemnawaveNodeConnectionsStatusResponse */
+        AdminRemnawaveNodeConnectionsStatusResponse: {
+            /** Is Completed */
+            is_completed: boolean;
+            /** Is Failed */
+            is_failed: boolean;
+            result: components["schemas"]["AdminRemnawaveNodeConnectionsResultResponse"] | null;
+            capabilities?: components["schemas"]["RemnawaveConnectionsCapabilitiesResponse"];
+        };
         /** AdminRemnawaveNodeDiagnosticsItem */
         AdminRemnawaveNodeDiagnosticsItem: {
             /** Uuid */
@@ -20380,11 +21514,123 @@ export interface components {
             /** Degraded Reason */
             degraded_reason?: string | null;
         };
+        /** AdminRemnawaveNodeSshRevokeRequest */
+        AdminRemnawaveNodeSshRevokeRequest: {
+            /** Reason */
+            reason: string;
+            /** Ticket */
+            ticket: string;
+        };
+        /** AdminRemnawaveNodeSshTicketRequest */
+        AdminRemnawaveNodeSshTicketRequest: {
+            /** Reason */
+            reason: string;
+        };
+        /** AdminRemnawaveNodeSshTicketResponse */
+        AdminRemnawaveNodeSshTicketResponse: {
+            /** Ticket */
+            ticket: string;
+            /**
+             * Node Uuid
+             * Format: uuid
+             */
+            node_uuid: string;
+            /** Websocket Path */
+            websocket_path: string;
+            /** Websocket Protocol */
+            websocket_protocol: string;
+            /** Expires In Seconds */
+            expires_in_seconds: number;
+        };
+        /** AdminRemnawaveNodeSshVaultEvaluateRequest */
+        AdminRemnawaveNodeSshVaultEvaluateRequest: {
+            /** Blinded */
+            blinded: string;
+        };
+        /** AdminRemnawaveNodeSshVaultEvaluateResponse */
+        AdminRemnawaveNodeSshVaultEvaluateResponse: {
+            /** Evaluated */
+            evaluated: string;
+        };
+        /** AdminRemnawaveStreamHealth */
+        AdminRemnawaveStreamHealth: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "user_usage" | "subscription_requests" | "node_connections";
+            /** Retention Days */
+            retention_days: number;
+            /** Consumer Group */
+            consumer_group: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "healthy" | "degraded" | "unknown";
+            /** Lag */
+            lag: number | null;
+            /** Pending */
+            pending: number | null;
+            /** Dead Letters */
+            dead_letters: number;
+            /** Last Consumed At */
+            last_consumed_at: string | null;
+            /** Degraded Reason */
+            degraded_reason: string | null;
+        };
+        /** AdminRemnawaveUserConnectionNodeResponse */
+        AdminRemnawaveUserConnectionNodeResponse: {
+            /**
+             * Node Uuid
+             * Format: uuid
+             */
+            node_uuid: string;
+            /** Node Name */
+            node_name: string;
+            /** Country Code */
+            country_code: string;
+            /** Ips */
+            ips: components["schemas"]["AdminRemnawaveConnectionIpResponse"][];
+        };
+        /** AdminRemnawaveUserConnectionsResultResponse */
+        AdminRemnawaveUserConnectionsResultResponse: {
+            /** Success */
+            success: boolean;
+            /** User Id */
+            user_id: number;
+            /** Nodes */
+            nodes: components["schemas"]["AdminRemnawaveUserConnectionNodeResponse"][];
+        };
+        /** AdminRemnawaveUserConnectionsStatusResponse */
+        AdminRemnawaveUserConnectionsStatusResponse: {
+            /** Is Completed */
+            is_completed: boolean;
+            /** Is Failed */
+            is_failed: boolean;
+            progress: components["schemas"]["RemnawaveConnectionProgressResponse"];
+            result: components["schemas"]["AdminRemnawaveUserConnectionsResultResponse"] | null;
+            capabilities?: components["schemas"]["RemnawaveConnectionsCapabilitiesResponse"];
+        };
         /**
          * AdminRole
          * @enum {string}
          */
         AdminRole: "owner/super_admin" | "super_admin" | "admin" | "operator" | "finance" | "support" | "viewer";
+        /** AdminSharedListPreviewCollection */
+        AdminSharedListPreviewCollection: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["SharedListPreview"][];
+        };
+        /** AdminSnippetCollection */
+        AdminSnippetCollection: {
+            /** Total */
+            total: number;
+            /** Items */
+            items: components["schemas"]["Snippet"][];
+        };
         /** AdminSupportActorSummary */
         AdminSupportActorSummary: {
             /** Id */
@@ -20750,6 +21996,13 @@ export interface components {
         BindPartnerRequest: {
             /** Partner Code */
             partner_code: string;
+        };
+        /** BrandingSettings */
+        BrandingSettings: {
+            /** Title */
+            title: string | null;
+            /** Logourl */
+            logoUrl: string | null;
         };
         /**
          * BroadcastAudienceType
@@ -22261,57 +23514,90 @@ export interface components {
         };
         /**
          * CreateHostRequest
-         * @description Request schema for creating a VPN host.
-         * @example {
-         *       "address": "de1.example.com",
-         *       "is_disabled": false,
-         *       "name": "Germany Server 1",
-         *       "port": 443,
-         *       "sni": "cloudflare.com"
-         *     }
+         * @description Exact target ``CreateHostBodyDto`` shape.
          */
         CreateHostRequest: {
-            /**
-             * Name
-             * @description Host display name
-             */
-            name: string;
-            /**
-             * Address
-             * @description Host address or IP
-             */
+            inbound: components["schemas"]["HostInboundRequest"];
+            /** Remark */
+            remark: string;
+            /** Address */
             address: string;
-            /**
-             * Port
-             * @description Host port
-             */
+            /** Port */
             port: number;
+            /** Path */
+            path?: string[] | null;
+            /** Sni */
+            sni?: string[] | null;
+            /** Host */
+            host?: string[] | null;
+            /** Alpn */
+            alpn?: ("h3" | "h2" | "http/1.1" | "h2,http/1.1" | "h3,h2,http/1.1" | "h3,h2") | null;
+            /** Fingerprint */
+            fingerprint?: string[] | null;
             /**
-             * Sni
-             * @description Server Name Indication
-             */
-            sni?: string | null;
-            /**
-             * Host Header
-             * @description HTTP Host header
-             */
-            host_header?: string | null;
-            /**
-             * Is Disabled
-             * @description Whether host is disabled
+             * Isdisabled
              * @default false
              */
-            is_disabled: boolean;
+            isDisabled: boolean;
             /**
-             * Path
-             * @description WebSocket path
+             * Securitylayer
+             * @default DEFAULT
+             * @enum {string}
              */
-            path?: string | null;
+            securityLayer: "DEFAULT" | "TLS" | "NONE";
+            /** Xhttpextraparams */
+            xhttpExtraParams?: unknown | null;
+            /** Muxparams */
+            muxParams?: unknown | null;
+            /** Sockoptparams */
+            sockoptParams?: unknown | null;
+            /** Finalmask */
+            finalMask?: unknown | null;
+            /** Serverdescription */
+            serverDescription?: string | null;
+            /** Tags */
+            tags?: string[] | null;
             /**
-             * Alpn
-             * @description ALPN protocols
+             * Ishidden
+             * @default false
              */
-            alpn?: string[] | null;
+            isHidden: boolean;
+            /**
+             * Overridesnifromaddress
+             * @default false
+             */
+            overrideSniFromAddress: boolean;
+            /**
+             * Keepsniblank
+             * @default false
+             */
+            keepSniBlank: boolean;
+            /** Pinnedpeercertsha256 */
+            pinnedPeerCertSha256?: string[] | null;
+            /** Verifypeercertbyname */
+            verifyPeerCertByName?: string[] | null;
+            /** Vlessrouteid */
+            vlessRouteId?: number | null;
+            /**
+             * Shufflehost
+             * @default false
+             */
+            shuffleHost: boolean;
+            /**
+             * Mihomox25519
+             * @default false
+             */
+            mihomoX25519: boolean;
+            /** Mihomoipversion */
+            mihomoIpVersion?: ("dual" | "ipv4" | "ipv6" | "ipv4-prefer" | "ipv6-prefer") | null;
+            /** Nodes */
+            nodes?: string[] | null;
+            /** Xrayjsontemplateuuid */
+            xrayJsonTemplateUuid?: string | null;
+            /** Excludefromsubscriptiontypes */
+            excludeFromSubscriptionTypes?: ("XRAY_JSON" | "XRAY_BASE64" | "MIHOMO" | "STASH" | "CLASH" | "SINGBOX")[] | null;
+            mapper?: components["schemas"]["RemnawaveHostMapper"] | null;
+            internalSquads?: components["schemas"]["HostInternalSquadsRequest"] | null;
         };
         /**
          * CreateInviteRequest
@@ -22480,6 +23766,17 @@ export interface components {
              * @default active
              */
             status: string;
+        };
+        /** CreateNodeIntegrationRequest */
+        CreateNodeIntegrationRequest: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
         };
         /** CreateNodePluginRequest */
         CreateNodePluginRequest: {
@@ -23310,8 +24607,6 @@ export interface components {
             source_order_id?: string | null;
             /** Origin Storefront Id */
             origin_storefront_id?: string | null;
-            /** Provider Subject Ref */
-            provider_subject_ref?: string | null;
             /** Service Context */
             service_context?: {
                 [key: string]: unknown;
@@ -23319,32 +24614,17 @@ export interface components {
         };
         /**
          * CreateSettingRequest
-         * @description Request schema for creating a system setting.
-         * @example {
-         *       "description": "Maximum devices allowed per user",
-         *       "key": "max_devices_per_user",
-         *       "value": 5
-         *     }
+         * @description Legacy request retained only so the removed create route can return 503.
          */
         CreateSettingRequest: {
-            /**
-             * Key
-             * @description Setting key
-             */
+            /** Key */
             key: string;
-            /**
-             * Value
-             * @description Setting value (any JSON type)
-             */
+            /** Value */
             value: unknown;
-            /**
-             * Description
-             * @description Setting description
-             */
+            /** Description */
             description?: string | null;
             /**
              * Is Public
-             * @description Whether setting is publicly readable
              * @default false
              */
             is_public: boolean;
@@ -23518,48 +24798,16 @@ export interface components {
         };
         /**
          * CreateSubscriptionTemplateRequest
-         * @description Request schema for creating a subscription template.
-         * @example {
-         *       "flow": "xtls-rprx-vision",
-         *       "host_uuid": "550e8400-e29b-41d4-a716-446655440000",
-         *       "inbound_tag": "vless-in",
-         *       "name": "Standard VPN Config",
-         *       "template_type": "v2ray"
-         *     }
+         * @description Exact target ``CreateSubscriptionTemplateBodyDto`` shape.
          */
         CreateSubscriptionTemplateRequest: {
-            /**
-             * Name
-             * @description Template name
-             */
+            /** Name */
             name: string;
             /**
-             * Template Type
-             * @description VPN client template type
+             * Templatetype
+             * @enum {string}
              */
-            template_type: string;
-            /**
-             * Host Uuid
-             * @description Host UUID
-             */
-            host_uuid?: string | null;
-            /**
-             * Inbound Tag
-             * @description Inbound tag
-             */
-            inbound_tag?: string | null;
-            /**
-             * Flow
-             * @description Flow control method
-             */
-            flow?: string | null;
-            /**
-             * Config Data
-             * @description Additional config data
-             */
-            config_data?: {
-                [key: string]: unknown;
-            } | null;
+            templateType: "XRAY_JSON" | "XRAY_BASE64" | "MIHOMO" | "STASH" | "CLASH" | "SINGBOX";
         };
         /** CreateTrafficDeclarationRequest */
         CreateTrafficDeclarationRequest: {
@@ -23915,6 +25163,30 @@ export interface components {
             last_message_at?: string | null;
             /** Closed At */
             closed_at?: string | null;
+        };
+        /** CustomerCreateAttemptTransitionResponse */
+        CustomerCreateAttemptTransitionResponse: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /**
+             * Customer Account Id
+             * Format: uuid
+             */
+            customer_account_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "completed" | "reconciliation_required";
+            /** Changed */
+            changed: boolean;
+            /** Provider Numeric User Id */
+            provider_numeric_user_id?: number | null;
+            /** Provider Legacy Uuid */
+            provider_legacy_uuid?: string | null;
         };
         /**
          * CustomerInviteBatchGroupResponse
@@ -24379,6 +25651,25 @@ export interface components {
             /** Events */
             events?: components["schemas"]["PrivacyRequestEventResponse"][];
         };
+        /** CustomerRemnawaveConnectionsStatusResponse */
+        CustomerRemnawaveConnectionsStatusResponse: {
+            /** Is Completed */
+            is_completed: boolean;
+            /** Is Failed */
+            is_failed: boolean;
+            progress: components["schemas"]["RemnawaveConnectionProgressResponse"];
+            /** Success */
+            success: boolean | null;
+            /** Connected */
+            connected: boolean | null;
+            /** Connected Node Count */
+            connected_node_count?: number | null;
+            /** Active Ip Count */
+            active_ip_count?: number | null;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            capabilities?: components["schemas"]["RemnawaveConnectionsCapabilitiesResponse"];
+        };
         /** CustomerSubscriptionListResponse */
         CustomerSubscriptionListResponse: {
             /**
@@ -24454,6 +25745,19 @@ export interface components {
              * @enum {string}
              */
             management_scope: "subscription_entitlement" | "account_vpn_identity" | "subscription_vpn_identity";
+        };
+        /** CustomerVpnServiceStatus */
+        CustomerVpnServiceStatus: {
+            /** Connections Available */
+            connections_available: boolean;
+            /** Usage Available */
+            usage_available: boolean;
+            /** Devices Available */
+            devices_available: boolean;
+            /** Degraded */
+            degraded: boolean;
+            /** Degraded Reason */
+            degraded_reason: string | null;
         };
         /** DecisionRequest */
         DecisionRequest: {
@@ -25478,6 +26782,82 @@ export interface components {
              */
             settlement_period_id: string;
         };
+        /** GenericOAuthSettings */
+        GenericOAuthSettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Clientid */
+            clientId: string | null;
+            /** Clientsecret */
+            clientSecret: string | null;
+            /** Allowedemails */
+            allowedEmails: string[];
+            /** Withpkce */
+            withPkce: boolean;
+            /** Authorizationurl */
+            authorizationUrl: string | null;
+            /** Tokenurl */
+            tokenUrl: string | null;
+            /** Frontenddomain */
+            frontendDomain: string | null;
+        };
+        /** GeoCheckImage */
+        GeoCheckImage: {
+            /**
+             * Format
+             * @constant
+             */
+            format: "svg";
+            /**
+             * Media Type
+             * @constant
+             */
+            media_type: "image/svg+xml";
+            /**
+             * Encoding
+             * @constant
+             */
+            encoding: "base64";
+            /** Data */
+            data: string;
+        };
+        /** GeoCheckJobResponse */
+        GeoCheckJobResponse: {
+            /** Jobid */
+            jobId: string;
+        };
+        /** GeoCheckRequest */
+        GeoCheckRequest: {
+            /** Ip */
+            ip?: string | null;
+            /** Interface */
+            interface?: string | null;
+        };
+        /** GeoCheckResult */
+        GeoCheckResult: {
+            /** Success */
+            success: boolean;
+            /**
+             * Nodeuuid
+             * Format: uuid
+             */
+            nodeUuid: string;
+            image: components["schemas"]["GeoCheckImage"] | null;
+            /** Rawreport */
+            rawReport: {
+                [key: string]: unknown;
+            } | null;
+            /** Message */
+            message: string | null;
+        };
+        /** GeoCheckResultResponse */
+        GeoCheckResultResponse: {
+            /** Iscompleted */
+            isCompleted: boolean;
+            /** Isfailed */
+            isFailed: boolean;
+            result: components["schemas"]["GeoCheckResult"] | null;
+        };
         /** GetCurrentServiceStateRequest */
         GetCurrentServiceStateRequest: {
             /**
@@ -26191,56 +27571,110 @@ export interface components {
             reason?: string | null;
             payload?: components["schemas"]["AdapterDesktopRuntimeEventPayload"];
         };
+        /** HostInboundRequest */
+        HostInboundRequest: {
+            /**
+             * Configprofileuuid
+             * Format: uuid
+             */
+            configProfileUuid: string;
+            /**
+             * Configprofileinbounduuid
+             * Format: uuid
+             */
+            configProfileInboundUuid: string;
+        };
+        /** HostInternalSquadsRequest */
+        HostInternalSquadsRequest: {
+            /** Mode */
+            mode: string;
+            /** Squads */
+            squads: string[];
+        };
         /**
          * HostResponse
-         * @description Expected response from Remnawave hosts API.
+         * @description CyberVPN response mirrors the unwrapped target host DTO.
          */
         HostResponse: {
             /**
              * Uuid
-             * @description Host UUID
+             * Format: uuid
              */
             uuid: string;
-            /**
-             * Name
-             * @description Host display name
-             */
-            name: string;
-            /**
-             * Address
-             * @description Host address
-             */
+            /** Viewposition */
+            viewPosition: number;
+            /** Remark */
+            remark: string;
+            /** Address */
             address: string;
-            /**
-             * Port
-             * @description Host port
-             */
+            /** Port */
             port: number;
+            /** Path */
+            path: string | null;
+            /** Sni */
+            sni: string | null;
+            /** Host */
+            host: string | null;
+            /** Alpn */
+            alpn: ("h3" | "h2" | "http/1.1" | "h2,http/1.1" | "h3,h2,http/1.1" | "h3,h2") | null;
+            /** Fingerprint */
+            fingerprint: string | null;
+            /** Isdisabled */
+            isDisabled: boolean;
             /**
-             * Sni
-             * @description SNI
+             * Securitylayer
+             * @default DEFAULT
+             * @enum {string}
              */
-            sni?: string | null;
+            securityLayer: "DEFAULT" | "TLS" | "NONE";
+            /** Xhttpextraparams */
+            xhttpExtraParams: unknown;
+            /** Muxparams */
+            muxParams: unknown;
+            /** Sockoptparams */
+            sockoptParams: unknown;
+            /** Finalmask */
+            finalMask: unknown;
+            inbound: components["schemas"]["RemnawaveHostInboundResponse"];
+            /** Serverdescription */
+            serverDescription: string | null;
+            /** Tags */
+            tags?: string[];
             /**
-             * Host Header
-             * @description Host header
+             * Ishidden
+             * @default false
              */
-            host_header?: string | null;
+            isHidden: boolean;
             /**
-             * Is Disabled
-             * @description Whether host is disabled
+             * Overridesnifromaddress
+             * @default false
              */
-            is_disabled: boolean;
+            overrideSniFromAddress: boolean;
             /**
-             * Path
-             * @description WebSocket path
+             * Keepsniblank
+             * @default false
              */
-            path?: string | null;
-            /**
-             * Alpn
-             * @description ALPN protocols
-             */
-            alpn?: string[] | null;
+            keepSniBlank: boolean;
+            /** Vlessrouteid */
+            vlessRouteId: number | null;
+            /** Pinnedpeercertsha256 */
+            pinnedPeerCertSha256: string | null;
+            /** Verifypeercertbyname */
+            verifyPeerCertByName: string | null;
+            /** Shufflehost */
+            shuffleHost: boolean;
+            /** Mihomox25519 */
+            mihomoX25519: boolean;
+            /** Mihomoipversion */
+            mihomoIpVersion: ("dual" | "ipv4" | "ipv6" | "ipv4-prefer" | "ipv6-prefer") | null;
+            /** Nodes */
+            nodes: string[];
+            /** Xrayjsontemplateuuid */
+            xrayJsonTemplateUuid: string | null;
+            /** Excludefromsubscriptiontypes */
+            excludeFromSubscriptionTypes: ("XRAY_JSON" | "XRAY_BASE64" | "MIHOMO" | "STASH" | "CLASH" | "SINGBOX")[];
+            mapper: components["schemas"]["RemnawaveHostMapper"];
+            internalSquads: components["schemas"]["RemnawaveHostInternalSquadsResponse"];
         };
         /** IngressFilterPluginConfigResponse */
         IngressFilterPluginConfigResponse: {
@@ -26250,6 +27684,39 @@ export interface components {
             blockedIps: string[];
         } & {
             [key: string]: unknown;
+        };
+        /** InternalAutoRenewEligibilityRequest */
+        InternalAutoRenewEligibilityRequest: {
+            /** User Ids */
+            user_ids: number[];
+        };
+        /** InternalAutoRenewEligibilityResponse */
+        InternalAutoRenewEligibilityResponse: {
+            /** Eligible User Ids */
+            eligible_user_ids: number[];
+        };
+        /** InternalAutoRenewInvoiceRequest */
+        InternalAutoRenewInvoiceRequest: {
+            /**
+             * Expected Expire At
+             * Format: date-time
+             */
+            expected_expire_at: string;
+        };
+        /** InternalAutoRenewInvoiceResponse */
+        InternalAutoRenewInvoiceResponse: {
+            /**
+             * Payment Id
+             * Format: uuid
+             */
+            payment_id: string;
+            /** Reused */
+            reused: boolean;
+            /**
+             * Notification Status
+             * @enum {string}
+             */
+            notification_status: "queued" | "already_queued";
         };
         /** InternalClaimGrowthReportingDeliveriesResponse */
         InternalClaimGrowthReportingDeliveriesResponse: {
@@ -26354,6 +27821,185 @@ export interface components {
             open_count: number;
             /** Overdue Count */
             overdue_count: number;
+        };
+        /** InternalRemnawaveDeadLetterRequest */
+        InternalRemnawaveDeadLetterRequest: {
+            /**
+             * Stream Name
+             * @enum {string}
+             */
+            stream_name: "user_usage" | "subscription_requests" | "node_connections";
+            /** Message Id */
+            message_id: string;
+            /** Schema Version */
+            schema_version?: string | null;
+            /** Error Type */
+            error_type: string;
+            /** Redacted Reason */
+            redacted_reason: string;
+            /** Payload Fingerprint */
+            payload_fingerprint: string;
+            /** Attempts */
+            attempts: number;
+        };
+        /** InternalRemnawaveRetentionPurgeRequest */
+        InternalRemnawaveRetentionPurgeRequest: {
+            /**
+             * Batch Limit
+             * @default 1000
+             */
+            batch_limit: number;
+        };
+        /** InternalRemnawaveRetentionPurgeResponse */
+        InternalRemnawaveRetentionPurgeResponse: {
+            /** Deleted By Table */
+            deleted_by_table: {
+                [key: string]: number;
+            };
+            /** Total Deleted */
+            total_deleted: number;
+            /** Has More */
+            has_more: boolean;
+            /**
+             * Purged At
+             * Format: date-time
+             */
+            purged_at: string;
+        };
+        /** InternalRemnawaveStreamGapRequest */
+        InternalRemnawaveStreamGapRequest: {
+            /**
+             * Stream Name
+             * @enum {string}
+             */
+            stream_name: "user_usage" | "subscription_requests" | "node_connections";
+            /** Missing Message Ids */
+            missing_message_ids: string[];
+            /**
+             * Detected At
+             * Format: date-time
+             */
+            detected_at: string;
+        };
+        /** InternalRemnawaveStreamGapResponse */
+        InternalRemnawaveStreamGapResponse: {
+            /**
+             * Gap Id
+             * Format: uuid
+             */
+            gap_id: string;
+            /**
+             * Stream Name
+             * @enum {string}
+             */
+            stream_name: "user_usage" | "subscription_requests" | "node_connections";
+            /**
+             * Loss Kind
+             * @enum {string}
+             */
+            loss_kind: "exact_ids" | "unknown_range";
+            /** Missing Message Ids */
+            missing_message_ids: string[];
+            /** Missing Count */
+            missing_count: number;
+            /** From Message Id */
+            from_message_id: string | null;
+            /** To Message Id */
+            to_message_id: string | null;
+            /**
+             * Reconciliation Status
+             * @enum {string}
+             */
+            reconciliation_status: "pending" | "running" | "reconciled" | "partial" | "failed";
+            /**
+             * Detected At
+             * Format: date-time
+             */
+            detected_at: string;
+            /** Reused */
+            reused: boolean;
+        };
+        /** InternalRemnawaveStreamGapTransitionRequest */
+        InternalRemnawaveStreamGapTransitionRequest: {
+            /**
+             * Reconciliation Status
+             * @enum {string}
+             */
+            reconciliation_status: "running" | "reconciled" | "partial" | "failed";
+            /** Redacted Detail */
+            redacted_detail: string;
+            /**
+             * Authoritative Read Completed
+             * @default false
+             */
+            authoritative_read_completed: boolean;
+        };
+        /** InternalRemnawaveStreamObservationRequest */
+        InternalRemnawaveStreamObservationRequest: {
+            /** Observed Stream Identity */
+            observed_stream_identity: string;
+            /** Stream Exists */
+            stream_exists: boolean;
+            /** Group Exists */
+            group_exists: boolean;
+            /** First Message Id */
+            first_message_id?: string | null;
+            /** Last Message Id */
+            last_message_id?: string | null;
+            /** Group Last Delivered Id */
+            group_last_delivered_id?: string | null;
+            /**
+             * Group Pending Count
+             * @default 0
+             */
+            group_pending_count: number;
+            /** Group Pending Min Id */
+            group_pending_min_id?: string | null;
+            /** Group Pending Max Id */
+            group_pending_max_id?: string | null;
+            /** Group Lag */
+            group_lag?: number | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+        };
+        /** InternalRemnawaveStreamObservationResponse */
+        InternalRemnawaveStreamObservationResponse: {
+            /**
+             * Stream Name
+             * @enum {string}
+             */
+            stream_name: "user_usage" | "subscription_requests" | "node_connections";
+            /** Last Committed Message Id */
+            last_committed_message_id: string | null;
+            /** Stream Exists */
+            stream_exists: boolean;
+            /** Group Exists */
+            group_exists: boolean;
+            /** Loss Detected */
+            loss_detected: boolean;
+            /** Loss Reason */
+            loss_reason: string | null;
+            gap: components["schemas"]["InternalRemnawaveStreamGapResponse"] | null;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+        };
+        /** InternalRemnawaveUserResolutionResponse */
+        InternalRemnawaveUserResolutionResponse: {
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Remnawave User Id */
+            remnawave_user_id: number;
+            /** Reconciliation State */
+            reconciliation_state: string;
         };
         /** InternalScheduleGateRunRequest */
         InternalScheduleGateRunRequest: {
@@ -26634,6 +28280,23 @@ export interface components {
              * @description Invoice expiration timestamp
              */
             expires_at: string;
+        };
+        /** KeycloakSettings */
+        KeycloakSettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Clientid */
+            clientId: string | null;
+            /** Clientsecret */
+            clientSecret: string | null;
+            /** Allowedemails */
+            allowedEmails: string[];
+            /** Realm */
+            realm: string | null;
+            /** Frontenddomain */
+            frontendDomain: string | null;
+            /** Keycloakdomain */
+            keycloakDomain: string | null;
         };
         /** LegacyServiceAccessShadowRequest */
         LegacyServiceAccessShadowRequest: {
@@ -27749,6 +29412,64 @@ export interface components {
              */
             code: string;
         };
+        /** NodeConnectionIpRequest */
+        NodeConnectionIpRequest: {
+            /**
+             * Ip
+             * Format: ipvanyaddress
+             */
+            ip: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+        };
+        /** NodeConnectionUserRequest */
+        NodeConnectionUserRequest: {
+            /** User Id */
+            user_id: number;
+            /** Ips */
+            ips: components["schemas"]["NodeConnectionIpRequest"][];
+        };
+        /** NodeConnectionsStreamEventRequest */
+        NodeConnectionsStreamEventRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event_type: "node_connections";
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "1";
+            /** Node Id */
+            node_id: number;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Users */
+            users: components["schemas"]["NodeConnectionUserRequest"][];
+        };
+        /** NodeIntegration */
+        NodeIntegration: {
+            /**
+             * Uuid
+             * Format: uuid
+             */
+            uuid: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+        };
         /** NodePluginCollectionResponse */
         NodePluginCollectionResponse: {
             /** Total */
@@ -27853,6 +29574,15 @@ export interface components {
              */
             push_subscription?: boolean | null;
         };
+        /** OAuth2Settings */
+        OAuth2Settings: {
+            github: components["schemas"]["OAuthClientSettings"];
+            pocketid: components["schemas"]["PocketIdSettings"];
+            yandex: components["schemas"]["OAuthClientSettings"];
+            keycloak?: components["schemas"]["KeycloakSettings"];
+            generic?: components["schemas"]["GenericOAuthSettings"];
+            telegram?: components["schemas"]["TelegramOAuthSettings"];
+        };
         /**
          * OAuthAuthorizeResponse
          * @description Response containing OAuth authorization URL and state token.
@@ -27868,6 +29598,17 @@ export interface components {
              * @description CSRF protection state token (include in callback)
              */
             state: string;
+        };
+        /** OAuthClientSettings */
+        OAuthClientSettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Clientid */
+            clientId: string | null;
+            /** Clientsecret */
+            clientSecret: string | null;
+            /** Allowedemails */
+            allowedEmails: string[];
         };
         /**
          * OAuthLinkResponse
@@ -28027,6 +29768,23 @@ export interface components {
             effective_to: string | null;
             /** Is Active */
             is_active: boolean;
+        };
+        /** OperatorMutationReceipt */
+        OperatorMutationReceipt: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "accepted" | "reconciliation_required";
+            /** Resource Kind */
+            resource_kind: string;
+            /** Requires Reconciliation */
+            requires_reconciliation: boolean;
         };
         /** OrderAttributionResultResponse */
         OrderAttributionResultResponse: {
@@ -29114,6 +30872,25 @@ export interface components {
          * @enum {string}
          */
         PartnerIntegrationCredentialKind: "reporting_api_token" | "postback_secret";
+        /** PartnerIntegrationMetadataMutationRequest */
+        PartnerIntegrationMetadataMutationRequest: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /** PartnerIntegrationMetadataMutationResponse */
+        PartnerIntegrationMetadataMutationResponse: {
+            /**
+             * Resource Uuid
+             * Format: uuid
+             */
+            resource_uuid: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+        };
         /** PartnerLaneApplicationResponse */
         PartnerLaneApplicationResponse: {
             /**
@@ -29395,6 +31172,154 @@ export interface components {
          * @enum {string}
          */
         PartnerPayoutAccountVerificationStatus: "pending" | "verified";
+        /** PartnerProfileTagsMutationRequest */
+        PartnerProfileTagsMutationRequest: {
+            /** Tags */
+            tags: string[];
+        };
+        /** PartnerProfileTagsMutationResponse */
+        PartnerProfileTagsMutationResponse: {
+            /**
+             * Resource Uuid
+             * Format: uuid
+             */
+            resource_uuid: string;
+            /** Tags */
+            tags: string[];
+        };
+        /**
+         * PartnerRemnawaveConnectionDropRequest
+         * @description Partner names one opaque, exactly granted service identity.
+         *
+         *     Numeric Remnawave IDs and IP targets are deliberately unavailable at this
+         *     boundary. The backend resolves the canonical numeric user only after both
+         *     node and service-identity grants have been verified.
+         */
+        PartnerRemnawaveConnectionDropRequest: {
+            /**
+             * Serviceidentityuuid
+             * Format: uuid
+             */
+            serviceIdentityUuid: string;
+        };
+        /** PartnerRemnawaveControlCapabilities */
+        PartnerRemnawaveControlCapabilities: {
+            /** Inspect Assignment */
+            inspect_assignment: boolean;
+            /** Mutate Resource */
+            mutate_resource: boolean;
+            /** Execute Resource */
+            execute_resource: boolean;
+            /** Browser Ssh */
+            browser_ssh: boolean;
+            /** Mutation Unavailable Reason */
+            mutation_unavailable_reason: string;
+            /** Safe Mutations */
+            safe_mutations?: components["schemas"]["PartnerRemnawaveSafeMutation"][];
+        };
+        /** PartnerRemnawaveMutationReceipt */
+        PartnerRemnawaveMutationReceipt: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "accepted" | "reconciliation_required";
+            resource_type: components["schemas"]["PartnerRemnawaveResourceType"];
+            /**
+             * Resource Uuid
+             * Format: uuid
+             */
+            resource_uuid: string;
+            /** Requires Reconciliation */
+            requires_reconciliation: boolean;
+        };
+        /** PartnerRemnawaveNodeConnectionsStatusResponse */
+        PartnerRemnawaveNodeConnectionsStatusResponse: {
+            /** Is Completed */
+            is_completed: boolean;
+            /** Is Failed */
+            is_failed: boolean;
+            /** Success */
+            success: boolean | null;
+            /**
+             * Node Uuid
+             * Format: uuid
+             */
+            node_uuid: string;
+            /** Connected User Count */
+            connected_user_count?: number | null;
+            /** Active Ip Count */
+            active_ip_count?: number | null;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            capabilities?: components["schemas"]["RemnawaveConnectionsCapabilitiesResponse"];
+        };
+        /**
+         * PartnerRemnawaveOperation
+         * @enum {string}
+         */
+        PartnerRemnawaveOperation: "inspect_assignment" | "mutate_resource" | "execute_resource" | "browser_ssh";
+        /**
+         * PartnerRemnawavePermission
+         * @enum {string}
+         */
+        PartnerRemnawavePermission: "remnawave_read" | "remnawave_write" | "remnawave_execute";
+        /** PartnerRemnawaveResourceListResponse */
+        PartnerRemnawaveResourceListResponse: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            /** Items */
+            items: components["schemas"]["PartnerRemnawaveResourceResponse"][];
+            /** Total */
+            total: number;
+            /** Next Offset */
+            next_offset?: number | null;
+            capabilities: components["schemas"]["PartnerRemnawaveControlCapabilities"];
+        };
+        /** PartnerRemnawaveResourceResponse */
+        PartnerRemnawaveResourceResponse: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            resource_type: components["schemas"]["PartnerRemnawaveResourceType"];
+            /**
+             * Resource Uuid
+             * Format: uuid
+             */
+            resource_uuid: string;
+            /** Effective Permissions */
+            effective_permissions: components["schemas"]["PartnerRemnawavePermission"][];
+            /** Available Operations */
+            available_operations: components["schemas"]["PartnerRemnawaveOperation"][];
+            /** Unavailable Operations */
+            unavailable_operations: components["schemas"]["PartnerRemnawaveOperation"][];
+            /** Forbidden Operations */
+            forbidden_operations: components["schemas"]["PartnerRemnawaveOperation"][];
+            /** Provider Details Available */
+            provider_details_available: boolean;
+            /** Safe Mutations */
+            safe_mutations?: components["schemas"]["PartnerRemnawaveSafeMutation"][];
+        };
+        /**
+         * PartnerRemnawaveResourceType
+         * @enum {string}
+         */
+        PartnerRemnawaveResourceType: "node" | "host" | "profile" | "squad" | "tag" | "integration" | "shared_list" | "service_identity";
+        /**
+         * PartnerRemnawaveSafeMutation
+         * @enum {string}
+         */
+        PartnerRemnawaveSafeMutation: "profile_tags" | "integration_metadata";
         /** PartnerReportingApiSnapshotResponse */
         PartnerReportingApiSnapshotResponse: {
             /**
@@ -29649,6 +31574,30 @@ export interface components {
             message: string;
             /** @default normal */
             priority: components["schemas"]["SupportTicketPriority"];
+        };
+        /** PartnerVpnCapabilities */
+        PartnerVpnCapabilities: {
+            /** Connections */
+            connections: boolean;
+            /** Usage */
+            usage: boolean;
+            /** Devices */
+            devices: boolean;
+        };
+        /** PartnerVpnServiceStatus */
+        PartnerVpnServiceStatus: {
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+            capabilities: components["schemas"]["PartnerVpnCapabilities"];
+            /** Assigned Resources */
+            assigned_resources: number;
+            /** Degraded */
+            degraded: boolean;
+            /** Degraded Reason */
+            degraded_reason: string | null;
         };
         /** PartnerWorkspaceAnalyticsMetricResponse */
         PartnerWorkspaceAnalyticsMetricResponse: {
@@ -31183,6 +33132,20 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** PasskeySettings */
+        PasskeySettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Rpid */
+            rpId: string | null;
+            /** Origin */
+            origin: string | null;
+        };
+        /** PasswordSettings */
+        PasswordSettings: {
+            /** Enabled */
+            enabled: boolean;
+        };
         /** PausePilotCohortRequest */
         PausePilotCohortRequest: {
             /** Reason Code */
@@ -32047,6 +34010,21 @@ export interface components {
             eventSent: boolean;
         } & {
             [key: string]: unknown;
+        };
+        /** PocketIdSettings */
+        PocketIdSettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Clientid */
+            clientId: string | null;
+            /** Clientsecret */
+            clientSecret: string | null;
+            /** Allowedemails */
+            allowedEmails: string[];
+            /** Frontenddomain */
+            frontendDomain: string | null;
+            /** Plaindomain */
+            plainDomain: string | null;
         };
         /** PolicyVersionResponse */
         PolicyVersionResponse: {
@@ -33859,47 +35837,6 @@ export interface components {
             release_reason_code?: string | null;
         };
         /**
-         * RemnavwaveBillingRecordResponse
-         * @description Billing / payment record from Remnawave.
-         */
-        RemnavwaveBillingRecordResponse: {
-            /**
-             * Uuid
-             * @description Billing record UUID
-             */
-            uuid: string;
-            /**
-             * Useruuid
-             * @description User UUID
-             */
-            userUuid: string;
-            /**
-             * Amount
-             * @description Payment amount
-             */
-            amount: number;
-            /**
-             * Currency
-             * @description Currency code (ISO 4217)
-             */
-            currency: string;
-            /**
-             * Status
-             * @description Payment status
-             */
-            status: string;
-            /**
-             * Paymentmethod
-             * @description Payment method
-             */
-            paymentMethod?: string | null;
-            /**
-             * Createdat
-             * @description Creation timestamp
-             */
-            createdAt?: string | null;
-        };
-        /**
          * RemnawaveConfigProfileResponse
          * @description Configuration profile from Remnawave.
          */
@@ -33935,6 +35872,143 @@ export interface components {
              * @description Profile description
              */
             description?: string | null;
+        };
+        /** RemnawaveConnectionDropReceiptResponse */
+        RemnawaveConnectionDropReceiptResponse: {
+            /** Receipt Id */
+            receipt_id: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "accepted" | "outcome_unknown";
+            /**
+             * Retry Allowed
+             * @default false
+             * @constant
+             */
+            retry_allowed: false;
+            /** Requires Reconciliation */
+            requires_reconciliation: boolean;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Expires In Seconds */
+            expires_in_seconds?: number | null;
+        };
+        /**
+         * RemnawaveConnectionDropReconciliationReason
+         * @enum {string}
+         */
+        RemnawaveConnectionDropReconciliationReason: "provider_confirmed_applied" | "provider_confirmed_not_applied" | "postcondition_confirmed_applied" | "postcondition_confirmed_not_applied";
+        /** RemnawaveConnectionProgressResponse */
+        RemnawaveConnectionProgressResponse: {
+            /** Total */
+            total: number;
+            /** Completed */
+            completed: number;
+            /** Percent */
+            percent: number;
+        };
+        /** RemnawaveConnectionReadRequestResponse */
+        RemnawaveConnectionReadRequestResponse: {
+            /** Request Id */
+            request_id: string;
+            /**
+             * Poll After Seconds
+             * @default 1
+             */
+            poll_after_seconds: number;
+            /**
+             * Expires In Seconds
+             * @default 300
+             */
+            expires_in_seconds: number;
+            capabilities?: components["schemas"]["RemnawaveConnectionsCapabilitiesResponse"];
+        };
+        /** RemnawaveConnectionsCapabilitiesResponse */
+        RemnawaveConnectionsCapabilitiesResponse: {
+            /**
+             * Read Connections
+             * @default true
+             */
+            read_connections: boolean;
+            /**
+             * Drop Connections
+             * @default false
+             */
+            drop_connections: boolean;
+            /**
+             * Drop Requires Idempotency Key
+             * @default true
+             */
+            drop_requires_idempotency_key: boolean;
+            /**
+             * Drop Outcome May Be Unknown
+             * @default true
+             */
+            drop_outcome_may_be_unknown: boolean;
+        };
+        /** RemnawaveHostInboundResponse */
+        RemnawaveHostInboundResponse: {
+            /** Configprofileuuid */
+            configProfileUuid: string | null;
+            /** Configprofileinbounduuid */
+            configProfileInboundUuid: string | null;
+        };
+        /** RemnawaveHostInternalSquadsResponse */
+        RemnawaveHostInternalSquadsResponse: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "EXCLUDE" | "ALLOW_ONLY";
+            /** Squads */
+            squads: string[];
+        };
+        /** RemnawaveHostMapper */
+        RemnawaveHostMapper: {
+            /** Xrayjson */
+            xrayJson?: (components["schemas"]["RemnawaveHostMapperCopy"] | components["schemas"]["RemnawaveHostMapperSet"] | components["schemas"]["RemnawaveHostMapperUnset"])[];
+            /** Mihomo */
+            mihomo?: (components["schemas"]["RemnawaveHostMapperCopy"] | components["schemas"]["RemnawaveHostMapperSet"] | components["schemas"]["RemnawaveHostMapperUnset"])[];
+            /** Base64 */
+            base64?: (components["schemas"]["RemnawaveHostMapperCopy"] | components["schemas"]["RemnawaveHostMapperSet"] | components["schemas"]["RemnawaveHostMapperUnset"])[];
+            /** Singbox */
+            singbox?: (components["schemas"]["RemnawaveHostMapperCopy"] | components["schemas"]["RemnawaveHostMapperSet"] | components["schemas"]["RemnawaveHostMapperUnset"])[];
+        };
+        /** RemnawaveHostMapperCopy */
+        RemnawaveHostMapperCopy: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "copy";
+            /** From */
+            from: string;
+            /** To */
+            to: string;
+        };
+        /** RemnawaveHostMapperSet */
+        RemnawaveHostMapperSet: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "set";
+            /** Value */
+            value: unknown;
+            /** To */
+            to: string;
+        };
+        /** RemnawaveHostMapperUnset */
+        RemnawaveHostMapperUnset: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "unset";
+            /** To */
+            to: string;
         };
         /**
          * RemnawaveInboundResponse
@@ -34013,71 +36087,90 @@ export interface components {
              */
             tags?: string[];
         };
-        /**
-         * RemnawavePublicKeyResponse
-         * @description Public key response from Remnawave ``/api/keygen``.
-         */
-        RemnawavePublicKeyResponse: {
+        /** RemnawaveResourceGrantCreateRequest */
+        RemnawaveResourceGrantCreateRequest: {
             /**
-             * Publickey
-             * @description Public key in PEM format
+             * Workspace Id
+             * Format: uuid
              */
-            publicKey: string;
+            workspace_id: string;
             /**
-             * Algorithm
-             * @description Key algorithm
-             * @default RS256
+             * Resource Type
+             * @enum {string}
              */
-            algorithm: string;
+            resource_type: "node" | "host" | "profile" | "squad" | "tag" | "integration" | "shared_list" | "service_identity";
+            /**
+             * Resource Uuid
+             * Format: uuid
+             */
+            resource_uuid: string;
+            /** Permission Keys */
+            permission_keys: string[];
+            /** Reason */
+            reason: string;
         };
-        /**
-         * RemnawaveSettingResponse
-         * @description System setting key-value pair from Remnawave.
-         */
-        RemnawaveSettingResponse: {
+        /** RemnawaveResourceGrantListResponse */
+        RemnawaveResourceGrantListResponse: {
+            /** Items */
+            items: components["schemas"]["RemnawaveResourceGrantResponse"][];
+            /** Next Cursor */
+            next_cursor?: string | null;
+        };
+        /** RemnawaveResourceGrantResponse */
+        RemnawaveResourceGrantResponse: {
             /**
              * Id
-             * @description Setting ID
+             * Format: uuid
              */
-            id: number;
+            id: string;
             /**
-             * Key
-             * @description Setting key
+             * Workspace Id
+             * Format: uuid
              */
-            key: string;
+            workspace_id: string;
             /**
-             * Value
-             * @description Setting value (any JSON type)
+             * Resource Type
+             * @enum {string}
              */
-            value: unknown;
+            resource_type: "node" | "host" | "profile" | "squad" | "tag" | "integration" | "shared_list" | "service_identity";
             /**
-             * Description
-             * @description Setting description
+             * Resource Uuid
+             * Format: uuid
              */
-            description?: string | null;
+            resource_uuid: string;
+            /** Permission Keys */
+            permission_keys: string[];
             /**
-             * Ispublic
-             * @description Public visibility flag
-             * @default false
+             * Granted By Admin User Id
+             * Format: uuid
              */
-            isPublic: boolean;
+            granted_by_admin_user_id: string;
+            /**
+             * Granted At
+             * Format: date-time
+             */
+            granted_at: string;
+            /** Revoked By Admin User Id */
+            revoked_by_admin_user_id: string | null;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Audit Reason */
+            audit_reason: string;
+        };
+        /** RemnawaveResourceGrantRevokeRequest */
+        RemnawaveResourceGrantRevokeRequest: {
+            /** Reason */
+            reason: string;
         };
         /**
-         * RemnawaveSignPayloadResponse
-         * @description Signed payload response from Remnawave ``/api/keygen``.
+         * RemnawaveSettingsResponse
+         * @description Unwrapped ``response`` object returned by Remnawave 3.4.3.
          */
-        RemnawaveSignPayloadResponse: {
-            /**
-             * Signature
-             * @description Generated digital signature
-             */
-            signature: string;
-            /**
-             * Algorithm
-             * @description Signing algorithm used
-             * @default RS256
-             */
-            algorithm: string;
+        RemnawaveSettingsResponse: {
+            passkeySettings: components["schemas"]["PasskeySettings"] | null;
+            oauth2Settings: components["schemas"]["OAuth2Settings"] | null;
+            passwordSettings: components["schemas"]["PasswordSettings"] | null;
+            brandingSettings: components["schemas"]["BrandingSettings"] | null;
         };
         /**
          * RemnawaveSnippetResponse
@@ -34207,80 +36300,6 @@ export interface components {
              * @description Remnawave 2.8 HWID active signal with legacy header compatibility
              */
             xHwidActive?: string | number | boolean | null;
-        };
-        /**
-         * RemnawaveSubscriptionResponse
-         * @description Subscription template from Remnawave.
-         */
-        RemnawaveSubscriptionResponse: {
-            /**
-             * Uuid
-             * @description Subscription template UUID
-             */
-            uuid: string;
-            /**
-             * Name
-             * @description Template display name
-             */
-            name: string;
-            /**
-             * Templatetype
-             * @description VPN client template type
-             */
-            templateType: string;
-            /**
-             * Hostuuid
-             * @description Associated host UUID
-             */
-            hostUuid?: string | null;
-            /**
-             * Inboundtag
-             * @description Inbound tag reference
-             */
-            inboundTag?: string | null;
-            /**
-             * Flow
-             * @description Flow control method (xtls-rprx-vision, etc.)
-             */
-            flow?: string | null;
-            /**
-             * Configdata
-             * @description Additional config blob
-             */
-            configData?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Description
-             * @description Template description/DESCRIPTION key
-             */
-            description?: string | null;
-            /**
-             * Clienttype
-             * @description Subscription client family
-             */
-            clientType?: string | null;
-            /**
-             * Xhttp
-             * @description XHTTP template metadata when returned
-             */
-            xhttp?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Hysteria2
-             * @description Hysteria2 template metadata when returned
-             */
-            hysteria2?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * V2Plus
-             * @description v2plus fallback metadata when returned
-             */
-            v2plus?: {
-                [key: string]: unknown;
-            } | null;
         };
         /**
          * RemnawaveXrayConfigResponse
@@ -34422,6 +36441,14 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** ReopenCustomerCreateAttemptRequest */
+        ReopenCustomerCreateAttemptRequest: {
+            /**
+             * Reason Code
+             * @default operator_reconciliation_requested
+             */
+            reason_code: string;
         };
         /** ReorderNodePluginItem */
         ReorderNodePluginItem: {
@@ -35072,6 +37099,13 @@ export interface components {
             /** Scheduled For */
             scheduled_for?: string | null;
         };
+        /** ServerIpResponse */
+        ServerIpResponse: {
+            /** Ip */
+            ip: string;
+            /** Status */
+            status: string;
+        };
         /**
          * ServerResponse
          * @description Response schema for a Remnawave VPN server.
@@ -35082,12 +37116,14 @@ export interface components {
              * Format: uuid
              */
             uuid: string;
+            /** Id */
+            id?: number | null;
             /** Name */
             name: string;
             /** Address */
             address: string;
             /** Port */
-            port: number;
+            port: number | null;
             status: components["schemas"]["ServerStatus"];
             /** Is Connected */
             is_connected: boolean;
@@ -35119,6 +37155,10 @@ export interface components {
             vpn_protocol?: string | null;
             /** Active Plugin Uuid */
             active_plugin_uuid?: string | null;
+            /** Ips */
+            ips?: components["schemas"]["ServerIpResponse"][];
+            /** Integration Uuids */
+            integration_uuids?: string[];
         };
         /**
          * ServerStatsResponse
@@ -35321,6 +37361,8 @@ export interface components {
             subscription_key?: string | null;
             /** Provider Subject Ref */
             provider_subject_ref?: string | null;
+            /** Provider Numeric Subject Id */
+            provider_numeric_subject_id?: number | null;
             identity_status: components["schemas"]["ServiceIdentityStatus"];
             /** Service Context */
             service_context?: {
@@ -35370,6 +37412,38 @@ export interface components {
              * @description User's anti-phishing code
              */
             code: string;
+        };
+        /** SetTagsRequest */
+        SetTagsRequest: {
+            /**
+             * Uuid
+             * Format: uuid
+             */
+            uuid: string;
+            /** Tags */
+            tags: string[];
+        };
+        /** SetTagsResponse */
+        SetTagsResponse: {
+            /**
+             * Uuid
+             * Format: uuid
+             */
+            uuid: string;
+            /** Tags */
+            tags: string[];
+        };
+        /** SettleCustomerCreateAttemptRequest */
+        SettleCustomerCreateAttemptRequest: {
+            /** Provider Numeric User Id */
+            provider_numeric_user_id: number;
+            /** Provider Legacy Uuid */
+            provider_legacy_uuid?: string | null;
+            /**
+             * Reason Code
+             * @default authoritative_provider_readback
+             */
+            reason_code: string;
         };
         /** SettlementPeriodResponse */
         SettlementPeriodResponse: {
@@ -35422,6 +37496,38 @@ export interface components {
          * @enum {string}
          */
         SettlementPeriodStatus: "open" | "closed";
+        /** SharedList */
+        SharedList: {
+            /** Name */
+            name: string;
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+        };
+        /** SharedListMutationRequest */
+        SharedListMutationRequest: {
+            /** Name */
+            name: string;
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+        };
+        /** SharedListNameRequest */
+        SharedListNameRequest: {
+            /** Name */
+            name: string;
+        };
+        /** SharedListPreview */
+        SharedListPreview: {
+            /** Name */
+            name: string;
+            /** Type */
+            type: string;
+            /** Itemscount */
+            itemsCount: number;
+        };
         /** SharedListResponse */
         SharedListResponse: {
             /** Name */
@@ -35545,6 +37651,29 @@ export interface components {
          * @enum {string}
          */
         SiteNotificationType: "message" | "system" | "billing" | "subscription" | "security" | "broadcast";
+        /** Snippet */
+        Snippet: {
+            /** Name */
+            name: string;
+            /** Snippet */
+            snippet: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** SnippetMutationRequest */
+        SnippetMutationRequest: {
+            /** Name */
+            name: string;
+            /** Snippet */
+            snippet: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** SnippetNameRequest */
+        SnippetNameRequest: {
+            /** Name */
+            name: string;
+        };
         /**
          * Stage1PaymentState
          * @description Canonical payment state for web, Telegram, admin and support views.
@@ -35952,6 +38081,34 @@ export interface components {
              */
             auto_renew: boolean;
         };
+        /** SubscriptionRequestStreamEventRequest */
+        SubscriptionRequestStreamEventRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event_type: "subscription_requests";
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "1";
+            /** User Id */
+            user_id: number;
+            /**
+             * Requested At
+             * Format: date-time
+             */
+            requested_at: string;
+            /** Request Ip */
+            request_ip?: string | null;
+            /** User Agent */
+            user_agent?: string | null;
+            /** Srr Rule Name */
+            srr_rule_name?: string | null;
+            /** Srr Response Type */
+            srr_response_type: string;
+        };
         /**
          * SubscriptionStatus
          * @description User subscription status.
@@ -35972,7 +38129,35 @@ export interface components {
              * Templates
              * @description Subscription templates returned by Remnawave
              */
-            templates?: components["schemas"]["RemnawaveSubscriptionResponse"][];
+            templates?: components["schemas"]["SubscriptionTemplateResponse"][];
+        };
+        /**
+         * SubscriptionTemplateResponse
+         * @description CyberVPN response mirrors the unwrapped target template DTO.
+         */
+        SubscriptionTemplateResponse: {
+            /**
+             * Uuid
+             * Format: uuid
+             */
+            uuid: string;
+            /** Viewposition */
+            viewPosition: number;
+            /** Name */
+            name: string;
+            /** Tags */
+            tags: string[];
+            /**
+             * Templatetype
+             * @enum {string}
+             */
+            templateType: "XRAY_JSON" | "XRAY_BASE64" | "MIHOMO" | "STASH" | "CLASH" | "SINGBOX";
+            /** Templatejson */
+            templateJson: {
+                [key: string]: unknown;
+            } | null;
+            /** Encodedtemplateyaml */
+            encodedTemplateYaml: string | null;
         };
         /**
          * SupportActorType
@@ -36187,6 +38372,16 @@ export interface components {
         SuspendPartnerPayoutAccountRequest: {
             /** Reason Code */
             reason_code?: string | null;
+        };
+        /** TagsResponse */
+        TagsResponse: {
+            /**
+             * Resource
+             * @enum {string}
+             */
+            resource: "subscription-page-configs" | "users" | "subscription-templates" | "config-profiles" | "internal-squads" | "external-squads" | "nodes" | "node-plugins" | "hosts";
+            /** Tags */
+            tags: string[];
         };
         /**
          * TelegramAccountLinkSessionResponse
@@ -36935,6 +39130,19 @@ export interface components {
             tfa_token?: string | null;
             onboarding?: components["schemas"]["CustomerOnboardingAuthSummaryResponse"] | null;
         };
+        /** TelegramOAuthSettings */
+        TelegramOAuthSettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Clientid */
+            clientId: string | null;
+            /** Clientsecret */
+            clientSecret: string | null;
+            /** Allowedids */
+            allowedIds: string[];
+            /** Frontenddomain */
+            frontendDomain: string | null;
+        };
         /**
          * TelegramOIDCAuthRequest
          * @description Request schema for Telegram OIDC ID token exchange.
@@ -37366,9 +39574,9 @@ export interface components {
         TorrentBlockerReportsStatsResponse: {
             stats: components["schemas"]["TorrentBlockerStatsResponse"];
             /** Topusers */
-            topUsers: components["schemas"]["TorrentBlockerTopEntityResponse"][];
+            topUsers: components["schemas"]["TorrentBlockerTopUserResponse"][];
             /** Topnodes */
-            topNodes: components["schemas"]["TorrentBlockerTopEntityResponse"][];
+            topNodes: components["schemas"]["TorrentBlockerTopNodeResponse"][];
         } & {
             [key: string]: unknown;
         };
@@ -37385,27 +39593,36 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** TorrentBlockerTopEntityResponse */
-        TorrentBlockerTopEntityResponse: {
+        /** TorrentBlockerTopNodeResponse */
+        TorrentBlockerTopNodeResponse: {
             /** Uuid */
             uuid: string;
+            /** Countrycode */
+            countryCode: string;
             /** Color */
             color: string;
+            /** Name */
+            name: string;
             /** Total */
             total: number;
+        } & {
+            [key: string]: unknown;
+        };
+        /** TorrentBlockerTopUserResponse */
+        TorrentBlockerTopUserResponse: {
+            /** Userid */
+            userId: number;
+            /** Color */
+            color: string;
             /** Username */
-            username?: string | null;
-            /** Name */
-            name?: string | null;
-            /** Countrycode */
-            countryCode?: string | null;
+            username: string;
+            /** Total */
+            total: number;
         } & {
             [key: string]: unknown;
         };
         /** TorrentBlockerUserResponse */
         TorrentBlockerUserResponse: {
-            /** Uuid */
-            uuid: string;
             /** Username */
             username: string;
         } & {
@@ -37914,30 +40131,91 @@ export interface components {
         };
         /**
          * UpdateHostRequest
-         * @description Request schema for updating a VPN host.
+         * @description Exact target ``UpdateHostBodyDto`` fields except path-owned UUID.
          */
         UpdateHostRequest: {
-            /** Name */
-            name?: string | null;
+            inbound?: components["schemas"]["HostInboundRequest"] | null;
+            /** Remark */
+            remark?: string | null;
             /** Address */
             address?: string | null;
             /** Port */
             port?: number | null;
-            /** Sni */
-            sni?: string | null;
-            /** Host Header */
-            host_header?: string | null;
-            /** Is Disabled */
-            is_disabled?: boolean | null;
             /** Path */
-            path?: string | null;
+            path?: string[] | null;
+            /** Sni */
+            sni?: string[] | null;
+            /** Host */
+            host?: string[] | null;
             /** Alpn */
-            alpn?: string[] | null;
+            alpn?: ("h3" | "h2" | "http/1.1" | "h2,http/1.1" | "h3,h2,http/1.1" | "h3,h2") | null;
+            /** Fingerprint */
+            fingerprint?: string[] | null;
+            /** Isdisabled */
+            isDisabled?: boolean | null;
+            /** Securitylayer */
+            securityLayer?: ("DEFAULT" | "TLS" | "NONE") | null;
+            /** Xhttpextraparams */
+            xhttpExtraParams?: unknown | null;
+            /** Muxparams */
+            muxParams?: unknown | null;
+            /** Sockoptparams */
+            sockoptParams?: unknown | null;
+            /** Finalmask */
+            finalMask?: unknown | null;
+            /** Serverdescription */
+            serverDescription?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Ishidden */
+            isHidden?: boolean | null;
+            /** Overridesnifromaddress */
+            overrideSniFromAddress?: boolean | null;
+            /** Keepsniblank */
+            keepSniBlank?: boolean | null;
+            /** Vlessrouteid */
+            vlessRouteId?: number | null;
+            /** Pinnedpeercertsha256 */
+            pinnedPeerCertSha256?: string[] | null;
+            /** Verifypeercertbyname */
+            verifyPeerCertByName?: string[] | null;
+            /** Shufflehost */
+            shuffleHost?: boolean | null;
+            /** Mihomox25519 */
+            mihomoX25519?: boolean | null;
+            /** Mihomoipversion */
+            mihomoIpVersion?: ("dual" | "ipv4" | "ipv6" | "ipv4-prefer" | "ipv6-prefer") | null;
+            /** Nodes */
+            nodes?: string[] | null;
+            /** Xrayjsontemplateuuid */
+            xrayJsonTemplateUuid?: string | null;
+            /** Excludefromsubscriptiontypes */
+            excludeFromSubscriptionTypes?: ("XRAY_JSON" | "XRAY_BASE64" | "MIHOMO" | "STASH" | "CLASH" | "SINGBOX")[] | null;
+            mapper?: components["schemas"]["RemnawaveHostMapper"] | null;
+            internalSquads?: components["schemas"]["HostInternalSquadsRequest"] | null;
         };
         /** UpdateMarkupRequest */
         UpdateMarkupRequest: {
             /** Markup Pct */
             markup_pct: number;
+        };
+        /** UpdateNodeIntegrationRequest */
+        UpdateNodeIntegrationRequest: {
+            /**
+             * Uuid
+             * Format: uuid
+             */
+            uuid: string;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            } | null;
+            /** Restartnodes */
+            restartNodes?: boolean | null;
         };
         /** UpdateNodePluginRequest */
         UpdateNodePluginRequest: {
@@ -38145,6 +40423,16 @@ export interface components {
             };
         };
         /**
+         * UpdateRemnawaveSettingsRequest
+         * @description PATCH body whose four target fields are optional but never nullable.
+         */
+        UpdateRemnawaveSettingsRequest: {
+            passkeySettings?: components["schemas"]["PasskeySettings"] | null;
+            oauth2Settings?: components["schemas"]["OAuth2Settings"] | null;
+            passwordSettings?: components["schemas"]["PasswordSettings"] | null;
+            brandingSettings?: components["schemas"]["BrandingSettings"] | null;
+        };
+        /**
          * UpdateServerRequest
          * @description Request schema for updating a server.
          */
@@ -38158,13 +40446,10 @@ export interface components {
         };
         /**
          * UpdateSettingRequest
-         * @description Request schema for updating a system setting.
+         * @description Legacy by-id request retained only so the removed route can return 503.
          */
         UpdateSettingRequest: {
-            /**
-             * Value
-             * @description New setting value
-             */
+            /** Value */
             value?: unknown | null;
             /** Description */
             description?: string | null;
@@ -38173,23 +40458,17 @@ export interface components {
         };
         /**
          * UpdateSubscriptionTemplateRequest
-         * @description Request schema for updating a subscription template.
+         * @description Exact target ``UpdateTemplateBodyDto`` fields except path-owned UUID.
          */
         UpdateSubscriptionTemplateRequest: {
             /** Name */
             name?: string | null;
-            /** Template Type */
-            template_type?: string | null;
-            /** Host Uuid */
-            host_uuid?: string | null;
-            /** Inbound Tag */
-            inbound_tag?: string | null;
-            /** Flow */
-            flow?: string | null;
-            /** Config Data */
-            config_data?: {
+            /** Templatejson */
+            templateJson?: {
                 [key: string]: unknown;
             } | null;
+            /** Encodedtemplateyaml */
+            encodedTemplateYaml?: string | null;
         };
         /**
          * UpdateUserRequest
@@ -38443,6 +40722,35 @@ export interface components {
          * @enum {string}
          */
         UserStatus: "active" | "disabled" | "limited" | "expired";
+        /** UserUsageRecordRequest */
+        UserUsageRecordRequest: {
+            /** User Id */
+            user_id: number;
+            /** Total Bytes */
+            total_bytes: number;
+        };
+        /** UserUsageStreamEventRequest */
+        UserUsageStreamEventRequest: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            event_type: "user_usage";
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "1";
+            /** Node Id */
+            node_id: number;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Records */
+            records: components["schemas"]["UserUsageRecordRequest"][];
+        };
         /**
          * ValidatePromoRequest
          * @description Request body for validating / calculating a promo code discount.
@@ -39368,11 +41676,10 @@ export interface components {
          * @description Response schema for a single VPN user.
          */
         src__presentation__api__v1__users__schemas__UserResponse: {
-            /**
-             * Uuid
-             * Format: uuid
-             */
-            uuid: string;
+            /** Id */
+            id: number;
+            /** Uuid */
+            uuid?: string | null;
             /** Username */
             username: string;
             status: components["schemas"]["UserStatus"];
@@ -43475,7 +45782,9 @@ export interface operations {
     create_user_api_v1_users__post: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -43493,6 +45802,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["src__presentation__api__v1__users__schemas__UserResponse"];
                 };
+            };
+            /** @description Creation accepted; authoritative identity reconciliation is required */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description User already exists */
             409: {
@@ -43515,7 +45831,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                user_id: string;
+                user_id: number;
             };
             cookie?: never;
         };
@@ -43553,7 +45869,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                user_id: string;
+                user_id: number;
             };
             cookie?: never;
         };
@@ -43593,7 +45909,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                user_id: string;
+                user_id: number;
             };
             cookie?: never;
         };
@@ -44115,6 +46431,13 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            /** @description Node creation is safety-disabled pending durable settlement */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     get_server_stats_api_v1_servers_stats_get: {
@@ -44192,6 +46515,13 @@ export interface operations {
                     "application/json": components["schemas"]["ServerResponse"];
                 };
             };
+            /** @description Update accepted; authoritative node state is not visible yet */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -44214,6 +46544,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Delete accepted; authoritative absence is not visible yet */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Successful Response */
             204: {
                 headers: {
@@ -44458,12 +46795,12 @@ export interface operations {
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
+                    "application/json": components["schemas"]["SubscriptionTemplateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -44475,6 +46812,13 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            /** @description Template creation is safety-disabled pending durable settlement */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     generate_config_api_v1_subscriptions_config__user_uuid__get: {
@@ -44482,6 +46826,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Canonical CyberVPN MobileUser UUID; never a Remnawave identifier. */
                 user_uuid: string;
             };
             cookie?: never;
@@ -44525,6 +46870,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ActiveSubscriptionResponse"];
                 };
+            };
+            /** @description Revocation accepted; authoritative state reconciliation is pending */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Not authenticated */
             401: {
@@ -44593,7 +46945,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
+                    "application/json": components["schemas"]["SubscriptionTemplateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -44628,8 +46980,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawaveSubscriptionResponse"];
+                    "application/json": components["schemas"]["SubscriptionTemplateResponse"];
                 };
+            };
+            /** @description Remnawave accepted the template update without a response body. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -44654,12 +47013,41 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_numeric_user_for_worker_api_v1_internal_remnawave_users_by_customer__customer_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["StatusMessageResponse"];
+                    "application/json": components["schemas"]["InternalRemnawaveUserResolutionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -44669,6 +47057,951 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_customer_for_numeric_user_api_v1_internal_remnawave_users_by_remnawave_id__remnawave_user_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                remnawave_user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalRemnawaveUserResolutionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_auto_renew_eligible_users_api_v1_internal_remnawave_auto_renew_eligible_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalAutoRenewEligibilityRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalAutoRenewEligibilityResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_auto_renew_invoice_api_v1_internal_remnawave_users__remnawave_user_id__auto_renew_invoice_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                remnawave_user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalAutoRenewInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalAutoRenewInvoiceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    observe_remnawave_stream_startup_api_v1_internal_remnawave_stream_checkpoints__stream_name__observe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stream_name: "user_usage" | "subscription_requests" | "node_connections";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalRemnawaveStreamObservationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalRemnawaveStreamObservationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_remnawave_stream_gap_api_v1_internal_remnawave_stream_gaps_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalRemnawaveStreamGapRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalRemnawaveStreamGapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transition_remnawave_stream_gap_api_v1_internal_remnawave_stream_gaps__gap_id__reconciliation_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gap_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalRemnawaveStreamGapTransitionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalRemnawaveStreamGapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reconcile_remnawave_stream_gap_api_v1_internal_remnawave_stream_gaps__gap_id__reconcile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gap_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalRemnawaveStreamGapResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purge_expired_remnawave_stream_rows_api_v1_internal_remnawave_retention_purge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalRemnawaveRetentionPurgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalRemnawaveRetentionPurgeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upsert_remnawave_dead_letter_api_v1_internal_remnawave_dead_letters_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InternalRemnawaveDeadLetterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    persist_stream_event_api_v1_internal_remnawave_streams_events_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUsageStreamEventRequest"] | components["schemas"]["SubscriptionRequestStreamEventRequest"] | components["schemas"]["NodeConnectionsStreamEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_admin_user_connections_api_v1_admin_remnawave_connections_users__user_id__requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveConnectionReadRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_user_connections_api_v1_admin_remnawave_connections_users__user_id__requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: number;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveUserConnectionsStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_admin_node_connections_api_v1_admin_remnawave_connections_nodes__node_uuid__requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveConnectionReadRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_node_connections_api_v1_admin_remnawave_connections_nodes__node_uuid__requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_uuid: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveNodeConnectionsStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_admin_unresolved_connection_drop_receipts_api_v1_admin_remnawave_connections_drop_receipts_unresolved_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveConnectionDropUnresolvedPageResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_admin_connection_drop_receipt_api_v1_admin_remnawave_connections_drop_receipts__receipt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveConnectionDropReceiptResponse"];
+                };
+            };
+            /** @description Receipt not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Receipt store unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reconcile_admin_connection_drop_receipt_api_v1_admin_remnawave_connections_drop_receipts__receipt_id__reconcile_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                receipt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRemnawaveConnectionDropReconciliationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveConnectionDropReceiptResponse"];
+                };
+            };
+            /** @description Receipt not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Receipt already has a different terminal outcome */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Receipt or required audit store unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    drop_admin_connections_api_v1_admin_remnawave_connections_drop_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRemnawaveConnectionDropRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveConnectionDropReceiptResponse"];
+                };
+            };
+            /** @description Idempotency key payload conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Upstream rejected the drop */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Receipt registry unavailable before provider I/O */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    request_partner_node_connections_api_v1_partner_workspaces__workspace_id__remnawave_connections_nodes__node_uuid__requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                node_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveConnectionReadRequestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_node_connections_api_v1_partner_workspaces__workspace_id__remnawave_connections_nodes__node_uuid__requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                node_uuid: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRemnawaveNodeConnectionsStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    drop_partner_node_connections_api_v1_partner_workspaces__workspace_id__remnawave_connections_nodes__node_uuid__drop_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workspace_id: string;
+                node_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerRemnawaveConnectionDropRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveConnectionDropReceiptResponse"];
+                };
+            };
+            /** @description Idempotency key payload conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Upstream rejected the drop */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Receipt registry unavailable before provider I/O */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    request_customer_connections_api_v1_customer_remnawave_connections_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveConnectionReadRequestResponse"];
+                };
+            };
+        };
+    };
+    get_customer_connections_api_v1_customer_remnawave_connections_requests__request_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerRemnawaveConnectionsStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    drop_customer_connections_api_v1_customer_remnawave_connections_drop_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveConnectionDropReceiptResponse"];
+                };
+            };
+            /** @description Idempotency key payload conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Upstream rejected the drop */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Receipt registry unavailable before provider I/O */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_admin_remnawave_capabilities_and_streams_api_v1_admin_remnawave_capabilities_and_streams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveCapabilitiesAndStreams"];
+                };
+            };
+        };
+    };
+    get_partner_vpn_service_status_api_v1_partner_workspaces__workspace_id__vpn_service_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerVpnServiceStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_customer_vpn_service_status_api_v1_customer_vpn_service_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerVpnServiceStatus"];
                 };
             };
         };
@@ -50013,6 +53346,198 @@ export interface operations {
             };
         };
     };
+    list_partner_remnawave_resources_api_v1_partner_workspaces__workspace_id__remnawave_resources_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRemnawaveResourceListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_partner_remnawave_resource_api_v1_partner_workspaces__workspace_id__remnawave_resources__resource_type___resource_uuid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+                resource_type: components["schemas"]["PartnerRemnawaveResourceType"];
+                resource_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRemnawaveResourceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_partner_profile_tags_api_v1_partner_workspaces__workspace_id__remnawave_resources_profile__resource_uuid__tags_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workspace_id: string;
+                resource_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerProfileTagsMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerProfileTagsMutationResponse"] | components["schemas"]["PartnerRemnawaveMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRemnawaveMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_partner_integration_metadata_api_v1_partner_workspaces__workspace_id__remnawave_resources_integration__resource_uuid__metadata_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                workspace_id: string;
+                resource_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerIntegrationMetadataMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerIntegrationMetadataMutationResponse"] | components["schemas"]["PartnerRemnawaveMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerRemnawaveMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_partner_browser_ssh_api_v1_partner_workspaces__workspace_id__remnawave_node_ssh_tickets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_payout_instructions_api_v1_payouts_instructions_get: {
         parameters: {
             query?: {
@@ -53152,13 +56677,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Remnawave 3.4.3 exposes no customer billing endpoint */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnavwaveBillingRecordResponse"][];
+                    "application/json": unknown;
                 };
             };
         };
@@ -53176,15 +56701,6 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RemnavwaveBillingRecordResponse"];
-                };
-            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -53192,6 +56708,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Remnawave 3.4.3 exposes no customer payment endpoint */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -61539,6 +65064,1046 @@ export interface operations {
             };
         };
     };
+    settle_customer_create_attempt_api_v1_admin_remnawave_customer_create_attempts__attempt_id__settle_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettleCustomerCreateAttemptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerCreateAttemptTransitionResponse"];
+                };
+            };
+            /** @description Customer create attempt not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Attempt or provider identity cannot be settled safely */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Authoritative provider readback unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reopen_customer_create_attempt_api_v1_admin_remnawave_customer_create_attempts__attempt_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReopenCustomerCreateAttemptRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerCreateAttemptTransitionResponse"];
+                };
+            };
+            /** @description Customer create attempt not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Attempt cannot be reopened */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_remnawave_node_ssh_ticket_api_v1_admin_remnawave_node_ssh_nodes__node_uuid__tickets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                node_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRemnawaveNodeSshTicketRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveNodeSshTicketResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_remnawave_node_ssh_ticket_api_v1_admin_remnawave_node_ssh_tickets_revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRemnawaveNodeSshRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    security_revoke_remnawave_node_ssh_ticket_api_v1_admin_remnawave_node_ssh_tickets_security_revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRemnawaveNodeSshRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evaluate_remnawave_node_ssh_vault_api_v1_admin_remnawave_node_ssh_vault_evaluate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRemnawaveNodeSshVaultEvaluateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRemnawaveNodeSshVaultEvaluateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_remnawave_resource_grants_api_v1_admin_remnawave_resource_grants_get: {
+        parameters: {
+            query?: {
+                workspace_id?: string | null;
+                include_revoked?: boolean;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveResourceGrantListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_remnawave_resource_grant_api_v1_admin_remnawave_resource_grants_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemnawaveResourceGrantCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveResourceGrantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_remnawave_resource_grant_api_v1_admin_remnawave_resource_grants__grant_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                grant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemnawaveResourceGrantRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemnawaveResourceGrantResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tags_api_v1_admin_remnawave_operator_tags__resource__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resource: "subscription-page-configs" | "users" | "subscription-templates" | "config-profiles" | "internal-squads" | "external-squads" | "nodes" | "node-plugins" | "hosts";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_tags_api_v1_admin_remnawave_operator_tags__resource__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                resource: "subscription-page-configs" | "subscription-templates" | "config-profiles" | "internal-squads" | "external-squads" | "node-plugins";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetTagsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetTagsResponse"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_geocheck_api_v1_admin_remnawave_operator_geocheck_nodes__node_uuid__post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                node_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GeoCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoCheckJobResponse"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_geocheck_result_api_v1_admin_remnawave_operator_geocheck_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GeoCheckResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_node_integrations_api_v1_admin_remnawave_operator_node_integrations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminNodeIntegrationCollection"];
+                };
+            };
+        };
+    };
+    create_node_integration_api_v1_admin_remnawave_operator_node_integrations_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateNodeIntegrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeIntegration"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_node_integration_api_v1_admin_remnawave_operator_node_integrations_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNodeIntegrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeIntegration"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_node_integration_api_v1_admin_remnawave_operator_node_integrations__integration_uuid__delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                integration_uuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_shared_lists_api_v1_admin_remnawave_operator_shared_lists_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSharedListPreviewCollection"];
+                };
+            };
+        };
+    };
+    create_shared_list_api_v1_admin_remnawave_operator_shared_lists_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharedListMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedList"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_shared_list_api_v1_admin_remnawave_operator_shared_lists_delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharedListNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_shared_list_api_v1_admin_remnawave_operator_shared_lists_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharedListMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedList"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_shared_list_api_v1_admin_remnawave_operator_shared_lists_by_name_get: {
+        parameters: {
+            query: {
+                name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SharedList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_shared_list_api_v1_admin_remnawave_operator_shared_lists_actions_sync_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SharedListNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_snippets_api_v1_admin_remnawave_operator_snippets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminSnippetCollection"];
+                };
+            };
+        };
+    };
+    create_snippet_api_v1_admin_remnawave_operator_snippets_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnippetMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Snippet"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_snippet_api_v1_admin_remnawave_operator_snippets_delete: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnippetNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_snippet_api_v1_admin_remnawave_operator_snippets_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnippetMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Snippet"] | components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_snippet_api_v1_admin_remnawave_operator_snippets_actions_sync_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SnippetNameRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorMutationReceipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_vpn_tester_overview_api_v1_admin_vpn_tester_overview_get: {
         parameters: {
             query?: never;
@@ -64122,7 +68687,7 @@ export interface operations {
         };
         responses: {
             /** @description Successful Response */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -64138,6 +68703,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
+            };
+            /** @description Host creation is safety-disabled pending durable settlement */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -64196,6 +68768,13 @@ export interface operations {
                     "application/json": components["schemas"]["HostResponse"];
                 };
             };
+            /** @description Update accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64219,13 +68798,11 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["StatusMessageResponse"];
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -64279,6 +68856,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RemnawaveConfigProfileResponse"];
                 };
+            };
+            /** @description Creation accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -64389,13 +68973,11 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["TorrentBlockerReportsResponse"];
-                };
+                content?: never;
             };
         };
     };
@@ -64461,6 +69043,13 @@ export interface operations {
                     "application/json": components["schemas"]["NodePluginResponse"];
                 };
             };
+            /** @description Creation accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64493,6 +69082,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NodePluginCollectionResponse"];
                 };
+            };
+            /** @description Reorder accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -64527,6 +69123,13 @@ export interface operations {
                     "application/json": components["schemas"]["NodePluginResponse"];
                 };
             };
+            /** @description Clone accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64559,6 +69162,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PluginExecutorResponse"];
                 };
+            };
+            /** @description Execution accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -64626,6 +69236,13 @@ export interface operations {
                     "application/json": components["schemas"]["NodePluginResponse"];
                 };
             };
+            /** @description Update accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64656,6 +69273,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DeleteNodePluginResponse"];
                 };
+            };
+            /** @description Plugin was deleted; Remnawave returned no body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -64730,6 +69354,13 @@ export interface operations {
                     "application/json": components["schemas"]["RemnawaveSquadResponse"];
                 };
             };
+            /** @description Creation accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64780,8 +69411,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawaveSnippetResponse"];
+                    "application/json": unknown;
                 };
+            };
+            /** @description Legacy mutation disabled; use the durable trusted-admin Remnawave operator endpoint */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -64803,13 +69441,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Remnawave 3.4.3 has no public-key operation */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawavePublicKeyResponse"];
+                    "application/json": unknown;
                 };
             };
         };
@@ -64827,15 +69465,6 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RemnawaveSignPayloadResponse"];
-                };
-            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64843,6 +69472,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Remnawave 3.4.3 has no sign-payload operation */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
@@ -64889,6 +69527,13 @@ export interface operations {
                     "application/json": components["schemas"]["RemnawaveXrayConfigResponse"];
                 };
             };
+            /** @description Configuration update accepted by Remnawave without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64915,7 +69560,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawaveSettingResponse"][];
+                    "application/json": components["schemas"]["RemnawaveSettingsResponse"];
                 };
             };
         };
@@ -64933,14 +69578,54 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Remnawave 3.4.3 has no create-settings operation */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    update_settings_api_v1_settings__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRemnawaveSettingsRequest"];
+            };
+        };
+        responses: {
             /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RemnawaveSettingResponse"];
+                    "application/json": components["schemas"]["RemnawaveSettingsResponse"];
                 };
+            };
+            /** @description Update accepted without a response body */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -64968,15 +69653,6 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RemnawaveSettingResponse"];
-                };
-            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -64984,6 +69660,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Remnawave 3.4.3 has no by-id settings operation */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

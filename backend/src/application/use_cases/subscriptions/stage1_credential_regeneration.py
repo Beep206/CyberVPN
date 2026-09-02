@@ -22,13 +22,14 @@ class Stage1CredentialRegenerationRequest:
     """Provider-neutral request for S1 VPN credential regeneration."""
 
     customer_account_id: UUID
-    remnawave_uuid: str
+    remnawave_uuid: str | None
     actor_admin_id: UUID
     reason: str
     requested_at: datetime
     previous_short_uuid: str | None = None
     previous_subscription_url: str | None = None
     revoke_only_passwords: bool = False
+    remnawave_user_id: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +37,7 @@ class Stage1CredentialRegenerationResult:
     """Safe result of S1 VPN credential regeneration."""
 
     customer_account_id: UUID
-    remnawave_uuid: str
+    remnawave_uuid: str | None
     status: str
     regenerated_at: datetime
     previous_short_uuid: str | None
@@ -46,6 +47,7 @@ class Stage1CredentialRegenerationResult:
     revoke_only_passwords: bool
     expires_at: datetime | None = None
     provider_name: str = "remnawave"
+    remnawave_user_id: int | None = None
 
     @property
     def short_uuid_changed(self) -> bool:
@@ -55,12 +57,13 @@ class Stage1CredentialRegenerationResult:
             self.current_short_uuid and self.previous_short_uuid and self.current_short_uuid != self.previous_short_uuid
         )
 
-    def to_safe_dict(self) -> dict[str, str | bool | None]:
+    def to_safe_dict(self) -> dict[str, str | bool | int | None]:
         """Serialize metadata without leaking subscription URLs or protocol secrets."""
 
         return {
             "customer_account_id": str(self.customer_account_id),
             "remnawave_uuid": self.remnawave_uuid,
+            "remnawave_user_id": self.remnawave_user_id,
             "status": self.status,
             "regenerated_at": self.regenerated_at.isoformat(),
             "short_uuid_changed": self.short_uuid_changed,
@@ -119,8 +122,10 @@ class Stage1CredentialRegenerationService:
         result = await self._gateway.regenerate_credentials(request)
         if result.customer_account_id != request.customer_account_id:
             raise Stage1CredentialRegenerationError("Credential gateway returned an unexpected customer")
-        if result.remnawave_uuid != request.remnawave_uuid:
+        if request.remnawave_uuid and result.remnawave_uuid != request.remnawave_uuid:
             raise Stage1CredentialRegenerationError("Credential gateway returned an unexpected Remnawave UUID")
+        if request.remnawave_user_id is not None and result.remnawave_user_id != request.remnawave_user_id:
+            raise Stage1CredentialRegenerationError("Credential gateway returned an unexpected Remnawave numeric id")
         if not result.current_short_uuid and not request.revoke_only_passwords:
             raise Stage1CredentialRegenerationError("Full credential regeneration returned no short UUID")
         return result
@@ -129,13 +134,14 @@ class Stage1CredentialRegenerationService:
 def build_stage1_credential_regeneration_request(
     *,
     customer_account_id: UUID,
-    remnawave_uuid: str,
+    remnawave_uuid: str | None,
     actor_admin_id: UUID,
     reason: str,
     previous_short_uuid: str | None = None,
     previous_subscription_url: str | None = None,
     revoke_only_passwords: bool = False,
     requested_at: datetime | None = None,
+    remnawave_user_id: int | None = None,
 ) -> Stage1CredentialRegenerationRequest:
     """Build and validate the S1 credential regeneration request."""
 
@@ -148,6 +154,7 @@ def build_stage1_credential_regeneration_request(
         previous_short_uuid=previous_short_uuid,
         previous_subscription_url=previous_subscription_url,
         revoke_only_passwords=revoke_only_passwords,
+        remnawave_user_id=remnawave_user_id,
     )
     _validate_request(request)
     return request
@@ -159,10 +166,17 @@ def _validate_request(request: Stage1CredentialRegenerationRequest) -> None:
         raise Stage1CredentialRegenerationError("Credential regeneration requires an operator reason")
     if len(reason) > 1000:
         raise Stage1CredentialRegenerationError("Credential regeneration reason is too long")
-    try:
-        UUID(request.remnawave_uuid)
-    except ValueError as exc:
-        raise Stage1CredentialRegenerationError("Credential regeneration requires a valid Remnawave UUID") from exc
+    if request.remnawave_user_id is None:
+        raise Stage1CredentialRegenerationError(
+            "Credential regeneration requires a reconciled numeric Remnawave user id"
+        )
+    if request.remnawave_uuid:
+        try:
+            UUID(request.remnawave_uuid)
+        except ValueError as exc:
+            raise Stage1CredentialRegenerationError("Credential regeneration requires a valid Remnawave UUID") from exc
+    if request.remnawave_user_id is not None and request.remnawave_user_id <= 0:
+        raise Stage1CredentialRegenerationError("Credential regeneration requires a positive Remnawave numeric id")
 
 
 def _ensure_aware_utc(value: datetime) -> datetime:

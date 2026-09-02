@@ -126,6 +126,134 @@ async def test_process_queue_processes_batch(mock_settings, mock_db_session, moc
 
 
 @pytest.mark.asyncio
+async def test_process_queue_auto_renew_rejects_reassigned_recipient(
+    mock_settings,
+    mock_db_session,
+    mock_telegram,
+) -> None:
+    """A stale queued payment link is never sent after Telegram reassignment."""
+
+    customer_id = uuid4()
+    notification = MagicMock()
+    notification.id = uuid4()
+    notification.telegram_id = 123
+    notification.message = "Sensitive payment link"
+    notification.notification_type = f"auto_renew:{customer_id}"
+    notification.attempts = 0
+    notification.status = "pending"
+
+    queue_result = MagicMock()
+    queue_result.scalars.return_value.all.return_value = [notification]
+    current_recipient_result = MagicMock()
+    current_recipient_result.mappings.return_value.one_or_none.return_value = {
+        "telegram_id": 456,
+        "is_active": True,
+    }
+    mock_db_session.execute = AsyncMock(side_effect=[queue_result, MagicMock(), current_recipient_result])
+
+    with (
+        patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
+        patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
+    ):
+        mock_factory.return_value = MagicMock(return_value=mock_db_session)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await process_notification_queue()
+
+    assert result == {"sent": 0, "failed": 1}
+    assert notification.status == "failed"
+    assert notification.error_message == "canonical_recipient_mismatch"
+    assert notification.attempts == mock_settings.notification_max_retries
+    mock_telegram.send_message.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_process_queue_rejects_legacy_unbound_auto_renew_notification(
+    mock_settings,
+    mock_db_session,
+    mock_telegram,
+) -> None:
+    """Pre-upgrade auto-renew rows cannot bypass canonical recipient binding."""
+
+    notification = MagicMock()
+    notification.id = uuid4()
+    notification.telegram_id = 123
+    notification.message = "Sensitive payment link"
+    notification.notification_type = "subscription:auto_renew_invoice"
+    notification.attempts = 0
+    notification.status = "pending"
+
+    queue_result = MagicMock()
+    queue_result.scalars.return_value.all.return_value = [notification]
+    mock_db_session.execute = AsyncMock(side_effect=[queue_result, MagicMock()])
+
+    with (
+        patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
+        patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
+    ):
+        mock_factory.return_value = MagicMock(return_value=mock_db_session)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await process_notification_queue()
+
+    assert result == {"sent": 0, "failed": 1}
+    assert notification.error_message == "canonical_recipient_mismatch"
+    mock_telegram.send_message.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_process_queue_auto_renew_sends_only_to_current_canonical_recipient(
+    mock_settings,
+    mock_db_session,
+    mock_telegram,
+) -> None:
+    """The payment link is sent only while the local subject binding matches."""
+
+    customer_id = uuid4()
+    notification = MagicMock()
+    notification.id = uuid4()
+    notification.telegram_id = 123
+    notification.message = "Sensitive payment link"
+    notification.notification_type = f"auto_renew:{customer_id}"
+    notification.attempts = 0
+    notification.status = "pending"
+
+    queue_result = MagicMock()
+    queue_result.scalars.return_value.all.return_value = [notification]
+    current_recipient_result = MagicMock()
+    current_recipient_result.mappings.return_value.one_or_none.return_value = {
+        "telegram_id": 123,
+        "is_active": True,
+    }
+    delivery_result = MagicMock()
+    delivery_result.scalars.return_value.first.return_value = None
+    mock_db_session.execute = AsyncMock(
+        side_effect=[queue_result, MagicMock(), current_recipient_result, delivery_result, MagicMock()]
+    )
+
+    with (
+        patch("src.tasks.notifications.process_queue.get_settings", return_value=mock_settings),
+        patch("src.tasks.notifications.process_queue.get_session_factory") as mock_factory,
+        patch("src.tasks.notifications.process_queue.TelegramClient") as mock_tg,
+    ):
+        mock_factory.return_value = MagicMock(return_value=mock_db_session)
+        mock_tg.return_value.__aenter__ = AsyncMock(return_value=mock_telegram)
+        mock_tg.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        result = await process_notification_queue()
+
+    assert result == {"sent": 1, "failed": 0}
+    mock_telegram.send_message.assert_awaited_once_with(
+        chat_id=123,
+        text="Sensitive payment link",
+    )
+
+
+@pytest.mark.asyncio
 async def test_process_queue_syncs_growth_delivery_status(mock_settings, mock_db_session, mock_telegram):
     """Telegram delivery processor should update canonical growth delivery status."""
     notif = MagicMock()
@@ -238,6 +366,10 @@ async def test_process_queue_max_retries_reached(mock_settings, mock_db_session,
         assert result["failed"] == 1
         assert notif.status == "failed"  # Permanently failed
         assert notif.attempts == 5
+        assert notif.error_message == "telegram_delivery_failed"
+        alert_text = mock_telegram.send_admin_alert.await_args.args[0]
+        assert "Telegram ID:" not in alert_text
+        assert "Error:" not in alert_text
 
 
 @pytest.mark.asyncio

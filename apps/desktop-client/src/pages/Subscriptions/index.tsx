@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Rss,
@@ -14,6 +14,7 @@ import {
   CanonicalCurrentServiceState,
   CanonicalEntitlementState,
   CanonicalOrder,
+  CreateSubscriptionInput,
   getCanonicalCurrentEntitlements,
   getCanonicalCurrentServiceState,
   getCanonicalOrders,
@@ -66,7 +67,17 @@ export function SubscriptionsPage() {
 
   // Form state
   const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
+  // Subscription URLs are bearer credentials. Keep the value only in the
+  // uncontrolled DOM input until the one-shot native keyring command returns.
+  const urlInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setName("");
+      if (urlInputRef.current) urlInputRef.current.value = "";
+    }
+    setIsDialogOpen(open);
+  };
 
   const formatCanonicalDate = (value?: string | null) => {
     if (!value) return "Not available";
@@ -145,28 +156,28 @@ export function SubscriptionsPage() {
   }, []);
 
   const handleCreateSubscription = async () => {
-    if (!name || !url) {
+    const credentialInput = urlInputRef.current;
+    if (!name || !credentialInput?.value.trim()) {
       toast.error(t("subscriptions.fillAllFields"));
       return;
     }
 
-    const newSubscription: Subscription = {
-      id: crypto.randomUUID(),
-      name,
-      url,
-      autoUpdate: true,
-    };
+    const subscriptionId = crypto.randomUUID();
 
     try {
-      await addSubscription(newSubscription);
+      await addSubscription({
+        id: subscriptionId,
+        name,
+        url: credentialInput.value.trim(),
+        autoUpdate: true,
+      } satisfies CreateSubscriptionInput);
+      credentialInput.value = "";
       setIsDialogOpen(false);
       setName("");
-      setUrl("");
 
-      await handleSync(newSubscription.id);
-    } catch (e: any) {
-      console.error("Failed to create subscription", e);
-      toast.error(t("subscriptions.createError", { error: e }));
+      await handleSync(subscriptionId);
+    } catch {
+      toast.error(t("subscriptions.secureStoreError"));
     }
   };
 
@@ -217,7 +228,7 @@ export function SubscriptionsPage() {
           </p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
           <DialogTrigger
             render={
               <Button className="gap-2 bg-[var(--color-matrix-green)] text-black hover:bg-[var(--color-matrix-green)]/80 hover:shadow-[0_0_15px_rgba(0,255,136,0.6)] transition-all" />
@@ -254,8 +265,10 @@ export function SubscriptionsPage() {
                 </Label>
                 <Input
                   id="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  ref={urlInputRef}
+                  type="url"
+                  autoComplete="off"
+                  spellCheck={false}
                   className="col-span-3"
                   placeholder="https://..."
                 />
@@ -532,7 +545,6 @@ export function SubscriptionsPage() {
                     </span>
                   </div>
                   <div className="flex flex-col gap-1 text-xs opacity-70 border-t border-border/30 pt-3 mt-1">
-                    <span className="truncate">{sub.url}</span>
                     <span>
                       {t("subscriptions.lastSync")}:{" "}
                       {formatDate(sub.lastUpdated)}

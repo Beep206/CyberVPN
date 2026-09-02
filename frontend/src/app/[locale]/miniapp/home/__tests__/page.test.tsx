@@ -24,6 +24,12 @@ vi.mock('@/features/miniapp-runtime/lib/runtime-analytics', () => ({
   emitMiniAppRuntimeEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/features/client-capabilities/components/customer-connections-card', () => ({
+  CustomerConnectionsCard: ({ surface }: { surface: string }) => (
+    <div data-testid={`customer-connections-card-${surface}`} />
+  ),
+}));
+
 vi.mock('../../components/VpnConfigCard', () => ({
   VpnConfigCard: ({ colorScheme }: { colorScheme?: string }) => (
     <div data-testid="vpn-config-card" data-colorscheme={colorScheme}>
@@ -160,17 +166,59 @@ function createBootstrap(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function createActiveBootstrap() {
+  return createBootstrap({
+    subscription: {
+      status: 'active',
+      planId: 'plan-pro',
+      planName: 'Pro',
+      expiresAt: '2026-06-01T00:00:00Z',
+      autoRenew: false,
+    },
+    trial: {
+      eligible: false,
+      reason: 'already_used',
+      durationDays: 7,
+      trialStart: null,
+      trialEnd: null,
+      daysRemaining: 0,
+    },
+  });
+}
+
 describe('MiniAppHomePage', () => {
   let telegramMock: ReturnType<typeof setupTelegramWebAppMock>;
   let currentBootstrap: ReturnType<typeof createBootstrap>;
   let redeemedInviteCode: string | null;
+  let vpnStatusRequestCount: number;
+  let globalServerRequestCount: number;
 
   beforeEach(() => {
     telegramMock = setupTelegramWebAppMock();
     currentBootstrap = createBootstrap();
     redeemedInviteCode = null;
+    vpnStatusRequestCount = 0;
+    globalServerRequestCount = 0;
     server.use(
       http.get(`${API_BASE}/miniapp/bootstrap`, () => HttpResponse.json(currentBootstrap)),
+      http.get(`${API_BASE}/customer/vpn-service-status`, () => {
+        vpnStatusRequestCount += 1;
+        return HttpResponse.json({
+          connections_available: true,
+          usage_available: true,
+          devices_available: true,
+          degraded: false,
+          degraded_reason: null,
+        });
+      }),
+      http.get(`${API_BASE}/servers`, () => {
+        globalServerRequestCount += 1;
+        return HttpResponse.json({ detail: 'admin only' }, { status: 403 });
+      }),
+      http.get(`${API_BASE}/servers/:serverPath`, () => {
+        globalServerRequestCount += 1;
+        return HttpResponse.json({ detail: 'admin only' }, { status: 403 });
+      }),
       http.post(`${API_BASE}/invites/redeem`, async ({ request }) => {
         const body = await request.json() as { code?: string };
         redeemedInviteCode = body.code ?? null;
@@ -210,6 +258,109 @@ describe('MiniAppHomePage', () => {
     expect(screen.getByText('noSubscriptionDescription')).toBeInTheDocument();
     expect(screen.getByText('haveInviteCode')).toBeInTheDocument();
     expect(screen.getByText('trialAvailable')).toBeInTheDocument();
+    expect(vpnStatusRequestCount).toBe(0);
+  });
+
+  it('renders live connections only after active access receives an explicit available status', async () => {
+    currentBootstrap = createActiveBootstrap();
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByTestId('customer-connections-card-miniapp')).toBeInTheDocument();
+    expect(vpnStatusRequestCount).toBe(1);
+    expect(globalServerRequestCount).toBe(0);
+    expect(screen.queryByText('errors.unavailable')).not.toBeInTheDocument();
+  });
+
+  it('fails closed when the active MiniApp status explicitly disables connections', async () => {
+    currentBootstrap = createActiveBootstrap();
+    server.use(
+      http.get(`${API_BASE}/customer/vpn-service-status`, () => HttpResponse.json({
+        connections_available: false,
+        usage_available: true,
+        devices_available: true,
+        degraded: false,
+        degraded_reason: null,
+      })),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    const unavailable = await screen.findByText('errors.unavailable');
+    await waitFor(() => {
+      expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'unavailable');
+    });
+    expect(screen.queryByTestId('customer-connections-card-miniapp')).not.toBeInTheDocument();
+  });
+
+  it('fails closed while the active MiniApp status is pending', async () => {
+    currentBootstrap = createActiveBootstrap();
+    let resolveStatus: (() => void) | undefined;
+    const statusBarrier = new Promise<void>((resolve) => {
+      resolveStatus = resolve;
+    });
+    server.use(
+      http.get(`${API_BASE}/customer/vpn-service-status`, async () => {
+        await statusBarrier;
+        return HttpResponse.json({
+          connections_available: true,
+          usage_available: true,
+          devices_available: true,
+          degraded: false,
+          degraded_reason: null,
+        });
+      }),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText('subscriptionActive')).toBeInTheDocument();
+    const unavailable = screen.getByText('errors.unavailable');
+    expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'pending');
+    expect(screen.queryByTestId('customer-connections-card-miniapp')).not.toBeInTheDocument();
+
+    resolveStatus?.();
+    expect(await screen.findByTestId('customer-connections-card-miniapp')).toBeInTheDocument();
+  });
+
+  it('fails closed when the active MiniApp status request errors', async () => {
+    currentBootstrap = createActiveBootstrap();
+    server.use(
+      http.get(`${API_BASE}/customer/vpn-service-status`, () => HttpResponse.json(
+        { detail: 'unavailable' },
+        { status: 503 },
+      )),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    const unavailable = await screen.findByText('errors.unavailable');
+    await waitFor(() => {
+      expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'error');
+    });
+    expect(screen.queryByTestId('customer-connections-card-miniapp')).not.toBeInTheDocument();
+  });
+
+  it('fails closed when connections=true conflicts with a degraded MiniApp status', async () => {
+    currentBootstrap = createActiveBootstrap();
+    server.use(
+      http.get(`${API_BASE}/customer/vpn-service-status`, () => HttpResponse.json({
+        connections_available: true,
+        usage_available: true,
+        devices_available: true,
+        degraded: true,
+        degraded_reason: 'internal-node-secret',
+      })),
+    );
+
+    render(<HomePage />, { wrapper: createWrapper() });
+
+    const unavailable = await screen.findByText('errors.unavailable');
+    await waitFor(() => {
+      expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'degraded');
+    });
+    expect(screen.queryByTestId('customer-connections-card-miniapp')).not.toBeInTheDocument();
+    expect(screen.queryByText('internal-node-secret')).not.toBeInTheDocument();
   });
 
   it('redeems invite codes from the home page before trial activation', async () => {
@@ -319,6 +470,8 @@ describe('MiniAppHomePage', () => {
 
     expect(screen.getByText('trialPlan')).toBeInTheDocument();
     expect(screen.getByText('7')).toBeInTheDocument();
+    expect(await screen.findByTestId('customer-connections-card-miniapp')).toBeInTheDocument();
+    expect(vpnStatusRequestCount).toBe(1);
   });
 
   it('renders quick actions with miniapp-safe links', async () => {

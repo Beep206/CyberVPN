@@ -1,9 +1,10 @@
 ---
-# Remnawave publishes node tags independently from the backend image. Keep this
-# exact registry-verified tag pinned until a newer node image is validated.
-remnawave_edge_image: remnawave/node:2.8.0
+# Multi-architecture OCI index digest for the reviewed Remnawave Node 3.4.1.
+remnawave_edge_image: remnawave/node:3.4.1@sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e
 remnawave_edge_node_port: 2222
 remnawave_edge_secret_key: "{{ vault_remnawave_edge_secret_key }}"
+remnawave_edge_preupgrade_secret_key_sha256: "{{ vault_remnawave_edge_preupgrade_secret_key_sha256 }}"
+remnawave_edge_sni_verification: true
 remnawave_edge_log_dir: /var/log/remnanode
 remnawave_edge_mount_logs: true
 remnawave_edge_manage_logrotate: true

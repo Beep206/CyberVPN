@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cybervpn_mobile/core/analytics/noop_analytics.dart';
 import 'package:cybervpn_mobile/core/analytics/analytics_providers.dart';
@@ -247,6 +248,26 @@ ImportedConfig _makeImportedConfig({
     source: ImportSource.clipboard,
     importedAt: DateTime(2026, 1, 1),
     isReachable: true,
+  );
+}
+
+({String address, int port, String userId}) _decodeVlessEndpoint(
+  String configData,
+) {
+  final root = jsonDecode(configData) as Map<String, dynamic>;
+  final outbounds = root['outbounds'] as List<dynamic>;
+  final proxy = outbounds.cast<Map<String, dynamic>>().firstWhere(
+    (outbound) => outbound['tag'] == 'proxy',
+  );
+  final settings = proxy['settings'] as Map<String, dynamic>;
+  final vnext =
+      (settings['vnext'] as List<dynamic>).single as Map<String, dynamic>;
+  final user = (vnext['users'] as List<dynamic>).single as Map<String, dynamic>;
+
+  return (
+    address: vnext['address'] as String,
+    port: vnext['port'] as int,
+    userId: user['id'] as String,
   );
 }
 
@@ -650,7 +671,11 @@ void main() {
           _makeServer(id: 'srv-1', address: '10.0.0.1', port: 8080),
         );
 
-        expect(repo.lastConnectConfig?.configData, 'vless://profile-config');
+        final endpoint = _decodeVlessEndpoint(
+          repo.lastConnectConfig!.configData,
+        );
+        expect(endpoint.address, 'profile-config');
+        expect(endpoint.port, 443);
       },
     );
 
@@ -726,34 +751,42 @@ void main() {
       },
     );
 
-    test('connectFromCustomServer() passes rawUri as configData', () async {
-      container = _createContainer(
-        repo: repo,
-        networkInfo: networkInfo,
-        storage: storage,
-        autoReconnect: autoReconnect,
-        killSwitch: killSwitch,
-        wsClient: wsClient,
-        deviceRegistration: deviceRegistration,
-        reviewService: reviewService,
-      );
+    test(
+      'connectFromCustomServer() builds runtime config from rawUri',
+      () async {
+        container = _createContainer(
+          repo: repo,
+          networkInfo: networkInfo,
+          storage: storage,
+          autoReconnect: autoReconnect,
+          killSwitch: killSwitch,
+          wsClient: wsClient,
+          deviceRegistration: deviceRegistration,
+          reviewService: reviewService,
+        );
 
-      await _waitForState(container);
-      final notifier = container.read(vpnConnectionProvider.notifier);
+        await _waitForState(container);
+        final notifier = container.read(vpnConnectionProvider.notifier);
 
-      final imported = _makeImportedConfig(
-        id: 'custom-1',
-        serverAddress: '9.8.7.6',
-        port: 9999,
-      );
-      await notifier.connectFromCustomServer(imported);
+        final imported = _makeImportedConfig(
+          id: 'custom-1',
+          serverAddress: '9.8.7.6',
+          port: 9999,
+        );
+        await notifier.connectFromCustomServer(imported);
 
-      expect(repo.lastConnectConfig, isNotNull);
-      expect(repo.lastConnectConfig!.id, 'custom-1');
-      expect(repo.lastConnectConfig!.serverAddress, '9.8.7.6');
-      expect(repo.lastConnectConfig!.port, 9999);
-      expect(repo.lastConnectConfig!.configData, contains('vless://'));
-    });
+        expect(repo.lastConnectConfig, isNotNull);
+        expect(repo.lastConnectConfig!.id, 'custom-1');
+        expect(repo.lastConnectConfig!.serverAddress, '9.8.7.6');
+        expect(repo.lastConnectConfig!.port, 9999);
+        final endpoint = _decodeVlessEndpoint(
+          repo.lastConnectConfig!.configData,
+        );
+        expect(endpoint.address, '9.8.7.6');
+        expect(endpoint.port, 9999);
+        expect(endpoint.userId, 'test');
+      },
+    );
 
     test('disconnect() transitions to Disconnected from either path', () async {
       container = _createContainer(

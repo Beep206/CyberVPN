@@ -9,6 +9,7 @@ from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.service_access import (
     ArchiveAccessDeliveryChannelUseCase,
     CreateAccessDeliveryChannelUseCase,
+    CurrentServiceIdentityConflict,
     GetAccessDeliveryChannelUseCase,
     GetCurrentServiceStateUseCase,
     ListAccessDeliveryChannelsUseCase,
@@ -54,7 +55,10 @@ def _serialize_access_delivery_channel(model) -> AccessDeliveryChannelResponse:
         channel_subject_ref=model.channel_subject_ref,
         provider_name=model.provider_name,
         delivery_context=dict(model.delivery_context or {}),
-        delivery_payload=dict(model.delivery_payload or {}),
+        # Delivery payloads may contain bearer URLs/configs. Metadata routes
+        # never serialize them; customers obtain their own config through the
+        # exact self-service credential boundary instead.
+        delivery_payload={},
         last_delivered_at=model.last_delivered_at,
         last_accessed_at=model.last_accessed_at,
         archived_at=model.archived_at,
@@ -172,6 +176,11 @@ async def get_current_service_state(
             credential_type=payload.credential_type.value if payload.credential_type else None,
             credential_subject_key=payload.credential_subject_key,
         )
+    except CurrentServiceIdentityConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Current Remnawave identity is not exactly reconciled",
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

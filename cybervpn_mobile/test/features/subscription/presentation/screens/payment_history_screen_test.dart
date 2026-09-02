@@ -9,7 +9,6 @@ import 'package:cybervpn_mobile/features/subscription/data/datasources/subscript
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/entities/subscription_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/domain/repositories/subscription_repository.dart';
-import 'package:cybervpn_mobile/features/subscription/presentation/providers/payment_history_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/screens/payment_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

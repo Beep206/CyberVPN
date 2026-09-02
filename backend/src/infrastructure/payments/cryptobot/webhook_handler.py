@@ -16,6 +16,8 @@ from typing import Any
 import redis.asyncio as redis
 from cryptography.hazmat.primitives import hashes
 
+from src.application.use_cases.webhooks.webhook_log_redaction import webhook_log_fingerprint
+
 logger = logging.getLogger(__name__)
 
 
@@ -158,12 +160,7 @@ class CryptoBotWebhookHandler:
 
 
 def _provider_reference_fingerprint(value: str | None) -> str | None:
-    if value is None:
-        return None
-    normalized = str(value).strip()
-    if not normalized:
-        return None
-    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return webhook_log_fingerprint(value, namespace="payment_provider_reference")
 
 
 def derive_cryptobot_webhook_key(webhook_key_material: str) -> bytes:

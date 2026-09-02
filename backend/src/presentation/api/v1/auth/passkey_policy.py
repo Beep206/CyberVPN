@@ -9,6 +9,7 @@ from uuid import UUID
 import redis.asyncio as redis
 import sentry_sdk
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import (
@@ -24,6 +25,7 @@ from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.audit_log_model import AuditLog
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.partner_account_user_model import PartnerAccountUserModel
+from src.infrastructure.database.models.partner_model import PartnerAccountModel
 from src.infrastructure.database.models.partner_workspace_profile_model import PartnerWorkspaceProfileModel
 from src.infrastructure.database.models.passkey_credential_model import PasskeyCredentialModel
 from src.infrastructure.database.models.system_config_model import SystemConfigModel
@@ -571,6 +573,16 @@ async def update_partner_workspace_passkey_policy(
         realm_key=current_realm.realm_key,
         action=f"partner.passkeys.policy.update:{access.workspace.id}",
     )
+    # Partner provider mutations take the workspace row before reading this
+    # policy. Use the same root lock so an absent profile cannot be inserted
+    # with a stricter MFA policy inside their post-reservation window.
+    locked_workspace_id = (
+        await db.execute(
+            select(PartnerAccountModel.id).where(PartnerAccountModel.id == access.workspace.id).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if locked_workspace_id != access.workspace.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Partner workspace not found")
     profile_repo = PartnerWorkspaceProfileRepository(db)
     profile = await profile_repo.get_or_create(access.workspace.id)
     previous_payload: dict[str, object] = {

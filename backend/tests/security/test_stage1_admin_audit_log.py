@@ -57,6 +57,7 @@ def test_stage1_required_admin_audit_manifest_covers_sensitive_actions() -> None
         "customer_vpn_enabled",
         "customer_vpn_disabled",
         "customer_vpn_credentials_regenerated",
+        "customer_vpn_credentials_read",
         "customer_device_revoked",
         "customer_devices_revoked_all",
         "customer_password_reset",

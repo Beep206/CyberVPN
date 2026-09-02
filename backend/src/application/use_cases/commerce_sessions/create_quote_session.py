@@ -221,8 +221,11 @@ class CreateQuoteSessionUseCase:
                     producer="cybervpn-backend.quote_code_set.basket",
                 )
             elif _should_reserve_growth_code(checkout_result):
+                code_resolution = checkout_result.code_resolution
+                if code_resolution is None or code_resolution.growth_code_id is None:
+                    raise ValueError("Accepted growth code has no canonical identifier")
                 reservation = await self._reservations.reserve_for_quote(
-                    growth_code_id=checkout_result.code_resolution.growth_code_id,
+                    growth_code_id=code_resolution.growth_code_id,
                     quote_session_id=created.id,
                     user_id=user_id,
                     expires_at=created.expires_at,
@@ -283,9 +286,9 @@ class CreateQuoteSessionUseCase:
                     code_set_id=code_set.id,
                     position_entered=int(application.get("position_entered") or 0),
                     canonical_order=int(application.get("canonical_order") or 0),
-                    growth_code_id=checkout_result.code_resolution.growth_code_id,
+                    growth_code_id=code_resolution.growth_code_id,
                     legacy_code_type=str(application.get("legacy_code_type") or "promo"),
-                    legacy_code_id=checkout_result.code_resolution.promo_code_id,
+                    legacy_code_id=code_resolution.promo_code_id,
                     masked_code=str(application.get("masked_code") or ""),
                     roles={
                         "values": list(application.get("roles") or []),
@@ -293,7 +296,7 @@ class CreateQuoteSessionUseCase:
                     },
                     resolution_status=str(application.get("status") or "accepted"),
                     reject_reason=None,
-                    conflict_code=checkout_result.code_resolution.conflict_code,
+                    conflict_code=code_resolution.conflict_code,
                     policy_version_id=_optional_uuid(application.get("policy_version_id")),
                     risk_decision_id=_optional_uuid(application.get("risk_decision_id")),
                     fx_conversion_id=_application_fx_conversion_id(application),

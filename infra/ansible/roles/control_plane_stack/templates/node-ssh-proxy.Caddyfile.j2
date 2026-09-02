@@ -1,0 +1,30 @@
+{
+	admin off
+	auto_https off
+}
+
+:{{ control_plane_stack_node_ssh_proxy_port }} {
+	# Browser SSH carries sensitive one-time material in both a request header and
+	# WebSocket subprotocols. Access logs are deliberately discarded at this hop.
+	log {
+		output discard
+	}
+
+	@health path /internal/health
+	handle @health {
+		respond 204
+	}
+
+	@scoped_broker path /api/cybervpn/node-ssh/tickets/* /api/cybervpn/node-ssh/ws
+	handle @scoped_broker {
+		reverse_proxy http://{{ control_plane_stack_remnawave_container_name }}:3000 {
+			# Overwrite all caller-controlled forwarding state for REST and WebSocket.
+			header_up X-Remnawave-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Host {upstream_hostport}
+			header_up X-Forwarded-Proto http
+		}
+	}
+
+	respond 404
+}

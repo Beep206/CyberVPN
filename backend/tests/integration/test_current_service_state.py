@@ -22,6 +22,7 @@ from tests.helpers.realm_auth import (
     initialize_realm_test_database,
     override_realm_test_db,
 )
+from tests.helpers.remnawave_identity import seed_exact_mobile_user_mapping
 from tests.integration.test_order_commit import _seed_order_context
 from tests.integration.test_quote_checkout_sessions import _make_customer_access_token
 
@@ -202,7 +203,13 @@ async def test_current_service_state_shows_purchase_and_consumption_context(
                 )
                 customer_user = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
                 assert customer_user is not None
-                customer_user.remnawave_uuid = "remnawave-state-002"
+                seed_exact_mobile_user_mapping(
+                    db,
+                    customer_user,
+                    numeric_user_id=500_621,
+                    legacy_uuid=uuid.UUID("00000000-0000-4000-8000-000000000621"),
+                    source="current_service_state_fixture",
+                )
                 db.add(admin_user)
                 db.commit()
                 admin_token = _make_admin_access_token(auth_service, user_id=admin_user.id, admin_realm=admin_realm)

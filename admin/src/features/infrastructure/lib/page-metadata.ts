@@ -7,6 +7,21 @@ const INFRASTRUCTURE_PAGE_CONFIG = {
     titleKey: 'overview.metaTitle',
     descriptionKey: 'overview.description',
   },
+  remnawave: {
+    canonicalPath: '/infrastructure/remnawave',
+    titleKey: 'remnawave.metaTitle',
+    descriptionKey: 'remnawave.description',
+  },
+  remnawaveConnections: {
+    canonicalPath: '/infrastructure/remnawave/connections',
+    titleKey: 'remnawaveConnections.metaTitle',
+    descriptionKey: 'remnawaveConnections.description',
+  },
+  remnawaveOperator: {
+    canonicalPath: '/infrastructure/remnawave/operator',
+    titleKey: 'remnawaveOperator.metaTitle',
+    descriptionKey: 'remnawaveOperator.description',
+  },
   servers: {
     canonicalPath: '/infrastructure/servers',
     titleKey: 'servers.metaTitle',
@@ -46,11 +61,6 @@ const INFRASTRUCTURE_PAGE_CONFIG = {
     canonicalPath: '/infrastructure/squads',
     titleKey: 'squads.metaTitle',
     descriptionKey: 'squads.description',
-  },
-  snippets: {
-    canonicalPath: '/infrastructure/snippets',
-    titleKey: 'snippets.metaTitle',
-    descriptionKey: 'snippets.description',
   },
   vpnTester: {
     canonicalPath: '/infrastructure/vpn-tester',

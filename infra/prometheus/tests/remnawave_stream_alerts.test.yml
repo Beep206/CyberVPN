@@ -1,0 +1,52 @@
+rule_files:
+  - ../rules/stage1_alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: pending entries fire and recover when the PEL drains
+    interval: 1m
+    input_series:
+      - series: 'cybervpn_remnawave_stream_pending_current{stream="user_usage"}'
+        values: '1x14 0x15'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: Stage1RemnawaveStreamPendingStalled
+        exp_alerts:
+          - exp_labels:
+              priority: p1
+              service: remnawave-streams
+              severity: warning
+              stage: s1
+            exp_annotations:
+              summary: Remnawave stream entries remain pending
+              description: One or more export entries have remained pending for ten minutes; inspect reclaim and backend ingestion.
+              dashboard_path: /d/remnawave-streams/remnawave-redis-streams
+              runbook_path: docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md
+      - eval_time: 20m
+        alertname: Stage1RemnawaveStreamPendingStalled
+        exp_alerts: []
+
+  - name: a stale consumer clears after a fresh terminal commit
+    interval: 1m
+    input_series:
+      - series: 'cybervpn_remnawave_stream_last_consumed_unixtime{stream="subscription_requests"}'
+        values: '0x29 1800x10'
+    alert_rule_test:
+      - eval_time: 26m
+        alertname: Stage1RemnawaveStreamConsumerStale
+        exp_alerts:
+          - exp_labels:
+              priority: p1
+              service: remnawave-streams
+              severity: warning
+              stage: s1
+              stream: subscription_requests
+            exp_annotations:
+              summary: Remnawave stream consumer is stale
+              description: No terminal stream entry has been consumed for more than fifteen minutes. Confirm export traffic, worker health, and the canonical consumer group before replay.
+              dashboard_path: /d/remnawave-streams/remnawave-redis-streams
+              runbook_path: docs/runbooks/REMNAWAVE_3_4_3_UPGRADE.md
+      - eval_time: 31m
+        alertname: Stage1RemnawaveStreamConsumerStale
+        exp_alerts: []

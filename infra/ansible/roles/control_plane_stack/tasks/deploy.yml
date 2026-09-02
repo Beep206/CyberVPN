@@ -22,7 +22,9 @@
             'backend': control_plane_stack_enable_backend,
             'worker': control_plane_stack_enable_worker,
             'scheduler': control_plane_stack_enable_scheduler,
-            'helix_adapter': control_plane_stack_enable_helix_adapter
+            'helix_adapter': control_plane_stack_enable_helix_adapter,
+            'subscription_page': control_plane_stack_enable_subscription_page,
+            'node_ssh_proxy': control_plane_stack_enable_node_ssh_proxy
           },
           'images': {
             'remnawave': control_plane_stack_remnawave_image,
@@ -31,7 +33,10 @@
             'db_backup': control_plane_stack_db_backup_image,
             'backend': control_plane_stack_backend_image,
             'worker': control_plane_stack_worker_image,
-            'helix_adapter': control_plane_stack_helix_adapter_image
+            'helix_adapter': control_plane_stack_helix_adapter_image,
+            'subscription_page': control_plane_stack_subscription_page_image,
+            'subscription_page_rollback': control_plane_stack_subscription_page_rollback_image,
+            'node_ssh_proxy': control_plane_stack_node_ssh_proxy_image
           },
           'ports': {
             'remnawave': control_plane_stack_remnawave_port,
@@ -39,7 +44,8 @@
             'backend': control_plane_stack_backend_port,
             'backend_metrics': control_plane_stack_backend_metrics_port,
             'worker_metrics': control_plane_stack_worker_metrics_port,
-            'helix_adapter': control_plane_stack_helix_adapter_port
+            'helix_adapter': control_plane_stack_helix_adapter_port,
+            'subscription_page': control_plane_stack_subscription_page_port
           },
           'db_backup': {
             'schedule': control_plane_stack_db_backup_schedule,
@@ -51,7 +57,20 @@
             'worker_env': control_plane_stack_worker_env | to_nice_json | hash('sha1'),
             'scheduler_env': control_plane_stack_effective_scheduler_env | to_nice_json | hash('sha1'),
             'helix_adapter_env': control_plane_stack_helix_adapter_env | to_nice_json | hash('sha1'),
+            'subscription_page_env': control_plane_stack_subscription_page_env | to_nice_json | hash('sha1'),
+            'subscription_page_network': {
+              'subnet': control_plane_stack_subscription_page_subnet,
+              'remnawave_ipv4': control_plane_stack_subscription_page_remnawave_ipv4,
+              'subscription_page_ipv4': control_plane_stack_subscription_page_ipv4
+            } | to_nice_json | hash('sha1'),
             'db_backup_env': control_plane_stack_db_backup_env | to_nice_json | hash('sha1'),
+            'node_ssh_proxy_config': {
+              'subnet': control_plane_stack_node_ssh_proxy_subnet,
+              'remnawave_ipv4': control_plane_stack_node_ssh_remnawave_ipv4,
+              'proxy_ipv4': control_plane_stack_node_ssh_proxy_ipv4,
+              'backend_ipv4': control_plane_stack_node_ssh_backend_ipv4,
+              'port': control_plane_stack_node_ssh_proxy_port
+            } | to_nice_json | hash('sha1'),
             'notifications': control_plane_stack_notifications_config_content | hash('sha1')
           }
         } | to_nice_json | hash('sha1')
@@ -101,6 +120,15 @@
     owner: root
     group: root
     mode: "0644"
+
+- name: Control plane | Render private Node SSH broker proxy config
+  ansible.builtin.template:
+    src: node-ssh-proxy.Caddyfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_node_ssh_proxy_config_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: control_plane_stack_enable_node_ssh_proxy
 
 - name: Control plane | Render Remnawave env
   ansible.builtin.template:
@@ -161,6 +189,27 @@
     control_plane_stack_env_map: "{{ control_plane_stack_helix_adapter_env }}"
   when: control_plane_stack_enable_helix_adapter
   no_log: true
+
+- name: Control plane | Render subscription-page env
+  ansible.builtin.template:
+    src: envfile.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_subscription_page_env_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    control_plane_stack_env_map: "{{ control_plane_stack_subscription_page_env }}"
+  when: control_plane_stack_enable_subscription_page
+  no_log: true
+
+- name: Control plane | Render component-only subscription-page rollback override
+  ansible.builtin.template:
+    src: docker-compose.subscription-page-rollback.yml.j2
+    dest: "{{ control_plane_stack_target_release_path }}/{{ control_plane_stack_subscription_page_rollback_compose_filename }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: control_plane_stack_enable_subscription_page
 
 - name: Control plane | Render db-backup env
   ansible.builtin.template:

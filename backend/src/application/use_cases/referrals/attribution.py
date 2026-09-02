@@ -308,7 +308,7 @@ class ClaimReferralAttributionUseCase:
         _assert_growth_referral_code_valid(growth_code)
 
         referrer = await self._session.get(MobileUserModel, attribution.referrer_user_id)
-        _assert_referral_owner_valid(referrer)
+        referrer = _assert_referral_owner_valid(referrer)
         if referrer.id == user.id:
             raise ReferralAttributionError(
                 code="REFERRAL_SELF_ATTRIBUTION_BLOCKED",
@@ -551,7 +551,7 @@ async def _find_referral_owner(session: AsyncSession, referral_code: str) -> Mob
     return owner
 
 
-def _assert_referral_owner_valid(owner: MobileUserModel | None) -> None:
+def _assert_referral_owner_valid(owner: MobileUserModel | None) -> MobileUserModel:
     if owner is None:
         raise ReferralAttributionError(
             code="REFERRAL_CODE_NOT_FOUND",
@@ -564,6 +564,7 @@ def _assert_referral_owner_valid(owner: MobileUserModel | None) -> None:
             message="Referral code is inactive.",
             status_code=409,
         )
+    return owner
 
 
 def _assert_growth_referral_code_valid(growth_code: GrowthCodeModel) -> None:

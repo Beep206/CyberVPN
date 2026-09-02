@@ -1,44 +1,26 @@
-"""Monthly traffic counter reset."""
-
-from contextlib import suppress
+"""Compatibility boundary for the retired monthly traffic-reset task."""
 
 import structlog
 
 from src.broker import broker
-from src.services.remnawave_client import RemnawaveClient
-from src.services.telegram_client import TelegramClient
-from src.utils.formatting import traffic_reset
 
 logger = structlog.get_logger(__name__)
+_NOT_APPLICABLE_REASON = "backend_subscription_traffic_policy_is_no_reset"
 
 
 @broker.task(task_name="reset_monthly_traffic", queue="subscriptions")
 async def reset_monthly_traffic() -> dict:
-    """Reset traffic counters for all active users."""
-    reset_count = 0
+    """Report the legacy task as not applicable without touching Remnawave.
 
-    async with RemnawaveClient() as rw:
-        users = await rw.get_users()
-        active_users = [u for u in users if u.get("status") == "active"]
+    CyberVPN's authoritative paid, trial, manual and gift provisioning
+    contracts all set ``trafficLimitStrategy`` to ``NO_RESET``.  Keep the
+    historical TaskIQ name callable for compatibility, but never schedule or
+    emulate a calendar reset in this worker.
+    """
 
-    async with RemnawaveClient() as rw, TelegramClient() as tg:
-        batch_size = 100
-        for i in range(0, len(active_users), batch_size):
-            batch = active_users[i : i + batch_size]
-            for user in batch:
-                user_uuid = user.get("uuid", "")
-                username = user.get("username", "unknown")
-                try:
-                    await rw.reset_user_traffic(user_uuid)
-                    reset_count += 1
-
-                    telegram_id = user.get("telegram_id")
-                    if telegram_id:
-                        msg = traffic_reset(username, user.get("plan_name", ""))
-                        with suppress(Exception):
-                            await tg.send_message(chat_id=int(telegram_id), text=msg)
-                except Exception as e:
-                    logger.error("traffic_reset_failed", user=username, error=str(e))
-
-    logger.info("monthly_traffic_reset", count=reset_count)
-    return {"reset": reset_count}
+    logger.info("traffic_reset_task_not_applicable", reason=_NOT_APPLICABLE_REASON)
+    return {
+        "reset": 0,
+        "not_applicable": True,
+        "reason": _NOT_APPLICABLE_REASON,
+    }

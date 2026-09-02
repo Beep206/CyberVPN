@@ -9,9 +9,10 @@ Security improvements:
 
 import asyncio
 import logging
+import re
 from typing import Any, TypeVar
 
-from httpx import AsyncClient, HTTPStatusError, RequestError, Response
+from httpx import AsyncClient, HTTPStatusError, Request, RequestError, Response
 from pydantic import BaseModel
 
 from src.config.settings import settings
@@ -21,6 +22,46 @@ from src.infrastructure.remnawave.response_validator import response_validator
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+_SAFE_ERROR_URL = "https://remnawave.invalid/"
+_SAFE_CORRELATION_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+
+
+class RemnawaveHTTPStatusError(HTTPStatusError):
+    """HTTP failure stripped of upstream body, URL, headers, and PII."""
+
+    error_code = "remnawave_upstream_http_error"
+
+    def __init__(self, *, status_code: int, correlation_id: str | None = None) -> None:
+        self.correlation_id = correlation_id
+        safe_request = Request("GET", _SAFE_ERROR_URL)
+        safe_headers = {"x-correlation-id": correlation_id} if correlation_id else {}
+        safe_response = Response(status_code, request=safe_request, headers=safe_headers)
+        message = f"Remnawave request failed (code={self.error_code}, status={status_code}"
+        if correlation_id:
+            message += f", correlation={correlation_id}"
+        super().__init__(f"{message})", request=safe_request, response=safe_response)
+
+
+class RemnawaveTransportError(RequestError):
+    """Transport failure without the original URL, headers, or provider text."""
+
+    error_code = "remnawave_upstream_transport_error"
+
+    def __init__(self) -> None:
+        super().__init__(
+            f"Remnawave request failed (code={self.error_code})",
+            request=Request("GET", _SAFE_ERROR_URL),
+        )
+
+
+class RemnawaveProtocolError(RuntimeError):
+    """Successful upstream response could not be decoded safely."""
+
+    error_code = "remnawave_upstream_protocol_error"
+
+    def __init__(self) -> None:
+        super().__init__(f"Remnawave request failed (code={self.error_code})")
 
 
 class RemnawaveClient:
@@ -66,7 +107,14 @@ class RemnawaveClient:
         client = await self._get_client()
         normalized_path = self._normalize_path(path)
         sender = getattr(client, method.lower())
-        total_attempts = self._retry_attempts + 1
+        # Remnawave 3.x uses 202/204 for many actions.  A lost mutation
+        # response is ambiguous and repeating the request can create a second
+        # user/action because the upstream API does not provide an idempotency
+        # contract for these operations.  Only reads are retried here;
+        # mutation callers must reconcile authoritative upstream state.
+        retry_safe = method.upper() in {"GET", "HEAD", "OPTIONS"}
+        total_attempts = (self._retry_attempts + 1) if retry_safe else 1
+        terminal_error: RemnawaveHTTPStatusError | RemnawaveTransportError | None = None
 
         for attempt in range(1, total_attempts + 1):
             try:
@@ -75,15 +123,16 @@ class RemnawaveClient:
                 return response
             except HTTPStatusError as exc:
                 status_code = exc.response.status_code
-                if attempt < total_attempts and status_code >= 500:
+                correlation_id = self._safe_correlation_id(exc.response)
+                if retry_safe and attempt < total_attempts and status_code >= 500:
                     logger.warning(
                         "Retrying Remnawave request after upstream error",
                         extra={
-                            "method": method,
-                            "path": normalized_path,
                             "attempt": attempt,
                             "retry_attempts": self._retry_attempts,
                             "status_code": status_code,
+                            "error_code": RemnawaveHTTPStatusError.error_code,
+                            "correlation_id": correlation_id,
                         },
                     )
                     await asyncio.sleep(self._retry_backoff_seconds * attempt)
@@ -92,22 +141,24 @@ class RemnawaveClient:
                 logger.warning(
                     "Remnawave request failed",
                     extra={
-                        "method": method,
-                        "path": normalized_path,
                         "status_code": status_code,
+                        "error_code": RemnawaveHTTPStatusError.error_code,
+                        "correlation_id": correlation_id,
                     },
                 )
-                raise
-            except RequestError as exc:
-                if attempt < total_attempts:
+                terminal_error = RemnawaveHTTPStatusError(
+                    status_code=status_code,
+                    correlation_id=correlation_id,
+                )
+                break
+            except RequestError:
+                if retry_safe and attempt < total_attempts:
                     logger.warning(
                         "Retrying Remnawave request after transport error",
                         extra={
-                            "method": method,
-                            "path": normalized_path,
                             "attempt": attempt,
                             "retry_attempts": self._retry_attempts,
-                            "error_type": type(exc).__name__,
+                            "error_code": RemnawaveTransportError.error_code,
                         },
                     )
                     await asyncio.sleep(self._retry_backoff_seconds * attempt)
@@ -116,40 +167,70 @@ class RemnawaveClient:
                 logger.warning(
                     "Remnawave transport request failed",
                     extra={
-                        "method": method,
-                        "path": normalized_path,
-                        "error_type": type(exc).__name__,
+                        "error_code": RemnawaveTransportError.error_code,
                     },
                 )
-                raise
+                terminal_error = RemnawaveTransportError()
+                break
+        if terminal_error is not None:
+            # Raise outside the provider exception handler so the original
+            # response/request cannot survive in ``__context__``.
+            raise terminal_error
         raise RuntimeError("Remnawave request retry loop exhausted unexpectedly")
+
+    @staticmethod
+    def _safe_correlation_id(response: Response) -> str | None:
+        for header in ("x-correlation-id", "x-request-id"):
+            value = response.headers.get(header, "").strip()
+            if _SAFE_CORRELATION_RE.fullmatch(value):
+                return value
+        return None
+
+    @staticmethod
+    def _decode_json(response: Response) -> Any:
+        decode_failed = False
+        try:
+            return response.json()
+        except (TypeError, ValueError, UnicodeError):
+            decode_failed = True
+        if decode_failed:
+            # Raised after leaving the decoder's exception handler so raw
+            # response text is not retained as exception context.
+            raise RemnawaveProtocolError()
+        raise RemnawaveProtocolError()
 
     async def get(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """GET request without validation (legacy - use get_validated instead)."""
         response = await self._request("GET", path, **kwargs)
-        return self._normalize_response(response.json())
+        return self._normalize_response(self._decode_json(response))
 
     async def post(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """POST request without validation (legacy - use post_validated instead)."""
         response = await self._request("POST", path, **kwargs)
-        return self._normalize_response(response.json())
+        if response.status_code == 204 or not response.content.strip():
+            return {}
+        return self._normalize_response(self._decode_json(response))
 
     async def put(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """PUT request without validation (legacy - use put_validated instead)."""
         response = await self._request("PUT", path, **kwargs)
-        return self._normalize_response(response.json())
+        if response.status_code == 204 or not response.content.strip():
+            return {}
+        return self._normalize_response(self._decode_json(response))
 
     async def delete(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """DELETE request without validation (legacy - use delete_validated instead)."""
         response = await self._request("DELETE", path, **kwargs)
         if response.status_code == 204 or not response.content.strip():
             return {}
-        return self._normalize_response(response.json())
+        return self._normalize_response(self._decode_json(response))
 
     async def patch(self, path: str, **kwargs: Any) -> dict[str, Any]:
         """PATCH request without validation (legacy - use patch_validated instead)."""
         response = await self._request("PATCH", path, **kwargs)
-        return self._normalize_response(response.json())
+        if response.status_code == 204 or not response.content.strip():
+            return {}
+        return self._normalize_response(self._decode_json(response))
 
     @staticmethod
     def _normalize_response(data: Any) -> Any:
@@ -174,7 +255,7 @@ class RemnawaveClient:
             **kwargs: Additional request kwargs
 
         Returns:
-            Validated response object
+            Validated response object, or None for an empty successful acknowledgement
 
         Raises:
             HTTPException: 502 on validation failure, others propagated
@@ -217,7 +298,7 @@ class RemnawaveClient:
         path: str,
         schema: type[T],
         **kwargs: Any,
-    ) -> T:
+    ) -> T | None:
         """POST request with response validation.
 
         Args:
@@ -226,17 +307,16 @@ class RemnawaveClient:
             **kwargs: Additional request kwargs
 
         Returns:
-            Validated response object
+            Validated response object, or None for an empty successful acknowledgement
         """
-        data = await self.post(path, **kwargs)
-        return response_validator.validate_single(data, schema, f"POST {path}")
+        return await self._mutation_validated("POST", path, schema, **kwargs)
 
     async def put_validated(
         self,
         path: str,
         schema: type[T],
         **kwargs: Any,
-    ) -> T:
+    ) -> T | None:
         """PUT request with response validation.
 
         Args:
@@ -247,8 +327,7 @@ class RemnawaveClient:
         Returns:
             Validated response object
         """
-        data = await self.put(path, **kwargs)
-        return response_validator.validate_single(data, schema, f"PUT {path}")
+        return await self._mutation_validated("PUT", path, schema, **kwargs)
 
     async def delete_validated(
         self,
@@ -266,20 +345,40 @@ class RemnawaveClient:
         Returns:
             Validated response object or None
         """
-        data = await self.delete(path, **kwargs)
-        if schema is None:
-            return None
-        return response_validator.validate_single(data, schema, f"DELETE {path}")
+        return await self._mutation_validated("DELETE", path, schema, **kwargs)
 
     async def patch_validated(
         self,
         path: str,
         schema: type[T],
         **kwargs: Any,
-    ) -> T:
-        """PATCH request with response validation."""
-        data = await self.patch(path, **kwargs)
-        return response_validator.validate_single(data, schema, f"PATCH {path}")
+    ) -> T | None:
+        """PATCH request with validation or ``None`` for an empty success."""
+        return await self._mutation_validated("PATCH", path, schema, **kwargs)
+
+    async def _mutation_validated(
+        self,
+        method: str,
+        path: str,
+        schema: type[T] | None,
+        **kwargs: Any,
+    ) -> T | None:
+        """Validate a mutation response without inventing a body for empty success.
+
+        Remnawave 3.x legitimately acknowledges mutations with an empty
+        ``201``, ``202`` or ``204`` response.  Treating that acknowledgement as
+        ``{}`` and validating it against a required response schema turns an
+        already-applied upstream mutation into a local 502.  Callers receive
+        ``None`` and must return an explicit accepted/no-content response or
+        reconcile authoritative state; the mutation is never repeated here.
+        """
+        response = await self._request(method, path, **kwargs)
+        if response.status_code == 204 or not response.content.strip():
+            return None
+        if schema is None:
+            return None
+        data = self._normalize_response(self._decode_json(response))
+        return response_validator.validate_single(data, schema, f"{method} {path}")
 
     async def close(self) -> None:
         if self._client and not self._client.is_closed:
@@ -292,7 +391,10 @@ class RemnawaveClient:
                     await self.get(path)
                     return True
                 except Exception as path_error:
-                    logger.debug("Remnawave health probe failed for %s: %s", path, path_error)
+                    logger.debug(
+                        "Remnawave health probe failed",
+                        extra={"probe": path, "error_type": type(path_error).__name__},
+                    )
                     continue
             return False
         except Exception as e:
@@ -307,18 +409,17 @@ class RemnawaveClient:
     ) -> RemnawaveCursorPage:
         """Fetch a Remnawave users page using cursor pagination when available.
 
-        Remnawave 2.8.0 introduced a cursor-based all-users endpoint. Public
-        path names have differed across prerelease/admin builds, so the client
-        probes the known cursor variants and falls back to the legacy offset
-        list without hiding genuine transport or server failures.
+        Remnawave 3.x publishes ``GET /api/users/stream`` with ``size`` and a
+        numeric cursor.  The 2.8 variants remain read-only fallbacks solely for
+        pre-cutover reconciliation.
         """
 
-        bounded_limit = max(1, min(int(limit), 5000))
-        cursor_params: dict[str, Any] = {"limit": bounded_limit}
+        bounded_limit = max(1, min(int(limit), 1000))
+        cursor_params: dict[str, Any] = {"size": bounded_limit}
         if cursor:
             cursor_params["cursor"] = cursor
 
-        for path in ("/users/all", "/users/cursor", "/users"):
+        for path in ("/users/stream", "/users/all", "/users/cursor", "/users"):
             try:
                 if path == "/users" and cursor:
                     continue
@@ -327,7 +428,7 @@ class RemnawaveClient:
                 if isinstance(data, list):
                     return RemnawaveCursorPage(response=[item for item in data if isinstance(item, dict)])
                 if isinstance(data, dict):
-                    return RemnawaveCursorPage.model_validate(data)
+                    return response_validator.validate_single(data, RemnawaveCursorPage, f"GET {path}")
             except HTTPStatusError as exc:
                 if exc.response.status_code in {400, 404, 405, 501}:
                     logger.info(
@@ -341,7 +442,7 @@ class RemnawaveClient:
         if isinstance(legacy, list):
             return RemnawaveCursorPage(response=[item for item in legacy if isinstance(item, dict)])
         if isinstance(legacy, dict):
-            return RemnawaveCursorPage.model_validate(legacy)
+            return response_validator.validate_single(legacy, RemnawaveCursorPage, "GET /users")
         return RemnawaveCursorPage(response=[])
 
 

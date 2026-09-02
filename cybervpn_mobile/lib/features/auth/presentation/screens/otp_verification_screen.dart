@@ -7,7 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cybervpn_mobile/app/theme/tokens.dart';
 import 'package:cybervpn_mobile/core/constants/api_constants.dart';
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
-import 'package:cybervpn_mobile/core/di/providers.dart' show apiClientProvider, secureStorageProvider;
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show apiClientProvider, secureStorageProvider;
 import 'package:cybervpn_mobile/core/errors/exceptions.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_provider.dart';
@@ -28,10 +29,16 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
       _OtpVerificationScreenState();
 }
 
-enum _ScreenState { initial, submitting, resending, success, error, rateLimited }
+enum _ScreenState {
+  initial,
+  submitting,
+  resending,
+  success,
+  error,
+  rateLimited,
+}
 
-class _OtpVerificationScreenState
-    extends ConsumerState<OtpVerificationScreen> {
+class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final _codeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   _ScreenState _state = _ScreenState.initial;
@@ -40,6 +47,7 @@ class _OtpVerificationScreenState
   Timer? _rateLimitTimer;
   int _resendCooldownSeconds = 0;
   Timer? _resendCooldownTimer;
+  Timer? _successNavigationTimer;
 
   static const int _resendCooldownDuration = 60; // 60 seconds cooldown
 
@@ -48,6 +56,7 @@ class _OtpVerificationScreenState
     _codeController.dispose();
     _rateLimitTimer?.cancel();
     _resendCooldownTimer?.cancel();
+    _successNavigationTimer?.cancel();
     super.dispose();
   }
 
@@ -63,10 +72,7 @@ class _OtpVerificationScreenState
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.post<Map<String, dynamic>>(
         ApiConstants.verifyEmail,
-        data: {
-          'email': widget.email,
-          'code': _codeController.text.trim(),
-        },
+        data: {'email': widget.email, 'code': _codeController.text.trim()},
       );
 
       if (!mounted) return;
@@ -89,6 +95,7 @@ class _OtpVerificationScreenState
         setState(() {
           _state = _ScreenState.success;
         });
+        _scheduleSuccessNavigation();
       } else {
         throw const ServerException(
           message: 'Invalid response from server',
@@ -109,23 +116,30 @@ class _OtpVerificationScreenState
         _state = _ScreenState.error;
         // Provide a more specific message for invalid/expired codes
         if (e.code == 400 || e.code == 422) {
-          _errorMessage =
-              AppLocalizations.of(context).otpVerificationInvalidCode;
+          _errorMessage = AppLocalizations.of(
+            context,
+          ).otpVerificationInvalidCode;
         } else {
           _errorMessage = e.message;
         }
       });
     } on NetworkException catch (e) {
-      AppLogger.error('OTP verification failed (network)',
-          error: e, category: 'auth');
+      AppLogger.error(
+        'OTP verification failed (network)',
+        error: e,
+        category: 'auth',
+      );
       if (!mounted) return;
       setState(() {
         _state = _ScreenState.error;
         _errorMessage = e.message;
       });
     } catch (e) {
-      AppLogger.error('OTP verification failed (unknown)',
-          error: e, category: 'auth');
+      AppLogger.error(
+        'OTP verification failed (unknown)',
+        error: e,
+        category: 'auth',
+      );
       if (!mounted) return;
       setState(() {
         _state = _ScreenState.error;
@@ -146,9 +160,7 @@ class _OtpVerificationScreenState
       final apiClient = ref.read(apiClientProvider);
       await apiClient.post<Map<String, dynamic>>(
         ApiConstants.resendOtp,
-        data: {
-          'email': widget.email,
-        },
+        data: {'email': widget.email},
       );
 
       if (!mounted) return;
@@ -163,7 +175,9 @@ class _OtpVerificationScreenState
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).otpVerificationResendSuccess),
+          content: Text(
+            AppLocalizations.of(context).otpVerificationResendSuccess,
+          ),
           backgroundColor: CyberColors.matrixGreen,
         ),
       );
@@ -182,14 +196,22 @@ class _OtpVerificationScreenState
         _errorMessage = e.message;
       });
     } on NetworkException catch (e) {
-      AppLogger.error('OTP resend failed (network)', error: e, category: 'auth');
+      AppLogger.error(
+        'OTP resend failed (network)',
+        error: e,
+        category: 'auth',
+      );
       if (!mounted) return;
       setState(() {
         _state = _ScreenState.error;
         _errorMessage = e.message;
       });
     } catch (e) {
-      AppLogger.error('OTP resend failed (unknown)', error: e, category: 'auth');
+      AppLogger.error(
+        'OTP resend failed (unknown)',
+        error: e,
+        category: 'auth',
+      );
       if (!mounted) return;
       setState(() {
         _state = _ScreenState.error;
@@ -238,6 +260,15 @@ class _OtpVerificationScreenState
     });
   }
 
+  void _scheduleSuccessNavigation() {
+    _successNavigationTimer?.cancel();
+    _successNavigationTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) {
+        context.go('/connection');
+      }
+    });
+  }
+
   void _resetState() {
     setState(() {
       _state = _ScreenState.initial;
@@ -251,9 +282,7 @@ class _OtpVerificationScreenState
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.otpVerificationTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.otpVerificationTitle)),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(Spacing.lg),
@@ -367,7 +396,9 @@ class _OtpVerificationScreenState
             TextButton(
               onPressed: null,
               child: Text(
-                l10n.otpVerificationResendCooldown(_resendCooldownSeconds.toString()),
+                l10n.otpVerificationResendCooldown(
+                  _resendCooldownSeconds.toString(),
+                ),
               ),
             )
           else
@@ -396,14 +427,6 @@ class _OtpVerificationScreenState
   }
 
   Widget _buildSuccessState(ThemeData theme, AppLocalizations l10n) {
-    // After a brief delay, navigate to the connection screen
-    // The auth provider will handle the navigation through its redirect logic
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        context.go('/connection');
-      }
-    });
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -438,11 +461,7 @@ class _OtpVerificationScreenState
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.error_outline,
-          size: 64,
-          color: theme.colorScheme.error,
-        ),
+        Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
         const SizedBox(height: Spacing.lg),
         Text(
           l10n.errorOccurred,
@@ -460,10 +479,7 @@ class _OtpVerificationScreenState
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: Spacing.xl),
-        FilledButton(
-          onPressed: _resetState,
-          child: Text(l10n.retry),
-        ),
+        FilledButton(onPressed: _resetState, child: Text(l10n.retry)),
         const SizedBox(height: Spacing.md),
         TextButton(
           onPressed: () => context.go('/login'),
@@ -477,11 +493,7 @@ class _OtpVerificationScreenState
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.hourglass_top,
-          size: 64,
-          color: theme.colorScheme.tertiary,
-        ),
+        Icon(Icons.hourglass_top, size: 64, color: theme.colorScheme.tertiary),
         const SizedBox(height: Spacing.lg),
         Text(
           l10n.rateLimitTitle,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/entities/imported_config.dart';
 import 'package:cybervpn_mobile/features/config_import/presentation/widgets/config_preview_card.dart';
 
@@ -34,6 +35,9 @@ void main() {
       String? securityType,
     }) {
       return MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('en'),
         home: Scaffold(
           body: ConfigPreviewCard(
             config: config,
@@ -63,8 +67,9 @@ void main() {
       expect(find.text('Test VPN Server'), findsOneWidget);
     });
 
-    testWidgets('displays server address and port',
-        (WidgetTester tester) async {
+    testWidgets('displays server address and port', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(config: testConfig));
 
       expect(find.text('example.com:443'), findsOneWidget);
@@ -90,8 +95,9 @@ void main() {
       expect(find.widgetWithText(TextButton, 'Cancel'), findsOneWidget);
     });
 
-    testWidgets('tapping Add Server invokes callback with config',
-        (WidgetTester tester) async {
+    testWidgets('tapping Add Server invokes callback with config', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(config: testConfig));
 
       final addButton = find.widgetWithText(ElevatedButton, 'Add Server');
@@ -112,48 +118,47 @@ void main() {
       expect(cancelCalled, isTrue);
     });
 
-    testWidgets('displays transport type when provided',
-        (WidgetTester tester) async {
+    testWidgets('displays transport type when provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
-        createTestWidget(
-          config: testConfig,
-          transportType: 'ws',
-        ),
+        createTestWidget(config: testConfig, transportType: 'ws'),
       );
 
       expect(find.text('Transport'), findsOneWidget);
       expect(find.text('WS'), findsOneWidget);
     });
 
-    testWidgets('displays security type when provided',
-        (WidgetTester tester) async {
+    testWidgets('displays security type when provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
-        createTestWidget(
-          config: testConfig,
-          securityType: 'tls',
-        ),
+        createTestWidget(config: testConfig, securityType: 'tls'),
       );
 
       expect(find.text('Security'), findsOneWidget);
       expect(find.text('TLS'), findsOneWidget);
     });
 
-    testWidgets('does not display transport when not provided',
-        (WidgetTester tester) async {
+    testWidgets('does not display transport when not provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(config: testConfig));
 
       expect(find.text('Transport'), findsNothing);
     });
 
-    testWidgets('does not display security when not provided',
-        (WidgetTester tester) async {
+    testWidgets('does not display security when not provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(config: testConfig));
 
       expect(find.text('Security'), findsNothing);
     });
 
-    testWidgets('displays all fields when transport and security provided',
-        (WidgetTester tester) async {
+    testWidgets('displays all fields when transport and security provided', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           config: testConfig,
@@ -191,8 +196,9 @@ void main() {
         expect(find.text('TROJAN'), findsOneWidget);
       });
 
-      testWidgets('renders Shadowsocks protocol badge',
-          (WidgetTester tester) async {
+      testWidgets('renders Shadowsocks protocol badge', (
+        WidgetTester tester,
+      ) async {
         final ssConfig = testConfig.copyWith(protocol: 'shadowsocks');
         await tester.pumpWidget(createTestWidget(config: ssConfig));
 
@@ -200,8 +206,9 @@ void main() {
       });
     });
 
-    testWidgets('handles long server names with ellipsis',
-        (WidgetTester tester) async {
+    testWidgets('handles long server names with ellipsis', (
+      WidgetTester tester,
+    ) async {
       final longNameConfig = testConfig.copyWith(
         name: 'Very Long Server Name That Should Be Truncated With Ellipsis',
       );
@@ -215,21 +222,21 @@ void main() {
       );
     });
 
-    testWidgets('handles long server addresses with ellipsis',
-        (WidgetTester tester) async {
+    testWidgets('handles long server addresses with ellipsis', (
+      WidgetTester tester,
+    ) async {
       final longAddressConfig = testConfig.copyWith(
-        serverAddress: 'very-long-server-address-that-might-overflow.example.com',
+        serverAddress:
+            'very-long-server-address-that-might-overflow.example.com',
       );
       await tester.pumpWidget(createTestWidget(config: longAddressConfig));
 
-      expect(
-        find.textContaining('very-long-server-address'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('very-long-server-address'), findsOneWidget);
     });
 
-    testWidgets('button minimum touch target size meets accessibility',
-        (WidgetTester tester) async {
+    testWidgets('button minimum touch target size meets accessibility', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(config: testConfig));
 
       final addButton = tester.widget<ElevatedButton>(

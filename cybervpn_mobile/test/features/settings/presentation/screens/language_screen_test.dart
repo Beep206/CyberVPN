@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/settings/data/repositories/language_repository.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/domain/models/language_item.dart';
@@ -16,12 +17,18 @@ import 'package:cybervpn_mobile/features/settings/presentation/screens/language_
 /// [settingsOverride] providing the initial [AppSettings].
 Widget _buildTestWidget({
   AppSettings settings = const AppSettings(),
+  _FakeSettingsNotifier? notifier,
 }) {
   return ProviderScope(
     overrides: [
-      settingsProvider.overrideWith(() => _FakeSettingsNotifier(settings)),
+      settingsProvider.overrideWith(
+        () => notifier ?? _FakeSettingsNotifier(settings),
+      ),
     ],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
       home: LanguageScreen(),
     ),
   );
@@ -32,9 +39,16 @@ class _FakeSettingsNotifier extends SettingsNotifier {
   _FakeSettingsNotifier(this._initial);
 
   final AppSettings _initial;
+  String? updatedLocale;
 
   @override
   Future<AppSettings> build() async => _initial;
+
+  @override
+  Future<void> updateLocale(String locale) async {
+    updatedLocale = locale;
+    state = AsyncData(_initial.copyWith(locale: locale));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -51,8 +65,11 @@ void main() {
       final languages = repo.getAvailableLanguages();
 
       for (final lang in languages) {
-        expect(find.text(lang.nativeName), findsOneWidget);
-        expect(find.text(lang.englishName), findsOneWidget);
+        final expectedCount = lang.nativeName == lang.englishName ? 2 : 1;
+        expect(find.text(lang.nativeName), findsNWidgets(expectedCount));
+        if (lang.nativeName != lang.englishName) {
+          expect(find.text(lang.englishName), findsOneWidget);
+        }
       }
     });
 
@@ -64,7 +81,7 @@ void main() {
 
       // The English tile should have a check icon.
       final englishTile = find.ancestor(
-        of: find.text('English'),
+        of: find.text('English').first,
         matching: find.byType(ListTile),
       );
       expect(englishTile, findsOneWidget);
@@ -78,7 +95,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Type 'Eng' in the search field.
-      await tester.enterText(find.byKey(const Key('language_search_field')), 'Eng');
+      await tester.enterText(
+        find.byKey(const Key('language_search_field')),
+        'Eng',
+      );
       await tester.pumpAndSettle();
 
       // English should still be visible.
@@ -112,7 +132,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Enter search text.
-      await tester.enterText(find.byKey(const Key('language_search_field')), 'Eng');
+      await tester.enterText(
+        find.byKey(const Key('language_search_field')),
+        'Eng',
+      );
       await tester.pumpAndSettle();
 
       // Clear button should appear.
@@ -126,7 +149,8 @@ void main() {
       const repo = LanguageRepository();
       final languages = repo.getAvailableLanguages();
       for (final lang in languages) {
-        expect(find.text(lang.nativeName), findsOneWidget);
+        final expectedCount = lang.nativeName == lang.englishName ? 2 : 1;
+        expect(find.text(lang.nativeName), findsNWidgets(expectedCount));
       }
     });
 
@@ -144,18 +168,15 @@ void main() {
     });
 
     testWidgets('selecting a language updates the provider', (tester) async {
-      await tester.pumpWidget(
-        _buildTestWidget(settings: const AppSettings(locale: 'en')),
-      );
+      final notifier = _FakeSettingsNotifier(const AppSettings(locale: 'en'));
+      await tester.pumpWidget(_buildTestWidget(notifier: notifier));
       await tester.pumpAndSettle();
 
       // Tap on the reviewed English language tile.
       await tester.tap(find.text('English').first);
       await tester.pumpAndSettle();
 
-      // The screen should pop (Navigator.pop). We verify by checking
-      // the LanguageScreen is no longer in the tree.
-      expect(find.byType(LanguageScreen), findsNothing);
+      expect(notifier.updatedLocale, 'en');
     });
   });
 
@@ -165,7 +186,7 @@ void main() {
       final languages = repo.getAvailableLanguages();
 
       expect(languages, isNotEmpty);
-      expect(languages.length, greaterThanOrEqualTo(2));
+      expect(languages, hasLength(1));
     });
 
     test('getAvailableLanguages exposes reviewed locales only', () {

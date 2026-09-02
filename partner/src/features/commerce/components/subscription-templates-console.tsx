@@ -23,15 +23,9 @@ import {
   TableRow,
 } from '@/shared/ui/organisms/table';
 
-interface SubscriptionTemplateRecord {
-  uuid: string;
-  name: string;
-  templateType: string;
-  hostUuid?: string | null;
-  inboundTag?: string | null;
-  flow?: string | null;
-  configData?: Record<string, unknown> | null;
-}
+type SubscriptionTemplateRecord = Awaited<
+  ReturnType<typeof subscriptionsApi.get>
+>['data'];
 
 export function SubscriptionTemplatesConsole() {
   const t = useTranslations('Commerce');
@@ -92,7 +86,7 @@ export function SubscriptionTemplatesConsole() {
   });
 
   const templates = templatesQuery.data ?? [];
-  const flowEnabled = templates.filter((item) => Boolean(item.flow)).length;
+  const taggedTemplates = templates.filter((item) => item.tags.length > 0).length;
 
   return (
     <>
@@ -116,20 +110,22 @@ export function SubscriptionTemplatesConsole() {
           },
           {
             label: t('subscriptionTemplates.metrics.withFlow'),
-            value: formatCompactNumber(flowEnabled),
+            value: formatCompactNumber(taggedTemplates),
             hint: t('subscriptionTemplates.metrics.withFlowHint'),
             tone: 'success',
           },
           {
             label: t('subscriptionTemplates.metrics.hostBound'),
-            value: formatCompactNumber(templates.filter((item) => item.hostUuid).length),
+            value: formatCompactNumber(
+              templates.filter((item) => Boolean(item.encodedTemplateYaml)).length,
+            ),
             hint: t('subscriptionTemplates.metrics.hostBoundHint'),
             tone: 'neutral',
           },
           {
             label: t('subscriptionTemplates.metrics.jsonConfig'),
             value: formatCompactNumber(
-              templates.filter((item) => item.configData && Object.keys(item.configData).length > 0)
+              templates.filter((item) => item.templateJson && Object.keys(item.templateJson).length > 0)
                 .length,
             ),
             hint: t('subscriptionTemplates.metrics.jsonConfigHint'),
@@ -163,9 +159,7 @@ export function SubscriptionTemplatesConsole() {
                 <TableRow>
                   <TableHead>{t('common.name')}</TableHead>
                   <TableHead>{t('common.templateType')}</TableHead>
-                  <TableHead>{t('common.hostUuid')}</TableHead>
-                  <TableHead>{t('common.inboundTag')}</TableHead>
-                  <TableHead>{t('common.flow')}</TableHead>
+                  <TableHead>{t('subscriptionTemplates.tags')}</TableHead>
                   <TableHead>{t('common.configData')}</TableHead>
                   <TableHead>{t('common.actions')}</TableHead>
                 </TableRow>
@@ -184,21 +178,21 @@ export function SubscriptionTemplatesConsole() {
                       </div>
                     </TableCell>
                     <TableCell>{template.templateType}</TableCell>
-                    <TableCell>{template.hostUuid ?? t('common.emptyShort')}</TableCell>
-                    <TableCell>{template.inboundTag ?? t('common.emptyShort')}</TableCell>
                     <TableCell>
-                      {template.flow ? (
-                        <StatusChip label={template.flow} tone="info" />
+                      {template.tags.length > 0 ? (
+                        <StatusChip label={template.tags.join(', ')} tone="info" />
                       ) : (
                         t('common.emptyShort')
                       )}
                     </TableCell>
                     <TableCell>
-                      {template.configData ? (
+                      {template.templateJson ? (
                         <StatusChip
-                          label={humanizeToken(Object.keys(template.configData).join(', '))}
+                          label={humanizeToken(Object.keys(template.templateJson).join(', '))}
                           tone="success"
                         />
+                      ) : template.encodedTemplateYaml ? (
+                        <StatusChip label={t('subscriptionTemplates.encodedYaml')} tone="success" />
                       ) : (
                         t('common.emptyShort')
                       )}
@@ -242,7 +236,10 @@ export function SubscriptionTemplatesConsole() {
         isSubmitting={createMutation.isPending}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={async (payload) => {
-          await createMutation.mutateAsync(payload);
+          await createMutation.mutateAsync({
+            name: payload.name,
+            templateType: payload.templateType,
+          });
         }}
       />
 
@@ -254,7 +251,14 @@ export function SubscriptionTemplatesConsole() {
         onClose={() => setEditingTemplate(null)}
         onSubmit={async (payload) => {
           if (!editingTemplate) return;
-          await updateMutation.mutateAsync({ uuid: editingTemplate.uuid, payload });
+          await updateMutation.mutateAsync({
+            uuid: editingTemplate.uuid,
+            payload: {
+              name: payload.name,
+              templateJson: payload.templateJson,
+              encodedTemplateYaml: payload.encodedTemplateYaml,
+            },
+          });
         }}
       />
 

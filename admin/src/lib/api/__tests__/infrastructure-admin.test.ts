@@ -26,79 +26,80 @@ afterEach(() => {
 });
 
 describe('hostsApi admin operations', () => {
-  it('creates a host with optional network metadata', async () => {
+  it('sends the exact 3.4.3 create shape and preserves the safety-disabled failure', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
       http.post(MATCH_ANY_API_ORIGIN.hosts, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
-
-        return HttpResponse.json({
-          uuid: 'host_001',
-          name: 'Edge Host EU',
-          address: 'edge-eu.ozoxy.ru',
-          port: 443,
-          sni: 'edge-eu.ozoxy.ru',
-          hostHeader: 'edge-eu.ozoxy.ru',
-          path: '/reality',
-          alpn: ['h2', 'http/1.1'],
-          isDisabled: false,
-        });
+        return HttpResponse.json(
+          { detail: { code: 'REMNAWAVE_HOST_CREATE_SAFETY_DISABLED' } },
+          { status: 503 },
+        );
       }),
     );
 
-    const response = await hostsApi.create({
-      name: 'Edge Host EU',
+    await expect(hostsApi.create({
+      inbound: {
+        configProfileUuid: '550e8400-e29b-41d4-a716-446655440000',
+        configProfileInboundUuid: '550e8400-e29b-41d4-a716-446655440001',
+      },
+      remark: 'Edge Host EU',
       address: 'edge-eu.ozoxy.ru',
       port: 443,
-      sni: 'edge-eu.ozoxy.ru',
-      host_header: 'edge-eu.ozoxy.ru',
-      path: '/reality',
-      alpn: ['h2', 'http/1.1'],
-      is_disabled: false,
-    });
+      sni: ['edge-eu.ozoxy.ru'],
+      host: ['edge-eu.ozoxy.ru'],
+      path: ['/reality'],
+      alpn: 'h2,http/1.1',
+      isDisabled: false,
+      securityLayer: 'TLS',
+      isHidden: false,
+      overrideSniFromAddress: false,
+      keepSniBlank: false,
+      shuffleHost: false,
+      mihomoX25519: false,
+    })).rejects.toMatchObject({ response: { status: 503 } });
 
-    expect(response.status).toBe(200);
-    expect(response.data.uuid).toBe('host_001');
     expect(capturedBody).toMatchObject({
-      name: 'Edge Host EU',
+      remark: 'Edge Host EU',
       address: 'edge-eu.ozoxy.ru',
-      host_header: 'edge-eu.ozoxy.ru',
+      host: ['edge-eu.ozoxy.ru'],
+      sni: ['edge-eu.ozoxy.ru'],
+      securityLayer: 'TLS',
     });
   });
 
-  it('updates a host by UUID route', async () => {
+  it('updates a host by UUID route with exact camelCase array fields and exposes 202', async () => {
     let updatedUuid = '';
+    let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
       http.put(MATCH_ANY_API_ORIGIN.hostById, async ({ request }) => {
         updatedUuid = new URL(request.url).pathname.split('/').at(-1) ?? '';
-        const body = (await request.json()) as Record<string, unknown>;
-
-        return HttpResponse.json({
-          uuid: updatedUuid,
-          name: body.name,
-          address: body.address,
-          port: body.port,
-          sni: body.sni,
-          hostHeader: body.host_header,
-          path: body.path,
-          alpn: body.alpn ?? [],
-          isDisabled: body.is_disabled ?? false,
-        });
+        capturedBody = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 202 });
       }),
     );
 
     const response = await hostsApi.update('host_001', {
-      name: 'Edge Host EU Prime',
+      remark: 'Edge Host EU Prime',
       address: 'edge-prime.ozoxy.ru',
       port: 8443,
-      is_disabled: true,
+      sni: ['edge-prime.ozoxy.ru'],
+      path: ['/xhttp'],
+      isDisabled: true,
+      internalSquads: { mode: 'ALLOW_ONLY', squads: [] },
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(202);
     expect(updatedUuid).toBe('host_001');
-    expect(response.data.name).toBe('Edge Host EU Prime');
+    expect(capturedBody).toMatchObject({
+      remark: 'Edge Host EU Prime',
+      sni: ['edge-prime.ozoxy.ru'],
+      path: ['/xhttp'],
+      isDisabled: true,
+      internalSquads: { mode: 'ALLOW_ONLY', squads: [] },
+    });
   });
 });
 

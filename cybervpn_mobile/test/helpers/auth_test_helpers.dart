@@ -6,14 +6,69 @@ import 'package:mocktail/mocktail.dart';
 
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/core/types/result.dart';
+import 'package:cybervpn_mobile/core/device/device_info.dart';
+import 'package:cybervpn_mobile/core/device/device_provider.dart';
+import 'package:cybervpn_mobile/core/device/device_service.dart';
+import 'package:cybervpn_mobile/core/auth/token_refresh_scheduler.dart';
+import 'package:cybervpn_mobile/core/network/websocket_client.dart';
+import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/features/auth/domain/entities/user_entity.dart';
 import 'package:cybervpn_mobile/core/di/providers.dart'
     show authRepositoryProvider;
 import 'package:cybervpn_mobile/features/auth/presentation/providers/auth_state.dart';
+import 'package:cybervpn_mobile/features/auth/presentation/providers/telegram_auth_provider.dart';
 import 'package:cybervpn_mobile/features/referral/presentation/providers/referral_provider.dart';
 
 import '../helpers/mock_repositories.dart';
 import '../helpers/mock_factories.dart';
+
+const _fallbackDeviceInfo = DeviceInfo(
+  deviceId: 'widget-test-device',
+  platform: DevicePlatform.android,
+  platformId: 'widget-test-platform',
+  osVersion: 'test',
+  appVersion: 'test',
+  deviceModel: 'Widget Test Device',
+);
+
+void _registerDeviceInfoFallback() {
+  registerFallbackValue(_fallbackDeviceInfo);
+}
+
+class _TestDeviceService implements DeviceService {
+  @override
+  Future<DeviceInfo> getDeviceInfo({String? pushToken}) async {
+    return _fallbackDeviceInfo.copyWith(pushToken: pushToken);
+  }
+
+  @override
+  Future<String> getDeviceId() async => _fallbackDeviceInfo.deviceId;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _TestTokenRefreshScheduler implements TokenRefreshScheduler {
+  @override
+  Future<void> scheduleRefresh() async {}
+
+  @override
+  void cancel() {}
+
+  @override
+  bool get isScheduled => false;
+}
+
+class _TestWebSocketClient implements WebSocketClient {
+  @override
+  Future<void> connect() async {}
+
+  @override
+  Future<void> disconnect() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 // ---------------------------------------------------------------------------
 // Shared finders
@@ -55,6 +110,7 @@ void stubUnauthenticated(MockAuthRepository mockRepo) {
 
 /// Configures [mockRepo] so that [login] succeeds with a default user.
 void stubLoginSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
+  _registerDeviceInfoFallback();
   final mockUser = user ?? createMockUser();
   when(
     () => mockRepo.login(
@@ -67,6 +123,7 @@ void stubLoginSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
 
 /// Configures [mockRepo] so that [login] throws an error.
 void stubLoginFailure(MockAuthRepository mockRepo, {String? message}) {
+  _registerDeviceInfoFallback();
   when(
     () => mockRepo.login(
       email: any(named: 'email'),
@@ -78,6 +135,7 @@ void stubLoginFailure(MockAuthRepository mockRepo, {String? message}) {
 
 /// Configures [mockRepo] so that [register] succeeds with a default user.
 void stubRegisterSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
+  _registerDeviceInfoFallback();
   final mockUser = user ?? createMockUser();
   when(
     () => mockRepo.register(
@@ -91,6 +149,7 @@ void stubRegisterSuccess(MockAuthRepository mockRepo, {UserEntity? user}) {
 
 /// Configures [mockRepo] so that [register] throws an error.
 void stubRegisterFailure(MockAuthRepository mockRepo, {String? message}) {
+  _registerDeviceInfoFallback();
   when(
     () => mockRepo.register(
       email: any(named: 'email'),
@@ -109,9 +168,18 @@ void stubRegisterFailure(MockAuthRepository mockRepo, {String? message}) {
 List<dynamic> authOverrides(
   MockAuthRepository mockRepo, {
   bool referralAvailable = true,
+  bool telegramLoginAvailable = false,
 }) {
   return [
     authRepositoryProvider.overrideWithValue(mockRepo),
+    deviceServiceProvider.overrideWithValue(_TestDeviceService()),
+    tokenRefreshSchedulerProvider.overrideWithValue(
+      _TestTokenRefreshScheduler(),
+    ),
+    webSocketClientProvider.overrideWithValue(_TestWebSocketClient()),
+    isTelegramLoginAvailableProvider.overrideWith(
+      (ref) => telegramLoginAvailable,
+    ),
     // Mock the referral availability provider for register screen tests
     isReferralAvailableProvider.overrideWith((ref) => referralAvailable),
   ];
@@ -194,11 +262,16 @@ const kValidPassword = 'Abcdef1g';
 ///
 /// Must be called inside each [testWidgets] callback body.
 void ignoreOverflowErrors() {
+  final previousHandler = FlutterError.onError;
+  addTearDown(() => FlutterError.onError = previousHandler);
   FlutterError.onError = (details) {
     final isOverflow = details.toString().contains('overflowed');
     if (!isOverflow) {
-      FlutterError.dumpErrorToConsole(details);
-      throw details.exception;
+      if (previousHandler != null) {
+        previousHandler(details);
+      } else {
+        FlutterError.presentError(details);
+      }
     }
   };
 }

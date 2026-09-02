@@ -160,7 +160,7 @@ class EffectiveCatalog:
 
 @dataclass(frozen=True)
 class _ResolvedItemState:
-    prices: dict[str, Decimal]
+    prices: dict[str, Decimal | None]
     addons: tuple[str, ...]
     billing_periods: tuple[int, ...]
     availability: tuple[str, ...]

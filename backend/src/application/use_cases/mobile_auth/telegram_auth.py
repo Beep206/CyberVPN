@@ -22,6 +22,7 @@ from src.application.services.auth_service import AuthService
 from src.application.services.mobile_session import MobileSessionService
 from src.application.services.public_registration_policy import ensure_public_registration_enabled
 from src.application.services.public_uid_allocator import allocate_public_uid
+from src.application.services.remnawave_identity_access import resolve_exact_mapped_mobile_user_ref
 from src.application.services.telegram_auth import TelegramAuthService
 from src.application.use_cases.mobile_auth.user_response import build_mobile_user_response
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
@@ -84,15 +85,18 @@ class MobileTelegramAuthUseCase:
             # Update existing user's Telegram data if needed
             await self._update_telegram_data(user, telegram_data)
 
+        user_ref = await resolve_exact_mapped_mobile_user_ref(self.session, user)
+
         # Update last login timestamp
         user.last_login_at = datetime.now(UTC)
         await self.user_repo.update(user)
 
         tokens = await self._mobile_sessions().issue_session(user=user, device=request.device)
 
-        # Fetch subscription from Remnawave (cached, with fallback to NONE).
-        if self.subscription_client and user.remnawave_uuid:
-            subscription = await self.subscription_client.get_subscription(user.remnawave_uuid)
+        # Fetch an exact identity-bound subscription; dependency failures are
+        # surfaced rather than converted into an empty entitlement.
+        if self.subscription_client and user_ref is not None:
+            subscription = await self.subscription_client.get_subscription(user_ref)
         else:
             subscription = SubscriptionInfoDTO(status=SubscriptionStatus.NONE)
 

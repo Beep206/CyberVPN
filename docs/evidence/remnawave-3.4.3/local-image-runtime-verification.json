@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-01T11:38:06+05:00",
+  "updated_at": "2026-09-01T13:24:36+05:00",
+  "scope": "local-build-and-runtime-verification-only",
+  "promotion_eligible": false,
+  "promotion_blockers": [
+    "The custom image has not been pushed to the release registry.",
+    "A local SPDX SBOM exists, but registry-bound signature, SBOM/provenance attestations and vulnerability-scan attestations have not been produced for this image.",
+    "Production-like staging inventory, migration, canary, soak and rollback evidence is absent."
+  ],
+  "target": {
+    "panel": "3.4.3",
+    "backend": "3.4.3",
+    "frontend": "3.4.3",
+    "node": "3.4.1",
+    "subscription_page": "8.0.0"
+  },
+  "panel_backend_frontend": {
+    "image": "cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2",
+    "local_manifest_list_digest": "sha256:ac246926428b6bb13d22ea4fd9836c5effc28903c03c519bab3236bac8c6ff19",
+    "upstream_image": "remnawave/backend:3.4.3@sha256:4ea85b2fc16bd3e5d367b61afc07ec219133eaa12dd7b5e898adc33c84515422",
+    "backend_tag_commit": "f8ad8ad3410252215ca7b2e429d157bd275ec564",
+    "frontend_tag_commit": "c2c9ba3b476e4914a3b17e8ce677ab9255e1c02f",
+    "frontend_release_asset_sha256": "947e78b5c89ee49f1ac0389b1bd3c943a4aaf90dce32ce51fb44010182613132",
+    "local_sbom": {
+      "scope": "local-image-only-not-registry-attested",
+      "path": "docs/evidence/remnawave-3.4.3/custom-panel-local.spdx.json",
+      "format": "SPDX-2.3",
+      "document_packages": 634,
+      "docker_scout_indexed_packages": 633,
+      "sha256": "a8a4f738594f065b42011aed59f63d14a246cec7fc2cdeb2c6fe1ced036c8542",
+      "source_image_digest": "sha256:ac246926428b6bb13d22ea4fd9836c5effc28903c03c519bab3236bac8c6ff19"
+    },
+    "local_scout_quickview": {
+      "tool_version": "1.20.4",
+      "exit_code": 0,
+      "target": {"critical": 0, "high": 0, "medium": 3, "low": 39, "unknown": 0},
+      "base_image": {"name": "node:24-trixie-slim", "critical": 0, "high": 4, "medium": 8, "low": 24, "unknown": 0},
+      "owner_disposition": "critical_high_non_blocking_but_visible"
+    },
+    "openapi_diff_from_3_4_2": {
+      "operation_changes": 0,
+      "schema_changes": 0,
+      "info_version_only": true
+    },
+    "build": {
+      "exit_code": 0,
+      "verified": [
+        "exact backend and embedded frontend metadata commits",
+        "backend-tools mixed-case authorization source fix",
+        "concurrent-HWID advisory lock and event behavior",
+        "nullable OpenAPI anyOf behavior",
+        "VLESS RAW Vision flow with XHTTP exclusion",
+        "scoped CyberVPN Node SSH broker",
+        "upstream lint, Prisma generation and production Rspack build"
+      ]
+    },
+    "disposable_runtime_smoke": {
+      "exit_code": 0,
+      "postgres": "17.10",
+      "valkey": "8.1.8",
+      "health": "pass",
+      "lowercase_backend_tools_without_auth": 403,
+      "mixed_case_backend_tools_without_auth": 403,
+      "auth_boundary": "identical fail-closed response",
+      "cleanup": "exact disposable app/database/Valkey containers and network removed"
+    }
+  },
+  "subscription_page_local_sbom": {
+    "scope": "local-image-only-not-registry-attested",
+    "path": "docs/evidence/remnawave-3.4.3/subscription-page-8.0.0-local.spdx.json",
+    "format": "SPDX-2.3",
+    "document_packages": 410,
+    "docker_scout_indexed_packages": 409,
+    "sha256": "f3cab0dfbd9c914f21cd0821be93c50f1813ccb1dfdce3d602defe75c87e7d24",
+    "source_image_digest": "sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac",
+    "local_scout_quickview": {
+      "tool_version": "1.20.4",
+      "exit_code": 0,
+      "target": {"critical": 0, "high": 4, "medium": 6, "low": 48, "unknown": 3},
+      "base_image": {"name": "node:24-trixie-slim", "critical": 1, "high": 11, "medium": 15, "low": 34, "unknown": 3},
+      "owner_disposition": "critical_high_non_blocking_but_visible"
+    }
+  },
+  "node_local_sbom": {
+    "scope": "local-image-only-not-registry-attested",
+    "path": "docs/evidence/remnawave-3.4.3/node-3.4.1-local.spdx.json",
+    "format": "SPDX-2.3",
+    "document_packages": 414,
+    "docker_scout_indexed_packages": 413,
+    "sha256": "69b8e52752647eb06a05399a266e3499e9c905635abeb122ac6f289f868ae5a9",
+    "source_image_digest": "sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e",
+    "local_scout_quickview": {
+      "tool_version": "1.20.4",
+      "exit_code": 0,
+      "target": {"critical": 1, "high": 6, "medium": 6, "low": 27, "unknown": 2},
+      "base_image": {"name": "node:24-trixie-slim", "critical": 0, "high": 4, "medium": 8, "low": 24, "unknown": 0},
+      "owner_disposition": "critical_high_non_blocking_but_visible"
+    }
+  },
+  "commands": [
+    "node --test infra/remnawave-backend-compat/test/*.test.mjs",
+    "docker build --pull --progress=plain --tag cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2 infra/remnawave-backend-compat",
+    "docker image inspect cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2",
+    "docker scout sbom local://cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2 --format spdx --output docs/evidence/remnawave-3.4.3/custom-panel-local.spdx.json",
+    "docker scout sbom local://remnawave/subscription-page:8.0.0 --format spdx --output docs/evidence/remnawave-3.4.3/subscription-page-8.0.0-local.spdx.json",
+    "docker scout sbom local://remnawave/node@sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e --format spdx --output docs/evidence/remnawave-3.4.3/node-3.4.1-local.spdx.json",
+    "docker scout quickview local://cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2",
+    "docker scout quickview local://remnawave/node@sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e",
+    "docker scout quickview local://remnawave/subscription-page:8.0.0",
+    "docker run --rm --entrypoint sh cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2 -c 'node /usr/local/share/cybervpn/remnawave-backend-compat/verify-openapi-nullability.mjs /opt/app/openapi.json && grep -a -F -m 1 toLowerCase().startsWith /opt/app/dist/app.js >/dev/null'",
+    "Disposable local runtime: custom image + PostgreSQL 17.10 + Valkey 8.1.8; curl lowercase and mixed-case backend-tools paths without authorization; require exact HTTP 403 for both"
+  ]
+}

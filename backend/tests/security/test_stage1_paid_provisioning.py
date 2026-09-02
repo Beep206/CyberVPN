@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -21,13 +21,15 @@ from src.application.use_cases.subscriptions.stage1_paid_provisioning import (
     build_stage1_paid_provisioning_request,
 )
 from src.config.settings import settings
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.stage1_paid_gateway import RemnawaveStage1PaidProvisioningGateway
 from src.presentation.api.shared import STAGE1_DEFAULT_VPN_PROFILE_ID, STAGE1_XHTTP_VPN_PROFILE_ID
 
 
 class RecordingPaidGateway:
-    def __init__(self) -> None:
+    def __init__(self, *, with_legacy_uuid: bool = True) -> None:
         self.requests: list[Stage1PaidProvisioningRequest] = []
+        self.with_legacy_uuid = with_legacy_uuid
 
     async def provision_paid_access(
         self,
@@ -37,7 +39,8 @@ class RecordingPaidGateway:
         return Stage1PaidProvisioningResult(
             customer_account_id=request.customer_account_id,
             order_id=request.order_id,
-            remnawave_uuid=request.existing_remnawave_uuid or str(uuid4()),
+            remnawave_uuid=(request.existing_remnawave_uuid or str(uuid4())) if self.with_legacy_uuid else None,
+            remnawave_user_id=42,
             profile_id=request.profile_id,
             status="active",
             expires_at=request.access_expires_at,
@@ -49,7 +52,7 @@ class RecordingPaidGateway:
 class FakeRemnawaveUserGateway:
     def __init__(self) -> None:
         self.created_payloads: list[tuple[str, dict]] = []
-        self.updated_payloads: list[tuple[UUID, dict]] = []
+        self.updated_payloads: list[tuple[RemnawaveUserRef, dict]] = []
         self.user_by_username: SimpleNamespace | None = None
 
     async def get_by_username(self, username: str) -> SimpleNamespace | None:
@@ -60,15 +63,17 @@ class FakeRemnawaveUserGateway:
         self.created_payloads.append((username, kwargs))
         return SimpleNamespace(
             uuid=uuid4(),
+            remnawave_id=42,
             status="ACTIVE",
             expires_at=kwargs["expire_at"],
             subscription_url="https://subscription.example.local/sub/redacted-created",
         )
 
-    async def update(self, uuid: UUID, **kwargs) -> SimpleNamespace:
-        self.updated_payloads.append((uuid, kwargs))
+    async def update(self, user_ref: RemnawaveUserRef, **kwargs) -> SimpleNamespace:
+        self.updated_payloads.append((user_ref, kwargs))
         return SimpleNamespace(
-            uuid=uuid,
+            uuid=user_ref.legacy_uuid,
+            remnawave_id=user_ref.id,
             status="ACTIVE",
             expires_at=kwargs["expire_at"],
             subscription_url="https://subscription.example.local/sub/redacted-updated",
@@ -186,8 +191,9 @@ def test_stage1_paid_rejects_disabled_profile() -> None:
 
 
 @pytest.mark.asyncio
-async def test_stage1_paid_provisioning_service_creates_safe_result() -> None:
-    gateway = RecordingPaidGateway()
+@pytest.mark.parametrize("with_legacy_uuid", [True, False])
+async def test_stage1_paid_provisioning_service_creates_safe_result(with_legacy_uuid: bool) -> None:
+    gateway = RecordingPaidGateway(with_legacy_uuid=with_legacy_uuid)
     user_id = uuid4()
     order_id = uuid4()
     requested_at = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
@@ -214,6 +220,8 @@ async def test_stage1_paid_provisioning_service_creates_safe_result() -> None:
     assert gateway.requests[0].source_provider == "nowpayments"
     assert result.status == "active"
     assert result.created is True
+    assert result.remnawave_user_id == 42
+    assert (result.remnawave_uuid is not None) is with_legacy_uuid
     safe = result.to_safe_dict()
     serialized = str(safe).lower()
     assert safe["order_id"] == str(order_id)
@@ -299,6 +307,7 @@ async def test_remnawave_paid_gateway_uses_create_and_update_contracts(monkeypat
         provisioning_requested_at=requested_at,
         traffic_limit_bytes=None,
         device_limit=5,
+        existing_remnawave_user_id=73,
         existing_remnawave_uuid=str(existing_remnawave_uuid),
     )
     smart_request = build_stage1_paid_provisioning_request(
@@ -331,6 +340,7 @@ async def test_remnawave_paid_gateway_uses_create_and_update_contracts(monkeypat
         provisioning_requested_at=requested_at,
         traffic_limit_bytes=None,
         device_limit=5,
+        existing_remnawave_user_id=74,
         existing_remnawave_uuid=str(smart_existing_remnawave_uuid),
     )
 
@@ -350,14 +360,47 @@ async def test_remnawave_paid_gateway_uses_create_and_update_contracts(monkeypat
     assert user_gateway.created_payloads[1][0] == smart_request.remnawave_username
     assert user_gateway.created_payloads[1][1]["external_squad_uuid"] == smart_ru_squad_uuid
     assert user_gateway.created_payloads[1][1]["active_internal_squads"] == [smart_ru_internal_squad_uuid]
-    assert user_gateway.updated_payloads[0][0] == existing_remnawave_uuid
+    assert user_gateway.updated_payloads[0][0] == RemnawaveUserRef(
+        id=73,
+        legacy_uuid=existing_remnawave_uuid,
+    )
     assert user_gateway.updated_payloads[0][1]["expire_at"] == update_request.access_expires_at
     assert user_gateway.updated_payloads[0][1]["traffic_limit_bytes"] is None
     assert user_gateway.updated_payloads[0][1]["hwid_device_limit"] == 5
     assert "external_squad_uuid" not in user_gateway.updated_payloads[0][1]
-    assert user_gateway.updated_payloads[1][0] == smart_existing_remnawave_uuid
+    assert user_gateway.updated_payloads[1][0] == RemnawaveUserRef(
+        id=74,
+        legacy_uuid=smart_existing_remnawave_uuid,
+    )
     assert user_gateway.updated_payloads[1][1]["external_squad_uuid"] == smart_ru_squad_uuid
     assert user_gateway.updated_payloads[1][1]["active_internal_squads"] == [smart_ru_internal_squad_uuid]
+
+
+@pytest.mark.asyncio
+async def test_remnawave_paid_gateway_rejects_legacy_only_existing_identity() -> None:
+    requested_at = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
+    user_gateway = FakeRemnawaveUserGateway()
+    request = build_stage1_paid_provisioning_request(
+        customer_account_id=uuid4(),
+        order_id=uuid4(),
+        email="paid-user@example.test",
+        username=None,
+        telegram_id=None,
+        order_status=STAGE1_PAID_ORDER_STATUS,
+        settlement_status=STAGE1_PAID_SETTLEMENT_STATUS,
+        plan_duration_days=30,
+        paid_at=requested_at,
+        provisioning_requested_at=requested_at,
+        traffic_limit_bytes=None,
+        device_limit=3,
+        existing_remnawave_uuid=str(uuid4()),
+    )
+
+    with pytest.raises(Stage1PaidProvisioningError, match="numeric identity is not reconciled"):
+        await RemnawaveStage1PaidProvisioningGateway(user_gateway).provision_paid_access(request)
+
+    assert user_gateway.created_payloads == []
+    assert user_gateway.updated_payloads == []
 
 
 @pytest.mark.asyncio
@@ -394,11 +437,12 @@ async def test_remnawave_paid_gateway_fails_closed_when_smart_ru_squads_are_miss
 
 
 @pytest.mark.asyncio
-async def test_remnawave_paid_gateway_updates_existing_username_before_create() -> None:
+async def test_remnawave_paid_gateway_does_not_rebind_existing_username_before_create() -> None:
     existing_uuid = uuid4()
     user_gateway = FakeRemnawaveUserGateway()
     user_gateway.user_by_username = SimpleNamespace(
         uuid=existing_uuid,
+        remnawave_id=75,
         status="ACTIVE",
         expires_at=None,
         subscription_url="https://subscription.example.local/sub/redacted-existing",
@@ -422,10 +466,10 @@ async def test_remnawave_paid_gateway_updates_existing_username_before_create() 
 
     result = await gateway.provision_paid_access(request)
 
-    assert result.created is False
-    assert result.remnawave_uuid == str(existing_uuid)
-    assert user_gateway.created_payloads == []
-    assert user_gateway.updated_payloads[0][0] == existing_uuid
+    assert result.created is True
+    assert result.remnawave_user_id == 42
+    assert len(user_gateway.created_payloads) == 1
+    assert user_gateway.updated_payloads == []
 
 
 @pytest.mark.asyncio
@@ -434,7 +478,7 @@ async def test_stage1_paid_provisioning_contract_serializes_through_asgi_route()
     gateway = RecordingPaidGateway()
 
     @app.post("/s1/vpn/paid-provisioning")
-    async def paid_provisioning() -> dict[str, str | bool]:
+    async def paid_provisioning() -> dict[str, str | int | bool | None]:
         result = await Stage1PaidProvisioningService(gateway).provision(
             customer_account_id=uuid4(),
             order_id=uuid4(),

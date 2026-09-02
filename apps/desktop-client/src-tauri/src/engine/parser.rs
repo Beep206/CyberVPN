@@ -365,6 +365,43 @@ pub fn parse_hysteria2(link: &str) -> Result<ProxyNode, AppError> {
     })
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum VlessTransportKind {
+    Raw,
+    Xhttp,
+}
+
+pub(crate) fn classify_vless_transport(
+    network: Option<&str>,
+) -> Result<VlessTransportKind, AppError> {
+    match network
+        .unwrap_or("raw")
+        .trim()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "" | "raw" | "tcp" => Ok(VlessTransportKind::Raw),
+        "xhttp" | "splithttp" => Ok(VlessTransportKind::Xhttp),
+        value => Err(AppError::System(format!(
+            "Unsupported VLESS transport type: {value}"
+        ))),
+    }
+}
+
+pub(crate) fn validated_xhttp_mode(mode: Option<String>) -> Result<Option<String>, AppError> {
+    let Some(mode) = mode else {
+        return Ok(None);
+    };
+    let normalized = mode.trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        "" => Ok(None),
+        "auto" | "packet-up" | "stream-up" | "stream-one" => Ok(Some(normalized)),
+        _ => Err(AppError::System(format!(
+            "Unsupported XHTTP mode: {normalized}"
+        ))),
+    }
+}
+
 pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
     let parsed_url =
         Url::parse(link).map_err(|e| AppError::System(format!("Invalid URL: {}", e)))?;
@@ -397,6 +434,10 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
     let mut sni = None;
     let mut fingerprint = None;
     let mut flow = None;
+    let mut network: Option<String> = None;
+    let mut transport_path = None;
+    let mut transport_host = None;
+    let mut xhttp_mode = None;
     let mut short_id = None;
     let mut public_key = None;
     let mut tls_fragment = None;
@@ -404,10 +445,38 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
 
     for (k, v) in parsed_url.query_pairs() {
         match k.as_ref() {
-            "security" => tls = Some(v.into_owned()),
+            "security" => {
+                let value = v.trim().to_ascii_lowercase();
+                match value.as_str() {
+                    "" | "none" => tls = None,
+                    "tls" | "reality" => tls = Some(value),
+                    _ => {
+                        return Err(AppError::System(format!(
+                            "Unsupported VLESS security: {value}"
+                        )))
+                    }
+                }
+            }
             "sni" => sni = Some(v.into_owned()),
             "fp" => fingerprint = Some(v.into_owned()),
             "flow" => flow = Some(v.into_owned()),
+            "type" | "network" => {
+                let value = v.trim().to_ascii_lowercase();
+                classify_vless_transport(Some(&value))?;
+                if let Some(existing) = network.as_deref() {
+                    if classify_vless_transport(Some(existing))?
+                        != classify_vless_transport(Some(&value))?
+                    {
+                        return Err(AppError::System(
+                            "Conflicting VLESS transport types".to_string(),
+                        ));
+                    }
+                }
+                network = (!value.is_empty()).then_some(value);
+            }
+            "path" => transport_path = Some(v.into_owned()),
+            "host" => transport_host = Some(v.into_owned()),
+            "mode" => xhttp_mode = Some(v.into_owned()),
             "sid" => short_id = Some(v.into_owned()),
             "pbk" => public_key = Some(v.into_owned()),
             "tls_fragment" | "tls-fragment" => tls_fragment = Some(v == "true" || v == "1"),
@@ -418,6 +487,41 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
         }
     }
 
+    let transport_kind = classify_vless_transport(network.as_deref())?;
+    xhttp_mode = match transport_kind {
+        VlessTransportKind::Xhttp => validated_xhttp_mode(xhttp_mode)?,
+        _ if xhttp_mode.is_some() => {
+            return Err(AppError::System(
+                "XHTTP mode supplied for a non-XHTTP VLESS transport".to_string(),
+            ))
+        }
+        _ => None,
+    };
+
+    // Vision is valid only for TCP/RAW. Some legacy subscription generators
+    // incorrectly attach it to XHTTP; omitting it is required by Xray/Mihomo.
+    if transport_kind != VlessTransportKind::Raw {
+        flow = None;
+    } else if let Some(value) = flow.as_deref() {
+        if !value.is_empty() && value != "xtls-rprx-vision" {
+            return Err(AppError::System(format!("Unsupported VLESS flow: {value}")));
+        }
+    }
+
+    if tls.as_deref() == Some("reality") {
+        if sni.as_deref().is_none_or(str::is_empty)
+            || public_key.as_deref().is_none_or(str::is_empty)
+        {
+            return Err(AppError::System(
+                "Reality VLESS link requires SNI and public key".to_string(),
+            ));
+        }
+    } else if public_key.is_some() || short_id.is_some() {
+        return Err(AppError::System(
+            "Reality options supplied without security=reality".to_string(),
+        ));
+    }
+
     Ok(ProxyNode {
         id: uuid::Uuid::new_v4().to_string(),
         name,
@@ -426,7 +530,10 @@ pub fn parse_vless(link: &str) -> Result<ProxyNode, AppError> {
         protocol: "vless".to_string(),
         uuid: Some(uuid),
         password: None,
-        network: None,
+        network,
+        transport_path,
+        transport_host,
+        xhttp_mode,
         flow,
         tls,
         sni,
@@ -634,6 +741,9 @@ pub fn parse_wireguard(link: &str) -> Result<ProxyNode, AppError> {
         uuid: None,
         password: None,
         network: None,
+        transport_path: None,
+        transport_host: None,
+        xhttp_mode: None,
         flow: None,
         tls: None,
         sni: None,
@@ -867,14 +977,33 @@ pub fn parse_ssh(link: &str) -> Result<ProxyNode, AppError> {
 pub fn generate_link(node: &ProxyNode) -> String {
     let mut url_str = match node.protocol.as_str() {
         "vless" => {
-            let mut u = Url::parse("vless://").unwrap();
+            let mut u = Url::parse("vless://placeholder.invalid").unwrap();
             let _ = u.set_username(node.uuid.as_deref().unwrap_or(""));
             let _ = u.set_host(Some(&node.server));
             let _ = u.set_port(Some(node.port));
 
             let mut q = u.query_pairs_mut();
-            if let Some(ref flow) = node.flow {
-                q.append_pair("flow", flow);
+            if let Some(ref network) = node.network {
+                q.append_pair("type", network);
+            }
+            if matches!(
+                classify_vless_transport(node.network.as_deref()),
+                Ok(VlessTransportKind::Raw)
+            ) {
+                if let Some(ref flow) = node.flow {
+                    if !flow.is_empty() {
+                        q.append_pair("flow", flow);
+                    }
+                }
+            }
+            if let Some(ref path) = node.transport_path {
+                q.append_pair("path", path);
+            }
+            if let Some(ref host) = node.transport_host {
+                q.append_pair("host", host);
+            }
+            if let Some(ref mode) = node.xhttp_mode {
+                q.append_pair("mode", mode);
             }
             if let Some(ref tls) = node.tls {
                 q.append_pair("security", tls);
@@ -1173,6 +1302,9 @@ fn parse_tailscale(link: &str) -> Result<ProxyNode, AppError> {
         uuid: None,
         password: None,
         network: None,
+        transport_path: None,
+        transport_host: None,
+        xhttp_mode: None,
         flow: None,
         tls: None,
         sni: None,
@@ -1330,7 +1462,7 @@ mod tests {
 
     #[test]
     fn parse_vless_with_valid_link_should_extract_all_fields() {
-        let link = "vless://b831381d-6324-4d53-ad4f-8cda48b30811@api.example.com:8443?security=tls&sni=api.example.com&fp=chrome&pbk=pubkey123&sid=short123#My%20Custom%20Node";
+        let link = "vless://b831381d-6324-4d53-ad4f-8cda48b30811@api.example.com:8443?security=reality&type=raw&flow=xtls-rprx-vision&sni=api.example.com&fp=chrome&pbk=pubkey123&sid=short123#My%20Custom%20Node";
         let node = parse_link(link).expect("Failed to parse valid VLESS link");
 
         assert_eq!(node.protocol, "vless");
@@ -1340,12 +1472,73 @@ mod tests {
             node.uuid.as_deref(),
             Some("b831381d-6324-4d53-ad4f-8cda48b30811")
         );
-        assert_eq!(node.tls.as_deref(), Some("tls"));
+        assert_eq!(node.tls.as_deref(), Some("reality"));
+        assert_eq!(node.network.as_deref(), Some("raw"));
+        assert_eq!(node.flow.as_deref(), Some("xtls-rprx-vision"));
         assert_eq!(node.sni.as_deref(), Some("api.example.com"));
         assert_eq!(node.fingerprint.as_deref(), Some("chrome"));
         assert_eq!(node.public_key.as_deref(), Some("pubkey123"));
         assert_eq!(node.short_id.as_deref(), Some("short123"));
         assert_eq!(node.name, "My Custom Node");
+    }
+
+    #[test]
+    fn parse_vless_xhttp_preserves_options_and_drops_vision_flow() {
+        let link = "vless://b831381d-6324-4d53-ad4f-8cda48b30811@xhttp.example:443?security=reality&type=xhttp&flow=xtls-rprx-vision&path=%2Fapi%2Fv3&host=cdn.example&mode=stream-up&sni=cover.example&fp=chrome&pbk=pubkey123&sid=abcd#XHTTP";
+        let node = parse_link(link).expect("XHTTP link should parse");
+
+        assert_eq!(node.network.as_deref(), Some("xhttp"));
+        assert_eq!(node.transport_path.as_deref(), Some("/api/v3"));
+        assert_eq!(node.transport_host.as_deref(), Some("cdn.example"));
+        assert_eq!(node.xhttp_mode.as_deref(), Some("stream-up"));
+        assert_eq!(node.flow, None);
+
+        let regenerated = generate_link(&node);
+        let reparsed = parse_link(&regenerated).expect("regenerated XHTTP link should parse");
+        assert_eq!(reparsed.network, node.network);
+        assert_eq!(reparsed.transport_path, node.transport_path);
+        assert_eq!(reparsed.transport_host, node.transport_host);
+        assert_eq!(reparsed.xhttp_mode, node.xhttp_mode);
+        assert_eq!(reparsed.flow, None);
+        assert_eq!(reparsed.public_key, node.public_key);
+        assert_eq!(reparsed.short_id, node.short_id);
+    }
+
+    #[test]
+    fn parse_vless_transports_without_exact_generators_fail_closed() {
+        for transport in [
+            "ws",
+            "grpc",
+            "http",
+            "h2",
+            "httpupgrade",
+            "quic",
+            "kcp",
+            "domainsocket",
+        ] {
+            let link = format!(
+                "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443?type={transport}"
+            );
+            let error = parse_vless(&link)
+                .expect_err("unsupported transports must not silently downgrade to RAW");
+            assert!(error
+                .to_string()
+                .contains(&format!("Unsupported VLESS transport type: {transport}")));
+        }
+    }
+
+    #[test]
+    fn parse_vless_unknown_transport_security_and_mode_fail_closed() {
+        for link in [
+            "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443?type=magic",
+            "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443?security=legacy",
+            "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443?type=xhttp&mode=unsafe",
+            "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443?type=raw&mode=packet-up",
+            "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443?security=reality&type=raw&sni=cover.example",
+            "vless://b831381d-6324-4d53-ad4f-8cda48b30811@example.com:443?security=tls&type=raw&pbk=unexpected",
+        ] {
+            assert!(parse_link(link).is_err(), "link must fail closed: {link}");
+        }
     }
 
     #[test]

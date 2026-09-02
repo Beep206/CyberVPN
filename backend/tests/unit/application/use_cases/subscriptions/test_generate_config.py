@@ -1,11 +1,16 @@
 from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
 from fastapi import HTTPException
 from httpx import HTTPStatusError, Request, Response
 
-from src.application.use_cases.subscriptions.generate_config import GenerateConfigUseCase
+from src.application.use_cases.subscriptions.generate_config import (
+    GenerateConfigLegacyRollbackUseCase,
+    GenerateConfigUseCase,
+)
 from src.config.settings import settings
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
 
 
@@ -30,7 +35,7 @@ async def test_generate_config_prefers_subscription_url_over_direct_links() -> N
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("user-1")
+    result = await GenerateConfigUseCase(client).execute(1)
 
     assert result["config"] == "https://sub.example.com/user-1"
     assert result["config_string"] == result["config"]
@@ -61,7 +66,7 @@ async def test_generate_config_falls_back_to_subscription_url_for_placeholder_li
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("user-2")
+    result = await GenerateConfigUseCase(client).execute(2)
 
     assert result["config"] == "https://sub.example.com/user-2"
     assert result["client_type"] == "subscription"
@@ -86,7 +91,7 @@ async def test_generate_config_preserves_links_and_ss_conf_links() -> None:
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("user-3")
+    result = await GenerateConfigUseCase(client).execute(3)
 
     assert result["is_found"] is True
     assert result["links"] == ["vmess://config-1"]
@@ -120,7 +125,7 @@ async def test_generate_config_allows_remnawave_2_8_xhttp_links_when_enabled(
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("xhttp-user", user_segments=["beta"])
+    result = await GenerateConfigUseCase(client).execute(4, user_segments=["beta"])
 
     assert result["config"] == xhttp_link
     assert result["client_type"] == "vless"
@@ -156,7 +161,7 @@ async def test_generate_config_allows_premium_smart_ru_plan_rollout_xhttp_links(
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("xhttp-user", plan_code="premium_smart_ru")
+    result = await GenerateConfigUseCase(client).execute(5, plan_code="premium_smart_ru")
 
     assert result["config"] == stable_link
     assert result["links"] == [stable_link, xhttp_link]
@@ -191,7 +196,7 @@ async def test_generate_config_filters_premium_smart_ru_xhttp_without_plan_conte
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("xhttp-user")
+    result = await GenerateConfigUseCase(client).execute(6)
 
     assert result["config"] == stable_link
     assert result["links"] == [stable_link]
@@ -225,7 +230,7 @@ async def test_generate_config_force_disabled_filters_xhttp_links_and_uses_stabl
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("stable-user")
+    result = await GenerateConfigUseCase(client).execute(7)
 
     assert result["config"] == stable_link
     assert result["links"] == [stable_link]
@@ -240,13 +245,13 @@ async def test_generate_config_maps_upstream_404_to_http_404() -> None:
     client.get_validated = AsyncMock(
         side_effect=HTTPStatusError(
             "not found",
-            request=Request("GET", "http://localhost:3005/api/subscriptions/by-uuid/missing"),
+            request=Request("GET", "http://localhost:3005/api/subscriptions/by-id/8"),
             response=Response(404),
         )
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await GenerateConfigUseCase(client).execute("missing")
+        await GenerateConfigUseCase(client).execute(8)
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Subscription config not found"
@@ -271,7 +276,65 @@ async def test_generate_config_maps_expired_user_to_http_422() -> None:
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        await GenerateConfigUseCase(client).execute("expired-user")
+        await GenerateConfigUseCase(client).execute(9)
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.detail == "Subscription expired"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_generate_config_uses_numeric_subscription_route_after_cutover() -> None:
+    client = AsyncMock()
+    client.get_validated.return_value = RemnawaveSubscriptionDetailsResponse(
+        is_found=True,
+        user={
+            "shortUuid": "numeric-user",
+            "username": "numeric-user",
+            "userStatus": "ACTIVE",
+            "isActive": True,
+        },
+        links=["vless://numeric@example.test:443"],
+    )
+
+    await GenerateConfigUseCase(client).execute(RemnawaveUserRef(id=42))
+
+    client.get_validated.assert_awaited_once_with(
+        "/subscriptions/by-id/42",
+        RemnawaveSubscriptionDetailsResponse,
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_generate_config_rejects_legacy_only_identity_on_normal_path() -> None:
+    client = AsyncMock()
+
+    with pytest.raises(ValueError, match="numeric user id"):
+        await GenerateConfigUseCase(client).execute(RemnawaveUserRef(legacy_uuid=UUID(int=1)))
+
+    client.get_validated.assert_not_awaited()
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_generate_config_legacy_uuid_isolated_to_explicit_rollback_adapter() -> None:
+    legacy_uuid = UUID(int=1)
+    client = AsyncMock()
+    client.get_validated.return_value = RemnawaveSubscriptionDetailsResponse(
+        is_found=True,
+        user={
+            "shortUuid": "rollback-user",
+            "username": "rollback-user",
+            "userStatus": "ACTIVE",
+            "isActive": True,
+        },
+        links=["vless://rollback@example.test:443"],
+    )
+
+    await GenerateConfigLegacyRollbackUseCase(client).execute(legacy_uuid)
+
+    client.get_validated.assert_awaited_once_with(
+        f"/subscriptions/by-uuid/{legacy_uuid}",
+        RemnawaveSubscriptionDetailsResponse,
+    )

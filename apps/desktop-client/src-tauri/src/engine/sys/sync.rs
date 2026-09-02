@@ -9,7 +9,6 @@ use argon2::{
 };
 use keyring::Entry;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::time::Duration;
 use tauri::Manager;
 use tokio::fs;
@@ -140,27 +139,17 @@ pub fn delete_sync_password() -> Result<(), AppError> {
     Ok(())
 }
 
-fn get_store_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, AppError> {
-    let mut path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| AppError::System(format!("Failed to get app data dir: {}", e)))?;
-    path.push("store.json");
-    Ok(path)
-}
-
 // MOCK: In a real app we'd push to Supabase/PostgreSQL. Here we mock a successful API call
 // by just writing the encrypted payload to a local "mock_cloud.json" to simulate remote server storage.
 #[tauri::command]
 pub async fn cloud_push(password: String, app_handle: tauri::AppHandle) -> Result<(), AppError> {
-    let store_path = get_store_path(&app_handle)?;
-    if !store_path.exists() {
+    if !crate::engine::store::get_store_path(&app_handle)?.exists() {
         return Err(AppError::System("No local data to sync".into()));
     }
-
-    let plaintext = fs::read(&store_path)
-        .await
-        .map_err(|e| AppError::System(format!("Read store failed: {}", e)))?;
+    // Loading first completes any one-time plaintext subscription migration;
+    // serializing the typed store guarantees bearer URLs are not synced.
+    let store = crate::engine::store::load_store(&app_handle)?;
+    let plaintext = serde_json::to_vec(&store)?;
 
     // CPU-intensive AES-GCM and Argon2 should run on the blocking threadpool
     let encrypted_payload =
@@ -194,8 +183,33 @@ pub async fn cloud_push(password: String, app_handle: tauri::AppHandle) -> Resul
     }
 }
 
+fn parse_secret_free_cloud_store(
+    plaintext: &[u8],
+) -> Result<crate::engine::store::AppDataStore, AppError> {
+    let imported: crate::engine::store::AppDataStore =
+        serde_json::from_slice(plaintext).map_err(|_| {
+            AppError::SyncConflict(
+                "Downloaded Cloud data is corrupted or invalid. Swap aborted.".into(),
+            )
+        })?;
+    if imported
+        .subscriptions
+        .iter()
+        .any(|subscription| subscription.legacy_url.is_some())
+    {
+        return Err(AppError::SyncConflict(
+            "Cloud data contains legacy subscription credentials; migrate and re-sync it from the source device"
+                .into(),
+        ));
+    }
+    Ok(imported)
+}
+
 #[tauri::command]
 pub async fn cloud_pull(password: String, app_handle: tauri::AppHandle) -> Result<(), AppError> {
+    // Capture before network/decryption so any local command that commits
+    // while the pull is in flight makes the final replacement fail closed.
+    let expected_local_revision = crate::engine::store::load_store(&app_handle)?.store_revision;
     // Simulate Network Request with timeout
     let mock_network_call = async {
         tokio::time::sleep(Duration::from_millis(600)).await;
@@ -232,30 +246,15 @@ pub async fn cloud_pull(password: String, app_handle: tauri::AppHandle) -> Resul
             .await
             .map_err(|_| AppError::System("Decryption thread panicked".into()))??;
 
-    // STRICT ATOMIC SWAP:
-    // 1. Write to temp file
-    // 2. Validate it's solid
-    // 3. File Swap
-    let live_path = get_store_path(&app_handle)?;
-    let temp_path = live_path.with_extension("json.tmp");
+    let imported = parse_secret_free_cloud_store(&plaintext)?;
 
-    fs::write(&temp_path, &plaintext)
-        .await
-        .map_err(|e| AppError::System(format!("Temp write failed: {}", e)))?;
-
-    // Basic Validation: Ensure it's valid JSON
-    let is_valid_json = serde_json::from_slice::<serde_json::Value>(&plaintext).is_ok();
-    if !is_valid_json {
-        let _ = fs::remove_file(&temp_path).await; // cleanup
-        return Err(AppError::SyncConflict(
-            "Downloaded Cloud data is corrupted or invalid. Swap aborted.".into(),
-        ));
-    }
-
-    // Atomic Swap
-    fs::rename(&temp_path, &live_path)
-        .await
-        .map_err(|e| AppError::System(format!("Atomic file swap failed: {}", e)))?;
+    // Re-serialize the typed, secret-free model through the store's durable
+    // atomic replacement instead of ever writing decrypted raw bytes to disk.
+    crate::engine::store::replace_store_if_revision_atomic(
+        &app_handle,
+        &imported,
+        expected_local_revision,
+    )?;
 
     Ok(())
 }
@@ -272,4 +271,32 @@ pub fn generate_pairing_qr(password: String) -> Result<String, AppError> {
     let b64_payload = BASE64.encode(payload);
 
     Ok(b64_payload)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cloud_import_rejects_plaintext_subscription_credentials_without_echoing_them() {
+        let mut value = serde_json::to_value(crate::engine::store::AppDataStore::default())
+            .expect("default store must serialize");
+        value["subscriptions"] = serde_json::json!([{
+            "id": "b831381d-6324-4d53-ad4f-8cda48b30811",
+            "name": "Primary",
+            "url": "https://203.0.114.1/cloud-bearer-token",
+            "autoUpdate": true,
+            "lastUpdated": null
+        }]);
+        let bytes = serde_json::to_vec(&value).expect("fixture must serialize");
+
+        let error = parse_secret_free_cloud_store(&bytes)
+            .err()
+            .expect("cloud payloads must never import plaintext subscription URLs");
+
+        assert!(error
+            .to_string()
+            .contains("legacy subscription credentials"));
+        assert!(!error.to_string().contains("cloud-bearer-token"));
+    }
 }

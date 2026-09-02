@@ -63,6 +63,11 @@ class _FakeVpnConnectionNotifier extends AsyncNotifier<VpnConnectionState>
   Future<void> connectFromCustomServer(ImportedConfig customServer) async {}
 
   @override
+  Future<void> connectBySubscriptionPolicy({
+    String trigger = 'auto_connect',
+  }) async {}
+
+  @override
   Future<void> connectToLastOrRecommended() async {}
 
   @override

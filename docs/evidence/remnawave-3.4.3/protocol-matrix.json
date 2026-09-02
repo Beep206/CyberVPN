@@ -1,0 +1,279 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-09-01T10:17:42.2688179+00:00",
+  "scope": "Local Windows parser/config validation only. Windows executables came from verified official archives; Linux/macOS release-target archives and their pinned runtime members were hash-verified after extraction but were not executed. No live-connect, staging, production, revoke, or refresh claim is made.",
+  "remnawavePanel": "3.4.3",
+  "remnawaveNode": "3.4.1",
+  "desktopReleaseTargets": [
+    "windows-x86_64",
+    "linux-x86_64",
+    "macos-x86_64",
+    "macos-aarch64"
+  ],
+  "officialDigestSources": {
+    "xray": "https://api.github.com/repos/XTLS/Xray-core/releases/tags/v26.7.28",
+    "singBox": "https://api.github.com/repos/SagerNet/sing-box/releases/tags/v1.13.8"
+  },
+  "archiveIntegritySelfTest": {
+    "tamperedArchiveRejected": true,
+    "rejectedBeforeExtraction": true
+  },
+  "officialAssets": {
+    "xrayMinimum": {
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.3.27/Xray-windows-64.zip",
+      "archiveFile": "xray-26.3.27-windows-64.zip",
+      "archiveSha256": "d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "xray.exe": {
+          "sha256": "15c2d007954ac53ba69b80ec91242786b3c0b71d52649165b4ca1d5cc96ef8f1",
+          "verifiedAfterExtraction": true
+        }
+      }
+    },
+    "xrayTarget": {
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.7.28/Xray-windows-64.zip",
+      "archiveFile": "xray-26.7.28-windows-64.zip",
+      "archiveSha256": "c7172078fca4711bcd92a4774dcd1822544579c58816197575c47533317fd8d1",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "xray.exe": {
+          "sha256": "1d9674327972a21afd4c906a7a72bb0856935aa9e0227c87f34f03d11a88bddf",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "sourceCommit": "5ca6f4b7d4dc20a881d4330e498892697627ec0c"
+    },
+    "mihomo": {
+      "url": "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.28/mihomo-windows-amd64-compatible-v1.19.28.zip",
+      "archiveFile": "mihomo-1.19.28-windows-amd64-compatible.zip",
+      "archiveSha256": "6d8a079d01b3631e73e56b7b42a067afc14f9e3ad99f2880d38bb141cf8fcbe7",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "mihomo-windows-amd64-compatible.exe": {
+          "sha256": "a3799f2d75c623a7c6d307e1faf88269e24dd746c59df3e9f1c84d5cfbff6c92",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "sourceCommit": "cbd11db1e13a75d8e680e0fe7742c95be4cba2be"
+    },
+    "singBox": {
+      "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.8/sing-box-1.13.8-windows-amd64.zip",
+      "archiveFile": "sing-box-1.13.8-windows-amd64.zip",
+      "archiveSha256": "599b743e9618b38d16ae1af65b35ffa3afadcc531b5bd9fea616e644711be5b9",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "sing-box.exe": {
+          "sha256": "e4f0d76903dbec850121b20cd6cf917fa6c456a554c97fba53bd6cda7790fbd8",
+          "verifiedAfterExtraction": true
+        },
+        "libcronet.dll": {
+          "sha256": "43e2e6c8bf0d29263fed11a7a11c108b671c741c54eb8ba9f5bc5370db8a2684",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "sourceCommit": "d5adb54bc6c6b2c21ab6f748276c4ec62d9bb650"
+    },
+    "xrayLinuxX64": {
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.7.28/Xray-linux-64.zip",
+      "archiveFile": "xray-linux-64.zip",
+      "archiveSha256": "8195d909f1109b8f3d99eefe401a3c451d7bf4af71f24d3815420f77e5dd2a40",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "xray": {
+          "sha256": "64d46afb80adea1bf97a0d467e83f4a9ac1ebd0995891e84bca3f1a1d1affb1d",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "executed": false
+    },
+    "xrayMacosX64": {
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.7.28/Xray-macos-64.zip",
+      "archiveFile": "xray-macos-64.zip",
+      "archiveSha256": "812f7d9de6d3506795eabda2f6928ba301c632c3fe6fa39c52ea8e0ed9e4e244",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "xray": {
+          "sha256": "38571e7799c0f34b1151fc2dfc40cfe570bec55ea59dd93dcee19d52648cea03",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "executed": false
+    },
+    "xrayMacosArm64": {
+      "url": "https://github.com/XTLS/Xray-core/releases/download/v26.7.28/Xray-macos-arm64-v8a.zip",
+      "archiveFile": "xray-macos-arm64-v8a.zip",
+      "archiveSha256": "9b99a351febe31b7e0c7f22deeb1577a1da0b98aaa51aec7fd17832e68cf63d6",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "xray": {
+          "sha256": "bd4154efa640c5b8e21f10b68afcc9177c4f1f543be3ec0485b10c499b2a4b27",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "executed": false
+    },
+    "singBoxLinuxX64": {
+      "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.8/sing-box-1.13.8-linux-amd64.tar.gz",
+      "archiveFile": "sing-box-linux-amd64.tar.gz",
+      "archiveSha256": "aab8841979aba14ae4c4dc72c4a593be1a16da95e75d53b494ed718f0223370f",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "sing-box": {
+          "sha256": "83b7846dc85ffb1f64c1d14f63eba2fcf3d3b19ed4049c2fcd291ed6c29b5cc2",
+          "verifiedAfterExtraction": true
+        },
+        "libcronet.so": {
+          "sha256": "55c35e93dff3ab2174b9a338adbc99f5bd1dc54347f8aa605f44f129db30dd80",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "executed": false
+    },
+    "singBoxMacosX64": {
+      "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.8/sing-box-1.13.8-darwin-amd64.tar.gz",
+      "archiveFile": "sing-box-darwin-amd64.tar.gz",
+      "archiveSha256": "0db6aca503dcdd5a816e668669e79231f991cdbbd13fcbf6dd4f9bcb8a1c3b0e",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "sing-box": {
+          "sha256": "21a31b26bbb9d9299380083aaab59c949006130720fdc44db940c32f6493f0b6",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "executed": false
+    },
+    "singBoxMacosArm64": {
+      "url": "https://github.com/SagerNet/sing-box/releases/download/v1.13.8/sing-box-1.13.8-darwin-arm64.tar.gz",
+      "archiveFile": "sing-box-darwin-arm64.tar.gz",
+      "archiveSha256": "e9e4c72a4a64c19d515b800b7191c50367522c8169654c569677b15873e08249",
+      "archiveVerifiedBeforeExtraction": true,
+      "runtimeFiles": {
+        "sing-box": {
+          "sha256": "17e6a7f417a2bbff3693940c024856c3fc88fe5fc3acbc90146a7776d4211909",
+          "verifiedAfterExtraction": true
+        }
+      },
+      "executed": false
+    }
+  },
+  "binaries": {
+    "singBox": {
+      "file": "sing-box.exe",
+      "sha256": "e4f0d76903dbec850121b20cd6cf917fa6c456a554c97fba53bd6cda7790fbd8",
+      "version": "sing-box version 1.13.8"
+    },
+    "xrayMinimum": {
+      "file": "xray.exe",
+      "sha256": "15c2d007954ac53ba69b80ec91242786b3c0b71d52649165b4ca1d5cc96ef8f1",
+      "version": "Xray 26.3.27 (Xray, Penetrates Everything.) d2758a0 (go1.26.1 windows/amd64)"
+    },
+    "mihomo": {
+      "file": "mihomo-windows-amd64-compatible.exe",
+      "sha256": "a3799f2d75c623a7c6d307e1faf88269e24dd746c59df3e9f1c84d5cfbff6c92",
+      "version": "Mihomo Meta v1.19.28 windows amd64 with go1.26.5 Wed Jul  8 00:24:39 UTC 2026"
+    },
+    "xrayTarget": {
+      "file": "xray.exe",
+      "sha256": "1d9674327972a21afd4c906a7a72bb0856935aa9e0227c87f34f03d11a88bddf",
+      "version": "Xray 26.7.28 (Xray, Penetrates Everything.) 5ca6f4b (go1.26.5 windows/amd64)"
+    }
+  },
+  "results": [
+    {
+      "name": "desktop-production-xray-config-export",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "cargo test --manifest-path <repo>\\apps\\desktop-client\\src-tauri\\Cargo.toml exports_xray_protocol_matrix_fixtures_when_requested -- --nocapture",
+      "output": "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.54s\r\n     Running unittests src\\lib.rs (apps\\desktop-client\\src-tauri\\target\\debug\\deps\\desktop_client_lib-82d1bd8725f87b13.exe)\r\n\r\nrunning 1 test\r\ntest engine::config::tests::exports_xray_protocol_matrix_fixtures_when_requested ... ok\r\n\r\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 122 filtered out; finished in 0.00s\r\n\r\n     Running unittests src\\main.rs (apps\\desktop-client\\src-tauri\\target\\debug\\deps\\desktop_client-2547db17dd34d03d.exe)\r\n\r\nrunning 0 tests\r\n\r\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\r\n\r\n     Running tests\\tray_shutdown_contract.rs (apps\\desktop-client\\src-tauri\\target\\debug\\deps\\tray_shutdown_contract-1139269489378a8f.exe)\r\n\r\nrunning 0 tests\r\n\r\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s"
+    },
+    {
+      "name": "xray-minimum-raw-reality-vision",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "xray.exe run -test -c <temp>\\xray-raw.json",
+      "output": "Xray 26.3.27 (Xray, Penetrates Everything.) d2758a0 (go1.26.1 windows/amd64)\r\nA unified platform for anti-censorship.\r\nConfiguration OK."
+    },
+    {
+      "name": "xray-minimum-xhttp-reality-no-flow",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "xray.exe run -test -c <temp>\\xray-xhttp.json",
+      "output": "Xray 26.3.27 (Xray, Penetrates Everything.) d2758a0 (go1.26.1 windows/amd64)\r\nA unified platform for anti-censorship.\r\nConfiguration OK."
+    },
+    {
+      "name": "xray-target-raw-reality-vision",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "xray.exe run -test -c <temp>\\xray-raw.json",
+      "output": "Xray 26.7.28 (Xray, Penetrates Everything.) 5ca6f4b (go1.26.5 windows/amd64)\r\nA unified platform for anti-censorship.\r\n2026/09/01 15:17:41.819907 [Info] infra/conf/serial: Reading config: &{Name:<temp>\\xray-raw.json Format:json}\r\nConfiguration OK."
+    },
+    {
+      "name": "xray-target-xhttp-reality-no-flow",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "xray.exe run -test -c <temp>\\xray-xhttp.json",
+      "output": "Xray 26.7.28 (Xray, Penetrates Everything.) 5ca6f4b (go1.26.5 windows/amd64)\r\nA unified platform for anti-censorship.\r\n2026/09/01 15:17:41.856114 [Info] infra/conf/serial: Reading config: &{Name:<temp>\\xray-xhttp.json Format:json}\r\nConfiguration OK."
+    },
+    {
+      "name": "xray-target-unknown-network-fail-closed",
+      "expected": "reject",
+      "exitCode": 23,
+      "passed": true,
+      "command": "xray.exe run -test -c <temp>\\xray-unknown-network.json",
+      "output": "Xray 26.7.28 (Xray, Penetrates Everything.) 5ca6f4b (go1.26.5 windows/amd64)\r\nA unified platform for anti-censorship.\r\n2026/09/01 15:17:41.892207 [Info] infra/conf/serial: Reading config: &{Name:<temp>\\xray-unknown-network.json Format:json}\r\nFailed to start: main: failed to load config files: [<temp>\\xray-unknown-network.json] > infra/conf: failed to build outbound config with tag proxy > infra/conf: failed to build stream settings for outbound detour > infra/conf: Config: unknown transport protocol: magic"
+    },
+    {
+      "name": "xray-target-unknown-xhttp-mode-fail-closed",
+      "expected": "reject",
+      "exitCode": 23,
+      "passed": true,
+      "command": "xray.exe run -test -c <temp>\\xray-unknown-mode.json",
+      "output": "Xray 26.7.28 (Xray, Penetrates Everything.) 5ca6f4b (go1.26.5 windows/amd64)\r\nA unified platform for anti-censorship.\r\n2026/09/01 15:17:41.927635 [Info] infra/conf/serial: Reading config: &{Name:<temp>\\xray-unknown-mode.json Format:json}\r\nFailed to start: main: failed to load config files: [<temp>\\xray-unknown-mode.json] > infra/conf: failed to build outbound config with tag proxy > infra/conf: failed to build stream settings for outbound detour > infra/conf: Failed to build XHTTP config. > infra/conf: unsupported mode: unsafe"
+    },
+    {
+      "name": "mihomo-raw-vision-and-xhttp-no-flow",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "mihomo-windows-amd64-compatible.exe -t -d <temp> -f <temp>\\mihomo.yaml",
+      "output": "time=\"2026-09-01T15:17:41.962647700+05:00\" level=info msg=\"Start initial configuration in progress\"\r\ntime=\"2026-09-01T15:17:41.963157000+05:00\" level=info msg=\"Geodata Loader mode: memconservative\"\r\ntime=\"2026-09-01T15:17:41.963157000+05:00\" level=info msg=\"Geosite Matcher implementation: succinct\"\r\ntime=\"2026-09-01T15:17:41.966754200+05:00\" level=info msg=\"Initial configuration complete, total time: 4ms\"\r\nconfiguration file <temp>\\mihomo.yaml test is successful"
+    },
+    {
+      "name": "mihomo-validator-accepts-unknown-network-parser-guard-required",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "mihomo-windows-amd64-compatible.exe -t -d <temp> -f <temp>\\mihomo-unknown.yaml",
+      "output": "time=\"2026-09-01T15:17:41.998871200+05:00\" level=info msg=\"Start initial configuration in progress\"\r\ntime=\"2026-09-01T15:17:41.999380800+05:00\" level=info msg=\"Geodata Loader mode: memconservative\"\r\ntime=\"2026-09-01T15:17:41.999380800+05:00\" level=info msg=\"Geosite Matcher implementation: succinct\"\r\ntime=\"2026-09-01T15:17:42.002980000+05:00\" level=info msg=\"Initial configuration complete, total time: 4ms\"\r\nconfiguration file <temp>\\mihomo-unknown.yaml test is successful"
+    },
+    {
+      "name": "sing-box-raw-reality-vision",
+      "expected": "accept",
+      "exitCode": 0,
+      "passed": true,
+      "command": "sing-box.exe check -c <temp>\\sing-box-raw.json",
+      "output": ""
+    },
+    {
+      "name": "sing-box-xhttp-unsupported-fail-closed",
+      "expected": "reject",
+      "exitCode": 1,
+      "passed": true,
+      "command": "sing-box.exe check -c <temp>\\sing-box-xhttp.json",
+      "output": "FATAL[0000] decode config at <temp>\\sing-box-xhttp.json: outbounds[0].transport: unknown transport type: xhttp"
+    }
+  ],
+  "limitations": [
+    "sing-box 1.13.8 rejects XHTTP; the desktop client routes imported XHTTP profiles to pinned Xray.",
+    "Mihomo 1.19.28 config validation accepts an unknown VLESS network value; CyberVPN rejects it in parser tests before config generation.",
+    "The managed Xray path is SOCKS-only and rejects TUN mode explicitly.",
+    "Linux arm64 and Windows arm64 are not desktop-release workflow targets; automatic runtime download stays fail-closed until exact target pins are added.",
+    "Configuration validation does not prove a successful network connection."
+  ]
+}

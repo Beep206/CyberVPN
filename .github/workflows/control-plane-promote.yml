@@ -4,37 +4,31 @@ on:
   workflow_dispatch:
     inputs:
       target_environment:
-        description: 'Inventory environment to update'
+        description: 'Environment policy used for the review artifact'
         required: true
         type: choice
         default: staging
         options:
           - staging
           - production
-      base_ref:
-        description: 'Branch or tag to update'
-        required: true
-        default: main
-        type: string
-      backend_image:
-        description: 'Digest-pinned backend image ref'
+      release_images_json:
+        description: 'JSON object containing all seven component digest refs'
         required: true
         type: string
-      worker_image:
-        description: 'Digest-pinned worker image ref'
-        required: true
-        type: string
-      helix_adapter_image:
-        description: 'Digest-pinned Helix adapter image ref'
+      remnawave_auth_secret_sha256:
+        description: 'SHA-256 fingerprint from the read-only pre-upgrade auth secret inventory'
         required: true
         type: string
       source_commit:
-        description: 'Commit SHA that produced the images'
-        required: false
-        default: ''
+        description: 'Exact 40-character commit SHA that produced every image'
+        required: true
         type: string
       source_run_url:
-        description: 'Build evidence URL'
+        description: 'HTTPS URL of the trusted image build run'
+        required: true
+        type: string
+      accepted_risk_decision_path:
+        description: 'Optional protected-branch JSON decision path; required when a signed scan has findings'
         required: false
         default: ''
         type: string
@@ -48,97 +42,180 @@ concurrency:
   group: control-plane-promote-${{ inputs.target_environment }}
   cancel-in-progress: false
 
+# Promotion is intentionally read-only. Applying the uploaded manifest remains
+# a separately reviewed deployment action in the protected environment.
 permissions:
-  contents: write
+  attestations: read
+  contents: read
+  packages: read
 
 jobs:
-  promote:
-    name: Promote control-plane release
+  prepare-review-artifact:
+    name: Verify and prepare release review artifact
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
     environment: ${{ inputs.target_environment }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout protected default branch policy
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ inputs.base_ref }}
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
           python-version: '3.13.14'
 
-      - name: Install script dependency
-        run: pip install pyyaml
+      - name: Parse exact release image set
+        env:
+          RELEASE_IMAGES_JSON: ${{ inputs.release_images_json }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
 
-      - name: Update release manifest
+          def reject_duplicate_keys(pairs):
+              payload = {}
+              for key, value in pairs:
+                  if key in payload:
+                      raise ValueError(f"duplicate release image key: {key}")
+                  payload[key] = value
+              return payload
+
+          expected = {
+              "backend": "ghcr.io/beep206/cybervpn/backend",
+              "remnawave": "ghcr.io/beep206/cybervpn/remnawave-backend",
+              "worker": "ghcr.io/beep206/cybervpn/task-worker",
+              "helix_adapter": "ghcr.io/beep206/cybervpn/helix-adapter",
+              "node": "ghcr.io/beep206/cybervpn/remnawave-node",
+              "subscription_page": "ghcr.io/beep206/cybervpn/remnawave-subscription-page",
+              "node_ssh_proxy": "ghcr.io/beep206/cybervpn/node-ssh-proxy",
+          }
+          env_names = {component: f"{component.upper()}_IMAGE" for component in expected}
+          try:
+              images = json.loads(
+                  os.environ["RELEASE_IMAGES_JSON"],
+                  object_pairs_hook=reject_duplicate_keys,
+              )
+          except (json.JSONDecodeError, ValueError) as exc:
+              raise SystemExit(f"release_images_json is invalid: {exc}") from exc
+          if not isinstance(images, dict) or set(images) != set(expected):
+              raise SystemExit("release_images_json must contain exactly all seven components")
+          seen = set()
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env_file:
+              for component, repository in expected.items():
+                  image = images[component]
+                  prefix = f"{repository}@sha256:"
+                  if not isinstance(image, str) or not image.startswith(prefix):
+                      raise SystemExit(f"invalid reviewed repository for {component}")
+                  digest = image.removeprefix(prefix)
+                  if not re.fullmatch(r"[a-f0-9]{64}", digest) or digest in seen:
+                      raise SystemExit(f"invalid or reused digest for {component}")
+                  seen.add(digest)
+                  print(f"{env_names[component]}={image}", file=env_file)
+          PY
+
+      - name: Authenticate read-only OCI access
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Verify signed attestations and accepted-risk policy
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          SOURCE_RUN_URL: ${{ inputs.source_run_url }}
+          ACCEPTED_RISK_DECISION_PATH: ${{ inputs.accepted_risk_decision_path }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/control-plane-release/attestations"
+          cmd=(
+            python infra/ansible/scripts/verify_control_plane_attestations.py
+            --source-commit "$SOURCE_COMMIT"
+            --source-run-url "$SOURCE_RUN_URL"
+            --image "backend=$BACKEND_IMAGE"
+            --image "remnawave=$REMNAWAVE_IMAGE"
+            --image "worker=$WORKER_IMAGE"
+            --image "helix_adapter=$HELIX_ADAPTER_IMAGE"
+            --image "node=$NODE_IMAGE"
+            --image "subscription_page=$SUBSCRIPTION_PAGE_IMAGE"
+            --image "node_ssh_proxy=$NODE_SSH_PROXY_IMAGE"
+            --verification-output-dir "$RUNNER_TEMP/control-plane-release/attestations"
+            --output "$RUNNER_TEMP/control-plane-release/supply-chain-evidence.json"
+          )
+          if [ -n "$ACCEPTED_RISK_DECISION_PATH" ]; then
+            if [[ ! "$ACCEPTED_RISK_DECISION_PATH" =~ ^infra/ansible/policies/control-plane-accepted-risks/[A-Za-z0-9._-]+[.]json$ ]]; then
+              echo "accepted-risk path is outside the protected policy directory" >&2
+              exit 1
+            fi
+            if [ ! -f "$ACCEPTED_RISK_DECISION_PATH" ] || [ -L "$ACCEPTED_RISK_DECISION_PATH" ]; then
+              echo "accepted-risk decision must be a regular tracked JSON file" >&2
+              exit 1
+            fi
+            policy_root=$(realpath infra/ansible/policies/control-plane-accepted-risks)
+            decision_path=$(realpath "$ACCEPTED_RISK_DECISION_PATH")
+            case "$decision_path" in
+              "$policy_root"/*) ;;
+              *) echo "accepted-risk path traversal rejected" >&2; exit 1 ;;
+            esac
+            cmd+=(--accepted-risk-decision "$decision_path")
+          fi
+          "${cmd[@]}"
+
+      - name: Create immutable release manifest
         env:
           TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
-          BACKEND_IMAGE: ${{ inputs.backend_image }}
-          WORKER_IMAGE: ${{ inputs.worker_image }}
-          HELIX_ADAPTER_IMAGE: ${{ inputs.helix_adapter_image }}
+          REMNAWAVE_AUTH_SECRET_SHA256: ${{ inputs.remnawave_auth_secret_sha256 }}
           SOURCE_COMMIT: ${{ inputs.source_commit }}
           SOURCE_RUN_URL: ${{ inputs.source_run_url }}
           RELEASE_NAME: ${{ inputs.release_name }}
-          DEFAULT_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
         run: |
-          SOURCE_URL="${SOURCE_RUN_URL:-$DEFAULT_RUN_URL}"
-          CMD=(
+          set -euo pipefail
+          cmd=(
             python infra/ansible/scripts/promote_control_plane_release.py
             --environment "$TARGET_ENVIRONMENT"
+            --output "$RUNNER_TEMP/control-plane-release/release.yml"
             --backend-image "$BACKEND_IMAGE"
+            --remnawave-image "$REMNAWAVE_IMAGE"
+            --remnawave-auth-secret-sha256 "$REMNAWAVE_AUTH_SECRET_SHA256"
             --worker-image "$WORKER_IMAGE"
             --helix-adapter-image "$HELIX_ADAPTER_IMAGE"
+            --node-image "$NODE_IMAGE"
+            --subscription-page-image "$SUBSCRIPTION_PAGE_IMAGE"
+            --node-ssh-proxy-image "$NODE_SSH_PROXY_IMAGE"
             --source-commit "$SOURCE_COMMIT"
-            --source-run-url "$SOURCE_URL"
+            --source-run-url "$SOURCE_RUN_URL"
+            --evidence-manifest "$RUNNER_TEMP/control-plane-release/supply-chain-evidence.json"
           )
           if [ -n "$RELEASE_NAME" ]; then
-            CMD+=(--release-name "$RELEASE_NAME")
+            cmd+=(--release-name "$RELEASE_NAME")
           fi
-          "${CMD[@]}"
+          "${cmd[@]}"
 
-      - name: Upload updated release manifest
-        uses: actions/upload-artifact@v4
+      - name: Upload read-only promotion evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: control-plane-release-${{ inputs.target_environment }}
-          path: infra/ansible/inventories/${{ inputs.target_environment }}/group_vars/control_plane_${{ inputs.target_environment }}/release.yml
-          retention-days: 14
-
-      - name: Commit release manifest on a promotion branch
-        env:
-          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
-          BASE_REF: ${{ inputs.base_ref }}
-          COMMIT_SHA: ${{ github.sha }}
-          ACTOR: ${{ github.actor }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "infra/ansible/inventories/${TARGET_ENVIRONMENT}/group_vars/control_plane_${TARGET_ENVIRONMENT}/release.yml"
-
-          if git diff --cached --quiet; then
-            echo "PROMOTION_HAS_CHANGES=false" >> "$GITHUB_ENV"
-            exit 0
-          fi
-
-          BRANCH_NAME="automation/control-plane-${TARGET_ENVIRONMENT}-${GITHUB_RUN_ID}"
-          git checkout -b "$BRANCH_NAME"
-          git commit -m "chore(infra): promote control-plane release to ${TARGET_ENVIRONMENT}"
-          git push origin "$BRANCH_NAME"
-          echo "PROMOTION_HAS_CHANGES=true" >> "$GITHUB_ENV"
-          echo "PROMOTION_BRANCH=$BRANCH_NAME" >> "$GITHUB_ENV"
+          path: ${{ runner.temp }}/control-plane-release
+          retention-days: 90
+          if-no-files-found: error
 
       - name: Write summary
         run: |
           {
-            echo "## Control-plane promotion"
+            echo "## Verified control-plane release artifact"
             echo ""
-            echo "- Target environment: ${{ inputs.target_environment }}"
-            echo "- Base ref: ${{ inputs.base_ref }}"
-            if [ "${PROMOTION_HAS_CHANGES}" = "true" ]; then
-              echo "- Promotion branch: ${PROMOTION_BRANCH}"
-              echo "- Compare URL: https://github.com/${{ github.repository }}/compare/${{ inputs.base_ref }}...${PROMOTION_BRANCH}"
-            else
-              echo "- Release manifest already matched the requested digest refs."
-            fi
-            echo "- Updated manifest artifact uploaded for review."
+            echo "- Target policy: ${{ inputs.target_environment }}"
+            echo "- Source commit: ${{ inputs.source_commit }}"
+            findings=$(jq '[.components[].vulnerability_scan | select(.risk_disposition == "accepted_non_blocking")] | length' "$RUNNER_TEMP/control-plane-release/supply-chain-evidence.json")
+            echo "- Seven images passed fixed-identity signed provenance and SPDX-2.3 SBOM verification."
+            echo "- Signed scan findings with explicit digest-bound accepted risk: ${findings} component(s)."
+            echo "- No branch, inventory, deployment, or production state was changed."
+            echo "- Apply the uploaded manifest only through the separately approved deployment runbook."
           } >> "$GITHUB_STEP_SUMMARY"

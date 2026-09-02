@@ -108,7 +108,8 @@ class AdminCustomerSubscriptionResyncResponse(BaseModel):
 
 class AdminCustomerCredentialRegenerationResponse(BaseModel):
     user_id: UUID
-    remnawave_uuid: UUID
+    remnawave_user_id: int | None = None
+    remnawave_uuid: UUID | None = None
     status: str
     short_uuid_changed: bool = False
     subscription_url_changed: bool = False
@@ -121,7 +122,8 @@ class AdminCustomerCredentialRegenerationResponse(BaseModel):
 
 class AdminCustomerManualSubscriptionResponse(BaseModel):
     user_id: UUID
-    remnawave_uuid: UUID
+    remnawave_user_id: int | None = None
+    remnawave_uuid: UUID | None = None
     status: str
     operation: Literal["grant", "extend"]
     duration_days: int
@@ -135,6 +137,7 @@ class AdminCustomerManualSubscriptionResponse(BaseModel):
 
 class AdminCustomerVpnUserResponse(BaseModel):
     exists: bool
+    remnawave_user_id: int | None = None
     remnawave_uuid: UUID | None = None
     username: str | None = None
     email: str | None = None

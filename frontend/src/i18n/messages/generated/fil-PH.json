@@ -460,7 +460,17 @@
     "serverStatus": "ESTADO NG SERVER",
     "statusLabel": "ESTADO NG SISTEMA:",
     "statusValue": "OPTIMAL",
-    "title": "VPN COMMAND CENTER"
+    "title": "VPN COMMAND CENTER",
+    "vpnServiceStatus": {
+      "available": "Magagamit",
+      "connections": "Mga koneksyon",
+      "degraded": "Bahagyang limitado",
+      "devices": "Mga device",
+      "loading": "Nilo-load ang status ng serbisyo ng VPN",
+      "title": "Availability ng serbisyo ng VPN",
+      "unavailable": "Hindi magagamit",
+      "usage": "Paggamit"
+    }
   },
   "DeleteAccount": {
     "contact": {

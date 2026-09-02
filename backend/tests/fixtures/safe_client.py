@@ -21,6 +21,7 @@ from src.infrastructure.database.models.partner_model import PartnerAccountModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.database.models.provisioning_profile_model import ProvisioningProfileModel
+from src.infrastructure.database.models.remnawave_upgrade_model import RemnawaveIdentityReconciliationModel
 from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.models.wallet_model import WalletModel, WalletTransactionModel
 
@@ -40,6 +41,8 @@ class SafeClientAccount:
     entitlement_grant_id: uuid.UUID | None = None
     service_identity_id: uuid.UUID | None = None
     device_subject_key: str | None = None
+    remnawave_user_id: int | None = None
+    remnawave_uuid: uuid.UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -94,6 +97,7 @@ async def seed_safe_client_fixture_pack(sessionmaker, auth_service: AuthService)
     wallet_id = uuid.uuid4()
     payment_id = uuid.uuid4()
     provider_subject_ref = uuid.uuid4()
+    provider_numeric_subject_id = 990_001
 
     miniapp_init_data = build_safe_miniapp_init_data(
         telegram_user_id=990001,
@@ -120,6 +124,7 @@ async def seed_safe_client_fixture_pack(sessionmaker, auth_service: AuthService)
         password_hash=await auth_service.hash_password(SAFE_CLIENT_PASSWORD),
         telegram_id=990001,
         telegram_username="safe_client_active",
+        remnawave_user_id=provider_numeric_subject_id,
         remnawave_uuid=str(provider_subject_ref),
         referral_code="SAFEACT",
         is_active=True,
@@ -220,6 +225,7 @@ async def seed_safe_client_fixture_pack(sessionmaker, auth_service: AuthService)
         identity_scope="subscription",
         subscription_key=active_subscription_key,
         provider_subject_ref=str(provider_subject_ref),
+        provider_numeric_subject_id=provider_numeric_subject_id,
         identity_status="active",
         service_context={
             "fixture": "safe_client_pack",
@@ -330,6 +336,24 @@ async def seed_safe_client_fixture_pack(sessionmaker, auth_service: AuthService)
         },
         last_delivered_at=now - timedelta(hours=1),
     )
+    active_mobile_reconciliation = RemnawaveIdentityReconciliationModel(
+        subject_type="mobile_user",
+        subject_id=active_user_id,
+        legacy_uuid=str(provider_subject_ref),
+        numeric_user_id=provider_numeric_subject_id,
+        reconciliation_state="mapped",
+        evidence={"source": "safe_client_fixture_pack"},
+        reconciled_at=now,
+    )
+    active_service_reconciliation = RemnawaveIdentityReconciliationModel(
+        subject_type="service_identity",
+        subject_id=active_service_identity_id,
+        legacy_uuid=str(provider_subject_ref),
+        numeric_user_id=provider_numeric_subject_id,
+        reconciliation_state="mapped",
+        evidence={"source": "safe_client_fixture_pack"},
+        reconciled_at=now,
+    )
     wallet = WalletModel(
         id=wallet_id,
         user_id=active_user_id,
@@ -407,6 +431,8 @@ async def seed_safe_client_fixture_pack(sessionmaker, auth_service: AuthService)
                 expired_grant,
                 active_device_credential,
                 active_channel,
+                active_mobile_reconciliation,
+                active_service_reconciliation,
                 wallet,
                 wallet_credit,
                 wallet_debit,
@@ -429,6 +455,8 @@ async def seed_safe_client_fixture_pack(sessionmaker, auth_service: AuthService)
             entitlement_grant_id=active_grant_id,
             service_identity_id=active_service_identity_id,
             device_subject_key=active_device_credential.subject_key,
+            remnawave_user_id=provider_numeric_subject_id,
+            remnawave_uuid=provider_subject_ref,
         ),
         trial=SafeClientAccount(
             user_id=trial_user_id,

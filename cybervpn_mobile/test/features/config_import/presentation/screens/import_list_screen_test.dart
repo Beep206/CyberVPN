@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 // ---------------------------------------------------------------------------
 // Mock repository
 // ---------------------------------------------------------------------------
@@ -29,10 +30,7 @@ class MockConfigImportRepository implements ConfigImportRepository {
   }
 
   @override
-  Future<ImportedConfig> importFromUri(
-    String uri,
-    ImportSource source,
-  ) async {
+  Future<ImportedConfig> importFromUri(String uri, ImportSource source) async {
     final config = ImportedConfig(
       id: 'test-id-${_configs.length + 1}',
       name: 'Test Server',
@@ -127,10 +125,11 @@ List<ImportedConfig> _buildMockConfigs() {
 
 Widget _buildTestWidget({required MockConfigImportRepository repository}) {
   return ProviderScope(
-    overrides: [
-      configImportRepositoryProvider.overrideWithValue(repository),
-    ],
+    overrides: [configImportRepositoryProvider.overrideWithValue(repository)],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
       home: ImportListScreen(),
     ),
   );

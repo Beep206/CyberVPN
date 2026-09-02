@@ -9,7 +9,7 @@ import 'package:cybervpn_mobile/core/network/api_client.dart';
 /// fakeApi.setGetResponse('/users/me', {'id': 'user-001', 'email': 'test@example.com'});
 /// ```
 class FakeApiClient extends ApiClient {
-  FakeApiClient() : super(baseUrl: 'http://localhost');
+  FakeApiClient() : super(baseUrl: 'https://localhost');
 
   final Map<String, _FakeResponse> _getResponses = {};
   final Map<String, _FakeResponse> _postResponses = {};

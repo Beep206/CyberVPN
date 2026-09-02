@@ -318,6 +318,7 @@ def _manifest_hashes(manifest: Mapping[str, Any]) -> dict[str, str]:
     hashes: dict[str, str] = {}
     for name in TASK2_RUNTIME_FAULT_PUBLIC_BUNDLE_FILES:
         value = raw_artifacts[name]
+        sha256: object
         if isinstance(value, str):
             sha256 = value
         elif isinstance(value, Mapping):
@@ -475,12 +476,12 @@ def _validate_baseline_backend_results(payload: Task2RuntimeFaultPayloadV2, base
             raise Task2RuntimeFaultEvidenceRejected("baseline_selected_route_duplicate")
         by_route[route_key] = result
     for row in payload.pre_fault_rows:
-        result = by_route.get(row.route_key)
-        if result is None:
+        baseline_result = by_route.get(row.route_key)
+        if baseline_result is None:
             raise Task2RuntimeFaultEvidenceRejected("baseline_selected_row_missing")
-        if row.backend_result_digest != backend_result_digest(result):
+        if row.backend_result_digest != backend_result_digest(baseline_result):
             raise Task2RuntimeFaultEvidenceRejected("baseline_selected_row_digest_mismatch")
-        details = _details(result)
+        details = _details(baseline_result)
         for field in _FINGERPRINT_FIELDS:
             expected = _string(details.get(field)) if field != "category" else _optional_string(details.get(field))
             actual = getattr(row, field)

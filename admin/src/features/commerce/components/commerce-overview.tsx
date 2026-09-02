@@ -283,8 +283,14 @@ export function CommerceOverview() {
                     </div>
 
                     <StatusChip
-                      label={template.flow ?? t('overview.noFlow')}
-                      tone="info"
+                      label={
+                        template.templateJson
+                          ? t('overview.templateJson')
+                          : template.encodedTemplateYaml
+                            ? t('overview.templateYaml')
+                            : t('overview.templateEmpty')
+                      }
+                      tone={template.templateJson || template.encodedTemplateYaml ? 'info' : 'neutral'}
                     />
                   </div>
                 </div>

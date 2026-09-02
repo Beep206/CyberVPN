@@ -73,6 +73,10 @@ vi.mock('@/features/partner-portal-state/lib/use-partner-portal-runtime-state', 
   usePartnerPortalRuntimeState: () => mockRuntimeState(),
 }));
 
+vi.mock('@/features/partner-remnawave-status/components/partner-vpn-service-status-panel', () => ({
+  PartnerVpnServiceStatusPanel: () => <div data-testid="partner-vpn-service-status" />,
+}));
+
 import { PartnerDashboardPage } from './partner-dashboard-page';
 
 function makeRuntimeState(overrides: Partial<RuntimeState> = {}): RuntimeState {

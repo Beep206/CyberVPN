@@ -31,8 +31,9 @@ from src.infrastructure.database.models.system_config_model import SystemConfigM
 from src.infrastructure.database.models.wallet_model import WalletModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.remnawave.client import get_remnawave_client as get_infrastructure_remnawave_client
-from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse, RemnawaveSubscriptionResponse
+from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
 from src.main import app
+from src.presentation.api.v1.subscriptions.schemas import SubscriptionTemplateResponse
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from tests.conftest import TEST_DB_AVAILABLE_ENV
 
@@ -43,16 +44,16 @@ ADMIN_HOST_HEADERS = {"Host": "testserver", "X-Forwarded-Host": "admin.cyber-vpn
 
 class _SmokeRemnawaveClient:
     async def get_collection_validated(self, path, collection_key, item_schema, **kwargs):  # noqa: ANN001, ARG002
-        if path == "/subscription-templates" and item_schema is RemnawaveSubscriptionResponse:
+        if path == "/subscription-templates" and item_schema is SubscriptionTemplateResponse:
             return [
-                RemnawaveSubscriptionResponse(
+                SubscriptionTemplateResponse(
                     uuid="00000000-0000-4000-8000-000000000001",
+                    viewPosition=1,
                     name="Synthetic E2E Template",
-                    templateType="xray",
-                    hostUuid=None,
-                    inboundTag="synthetic",
-                    flow=None,
-                    configData={"fixture": "test_all_endpoints"},
+                    tags=["E2E"],
+                    templateType="XRAY_JSON",
+                    templateJson={"fixture": "test_all_endpoints"},
+                    encodedTemplateYaml=None,
                 )
             ]
         msg = f"Unexpected Remnawave collection call in smoke test: {path}"
@@ -553,17 +554,19 @@ class TestSubscriptionEndpoints:
         assert response.status_code == 200
 
     @pytest.mark.asyncio
-    async def test_get_vpn_config_not_found(self, async_client: AsyncClient, admin_headers: dict[str, str]):
+    async def test_get_vpn_config_requires_fresh_admin_auth(
+        self, async_client: AsyncClient, admin_headers: dict[str, str]
+    ):
         response = await async_client.get(
             f"/api/v1/subscriptions/config/{uuid.uuid4()}",
             headers=admin_headers,
         )
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     @pytest.mark.asyncio
     async def test_cancel_subscription(self, async_client: AsyncClient, admin_headers: dict[str, str]):
         response = await async_client.post("/api/v1/subscriptions/cancel", headers=admin_headers)
-        assert response.status_code == 404
+        assert response.status_code == 403
 
 
 class TestPromoCodeEndpoints:

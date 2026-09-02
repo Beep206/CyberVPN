@@ -460,7 +460,17 @@
     "serverStatus": "TRẠNG THÁI MÁY CHỦ",
     "statusLabel": "TRẠNG THÁI HỆ THỐNG:",
     "statusValue": "TỐI ƯU",
-    "title": "TRUNG TÂM CHỈ HUY VPN"
+    "title": "TRUNG TÂM CHỈ HUY VPN",
+    "vpnServiceStatus": {
+      "available": "Khả dụng",
+      "connections": "Kết nối",
+      "degraded": "Suy giảm một phần",
+      "devices": "Thiết bị",
+      "loading": "Đang tải trạng thái dịch vụ VPN",
+      "title": "Khả dụng của dịch vụ VPN",
+      "unavailable": "Không khả dụng",
+      "usage": "Mức sử dụng"
+    }
   },
   "DeleteAccount": {
     "contact": {

@@ -1,67 +1,62 @@
 """Subscription template API schemas for Remnawave proxy."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionResponse
+from src.infrastructure.remnawave.control_plane_contracts import (
+    RemnawaveSubscriptionTemplateV34Response,
+    SubscriptionTemplateType,
+)
 
 
-class CreateSubscriptionTemplateRequest(BaseModel):
-    """Request schema for creating a subscription template."""
-
+class _SubscriptionTemplateRequest(BaseModel):
     model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "name": "Standard VPN Config",
-                "template_type": "v2ray",
-                "host_uuid": "550e8400-e29b-41d4-a716-446655440000",
-                "inbound_tag": "vless-in",
-                "flow": "xtls-rprx-vision",
-            }
-        }
+        populate_by_name=True,
+        validate_by_alias=True,
+        validate_by_name=True,
+        extra="forbid",
     )
 
-    name: str = Field(..., min_length=1, max_length=100, description="Template name")
-    template_type: str = Field(..., min_length=1, max_length=50, description="VPN client template type")
-    host_uuid: str | None = Field(default=None, max_length=255, description="Host UUID")
-    inbound_tag: str | None = Field(default=None, max_length=100, description="Inbound tag")
-    flow: str | None = Field(default=None, max_length=50, description="Flow control method")
-    config_data: dict[str, Any] | None = Field(default=None, description="Additional config data")
+    def to_upstream_payload(self) -> dict[str, Any]:
+        return self.model_dump(by_alias=True, mode="json", exclude_unset=True)
 
 
-class UpdateSubscriptionTemplateRequest(BaseModel):
-    """Request schema for updating a subscription template."""
+class CreateSubscriptionTemplateRequest(_SubscriptionTemplateRequest):
+    """Exact target ``CreateSubscriptionTemplateBodyDto`` shape."""
 
-    name: str | None = Field(default=None, min_length=1, max_length=100)
-    template_type: str | None = Field(default=None, min_length=1, max_length=50)
-    host_uuid: str | None = Field(default=None, max_length=255)
-    inbound_tag: str | None = Field(default=None, max_length=100)
-    flow: str | None = Field(default=None, max_length=50)
-    config_data: dict[str, Any] | None = None
+    name: str = Field(min_length=2, max_length=255, pattern=r"^[A-Za-z0-9_\s-]+$")
+    template_type: SubscriptionTemplateType = Field(alias="templateType")
 
 
-class SubscriptionResponse(BaseModel):
-    """Expected response from Remnawave subscriptions API."""
+class UpdateSubscriptionTemplateRequest(_SubscriptionTemplateRequest):
+    """Exact target ``UpdateTemplateBodyDto`` fields except path-owned UUID."""
 
-    model_config = ConfigDict(from_attributes=True)
+    name: str | None = Field(default=None, min_length=2, max_length=255, pattern=r"^[A-Za-z0-9_\s-]+$")
+    template_json: dict[str, Any] | None = Field(default=None, alias="templateJson")
+    encoded_template_yaml: str | None = Field(default=None, alias="encodedTemplateYaml")
 
-    uuid: str = Field(..., description="Subscription UUID")
-    name: str = Field(..., max_length=100, description="Template name")
-    template_type: str = Field(..., max_length=50, description="Template type")
-    host_uuid: str | None = Field(default=None, description="Host UUID")
-    inbound_tag: str | None = Field(default=None, max_length=100, description="Inbound tag")
-    flow: str | None = Field(default=None, max_length=50, description="Flow control method")
-    config_data: dict[str, Any] | None = Field(default=None, description="Config data")
+    @model_validator(mode="after")
+    def reject_explicit_null(self) -> UpdateSubscriptionTemplateRequest:
+        for field in self.model_fields_set:
+            if getattr(self, field) is None:
+                raise ValueError(f"{field} cannot be null")
+        return self
+
+
+class SubscriptionTemplateResponse(RemnawaveSubscriptionTemplateV34Response):
+    """CyberVPN response mirrors the unwrapped target template DTO."""
 
 
 class SubscriptionTemplateListResponse(BaseModel):
     """Current Remnawave template list envelope."""
 
     total: int = Field(..., ge=0, description="Total number of templates")
-    templates: list[RemnawaveSubscriptionResponse] = Field(
+    templates: list[SubscriptionTemplateResponse] = Field(
         default_factory=list,
         description="Subscription templates returned by Remnawave",
     )

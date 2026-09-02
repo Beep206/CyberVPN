@@ -1,5 +1,6 @@
 ---
 - import_tasks: validate.yml
+- import_tasks: verify_attestations.yml
 - import_tasks: state.yml
 
 - import_tasks: deploy.yml

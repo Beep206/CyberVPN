@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Ketersediaan perkhidmatan VPN",
+    "connections": "Sambungan",
+    "usage": "Penggunaan",
+    "devices": "Peranti",
+    "available": "Tersedia",
+    "unavailable": "Tidak tersedia",
+    "loading": "Memuatkan status perkhidmatan VPN",
+    "degraded": "Terjejas sebahagian"
   }
 }

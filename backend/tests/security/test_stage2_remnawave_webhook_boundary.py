@@ -9,8 +9,11 @@ import pytest
 from pydantic import SecretStr
 
 from src.application.use_cases.webhooks import remnawave_webhook as remnawave_webhook_use_case
+from src.application.use_cases.webhooks.webhook_log_redaction import webhook_log_fingerprint
 from src.config.settings import settings
 from src.presentation.api.v1.webhooks.routes import remnawave_webhook
+
+_WEBHOOK_LOG_FINGERPRINT_SECRET = "webhook-fingerprint-key-8f1c7d9a2e6b4f03"
 
 
 def _sign(secret: str, body: bytes) -> str:
@@ -245,6 +248,11 @@ async def test_remnawave_webhook_rejects_duplicate_body_before_broadcast(
     monkeypatch.setattr(settings, "remnawave_webhook_max_age_seconds", 300)
     monkeypatch.setattr(settings, "remnawave_webhook_future_skew_seconds", 60)
     monkeypatch.setattr(settings, "remnawave_webhook_max_body_bytes", 65536)
+    monkeypatch.setattr(
+        settings,
+        "webhook_log_fingerprint_secret",
+        SecretStr(_WEBHOOK_LOG_FINGERPRINT_SECRET),
+    )
     monkeypatch.setattr(remnawave_webhook_use_case, "ws_manager", broadcast_spy)
 
     response = await remnawave_webhook(
@@ -262,8 +270,50 @@ async def test_remnawave_webhook_rejects_duplicate_body_before_broadcast(
     assert len(session.logs) == 1
     assert session.logs[0].is_valid is True
     assert session.logs[0].error_message == "duplicate_webhook"
-    assert session.logs[0].payload["body_sha256"] == hashlib.sha256(body).hexdigest()
+    assert session.logs[0].payload["body_fingerprint"] == webhook_log_fingerprint(
+        body,
+        namespace="remnawave_body",
+    )
+    assert session.logs[0].payload["body_fingerprint"] != hashlib.sha256(body).hexdigest()
+    compiled_statement = str(session.statement.compile(compile_kwargs={"literal_binds": True}))
+    assert "body_fingerprint" in compiled_statement
+    assert "body_sha256" not in compiled_statement
     assert broadcast_spy.calls == []
+
+
+async def test_missing_fingerprint_secret_omits_body_fingerprint_and_skips_duplicate_lookup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "test-remnawave-webhook-secret"
+    broadcast_spy = _BroadcastSpy()
+    session = _DuplicateSession()
+    body = json.dumps({"event": "user.updated", "data": {"uuid": "user-1"}}).encode()
+    signature = _sign(secret, body)
+    timestamp = str(int(datetime.now(UTC).timestamp()))
+
+    monkeypatch.setattr(settings, "remnawave_webhook_secret", SecretStr(secret))
+    monkeypatch.setattr(settings, "webhook_log_fingerprint_secret", SecretStr(""))
+    monkeypatch.setattr(settings, "remnawave_webhook_max_age_seconds", 300)
+    monkeypatch.setattr(settings, "remnawave_webhook_future_skew_seconds", 60)
+    monkeypatch.setattr(settings, "remnawave_webhook_max_body_bytes", 65536)
+    monkeypatch.setattr(remnawave_webhook_use_case, "ws_manager", broadcast_spy)
+
+    response = await remnawave_webhook(
+        request=_Request(
+            body,
+            {
+                "X-Remnawave-Signature": signature,
+                "X-Remnawave-Timestamp": timestamp,
+            },
+        ),
+        db=session,
+    )
+
+    assert response == {"status": "processed", "event": "user.updated"}
+    assert "body_fingerprint" not in session.logs[0].payload
+    assert "body_sha256" not in session.logs[0].payload
+    assert not hasattr(session, "statement")
+    assert len(broadcast_spy.calls) == 1
 
 
 async def test_remnawave_webhook_drops_oversized_websocket_values(

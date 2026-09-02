@@ -16,7 +16,7 @@ Usage:
   scripts/deploy/stage1-gitlab-deploy.sh <services>
 
 Services:
-  all, frontend, admin, partner, backend, telegram-bot, task-worker, vpn-test-agent, task2-route-evidence
+  all, frontend, admin, partner, backend, subscription-page, telegram-bot, task-worker, vpn-test-agent, task2-route-evidence
 
 The legacy GitLab name is historical. The script is also runnable manually;
 CI_* variables are optional when STAGE1_RELEASE_TAG and SSH settings are supplied.
@@ -114,7 +114,7 @@ for raw_service in "${requested_services[@]}"; do
   service="$(printf '%s' "$raw_service" | xargs)"
   [[ -n "$service" ]] || continue
   case "$service" in
-    all|frontend|admin|partner|backend|telegram-bot|task-worker|vpn-test-agent|task2-route-evidence)
+    all|frontend|admin|partner|backend|subscription-page|telegram-bot|task-worker|vpn-test-agent|task2-route-evidence)
       requested["$service"]=1
       ;;
     *)
@@ -136,6 +136,7 @@ if [[ -n "${requested[all]:-}" ]]; then
     [admin]=1
     [partner]=1
     [backend]=1
+    [subscription-page]=1
     [telegram-bot]=1
     [task-worker]=1
     [vpn-test-agent]=1
@@ -156,7 +157,7 @@ task2_runtime_artifacts=(
 )
 
 primary_deploy_requested=false
-for primary_service in frontend admin partner backend telegram-bot task-worker vpn-test-agent; do
+for primary_service in frontend admin partner backend subscription-page telegram-bot task-worker vpn-test-agent; do
   if [[ -n "${requested[$primary_service]:-}" ]]; then
     primary_deploy_requested=true
     break
@@ -466,6 +467,148 @@ require_remote_env_secret_present() {
       ;;
   esac
   log "${key} is present"
+}
+
+require_remnawave_stream_hmac_secret() {
+  file="$COMPOSE_DIR/.env"
+  stream_secret="$(remote_env_value "$file" REMNAWAVE_STREAM_IP_HMAC_SECRET || true)"
+  backend_secret="$(remote_env_value "$file" BACKEND_INTERNAL_SECRET || true)"
+
+  if [ "${#stream_secret}" -lt 32 ]; then
+    remote_fail "REMNAWAVE_STREAM_IP_HMAC_SECRET must already be provisioned with at least 32 characters"
+  fi
+  secret_lower="$(printf '%s' "$stream_secret" | tr '[:upper:]' '[:lower:]')"
+  case "$secret_lower" in
+    *replace*|*example*|*test*|*placeholder*|*changeme*|*dummy*|*local*|*development*|*dev-*|*redacted*|*your_*)
+      remote_fail "REMNAWAVE_STREAM_IP_HMAC_SECRET must not use a placeholder value"
+      ;;
+  esac
+  if [ -n "$backend_secret" ] && [ "$stream_secret" = "$backend_secret" ]; then
+    remote_fail "REMNAWAVE_STREAM_IP_HMAC_SECRET must be distinct from BACKEND_INTERNAL_SECRET"
+  fi
+  log "REMNAWAVE_STREAM_IP_HMAC_SECRET is provisioned and distinct"
+}
+
+require_remnawave_connection_drop_hmac_secret() {
+  file="$COMPOSE_DIR/.env"
+  receipt_secret="$(remote_env_value "$file" REMNAWAVE_CONNECTION_DROP_HMAC_SECRET || true)"
+  backend_secret="$(remote_env_value "$file" BACKEND_INTERNAL_SECRET || true)"
+  stream_secret="$(remote_env_value "$file" REMNAWAVE_STREAM_IP_HMAC_SECRET || true)"
+  fingerprint_secret="$(remote_env_value "$file" WEBHOOK_LOG_FINGERPRINT_SECRET || true)"
+
+  if [ "${#receipt_secret}" -lt 32 ]; then
+    remote_fail "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must already be provisioned with at least 32 characters"
+  fi
+  secret_lower="$(printf '%s' "$receipt_secret" | tr '[:upper:]' '[:lower:]')"
+  case "$secret_lower" in
+    *replace*|*example*|*test*|*placeholder*|*changeme*|*dummy*|*local*|*development*|*dev-*|*redacted*|*your_*)
+      remote_fail "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must not use a placeholder value"
+      ;;
+  esac
+  if [ -n "$backend_secret" ] && [ "$receipt_secret" = "$backend_secret" ]; then
+    remote_fail "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must be distinct from BACKEND_INTERNAL_SECRET"
+  fi
+  if [ -n "$stream_secret" ] && [ "$receipt_secret" = "$stream_secret" ]; then
+    remote_fail "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must be distinct from REMNAWAVE_STREAM_IP_HMAC_SECRET"
+  fi
+  if [ -n "$fingerprint_secret" ] && [ "$receipt_secret" = "$fingerprint_secret" ]; then
+    remote_fail "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must be distinct from WEBHOOK_LOG_FINGERPRINT_SECRET"
+  fi
+  log "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET is provisioned, stable, and distinct"
+}
+
+require_remnawave_app_secret_continuity() {
+  compose_env="$COMPOSE_DIR/.env"
+  panel_image="$(remote_env_value "$compose_env" CYBERVPN_REMNAWAVE_BACKEND_IMAGE || true)"
+  if ! printf '%s' "$panel_image" | grep -Eq '^.+:3[.]4[.]3-raw-vision-flow[.][0-9]+@sha256:[a-f0-9]{64}$'; then
+    remote_fail "CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be the registry digest-pinned 3.4.3 compatibility image"
+  fi
+
+  secrets_dir="$(remote_env_value "$compose_env" CYBERVPN_SECRETS_DIR || true)"
+  if [ -z "$secrets_dir" ]; then
+    secrets_dir="/srv/cybervpn-h/secrets"
+  fi
+  panel_env="${secrets_dir%/}/remnawave-panel.env"
+  if ! $REMOTE_SUDO test -f "$panel_env"; then
+    remote_fail "Remnawave panel secret file is missing: ${panel_env}"
+  fi
+
+  app_secret="$(remote_env_value "$panel_env" APP_SECRET || true)"
+  expected_sha256="$(remote_env_value "$compose_env" REMNAWAVE_PREUPGRADE_AUTH_SECRET_SHA256 || true)"
+  if [ "${#app_secret}" -ne 128 ]; then
+    remote_fail "APP_SECRET must preserve the 64-byte (128 hex character) pre-upgrade JWT_AUTH_SECRET"
+  fi
+  case "$app_secret" in
+    *[!0-9a-fA-F]*) remote_fail "APP_SECRET must contain exactly 128 hexadecimal characters" ;;
+  esac
+  if [ "${#expected_sha256}" -ne 64 ]; then
+    remote_fail "REMNAWAVE_PREUPGRADE_AUTH_SECRET_SHA256 must be provisioned from the read-only baseline"
+  fi
+  case "$expected_sha256" in
+    *[!0-9a-f]*) remote_fail "REMNAWAVE_PREUPGRADE_AUTH_SECRET_SHA256 must be 64 lowercase hex characters" ;;
+  esac
+
+  actual_sha256="$(printf '%s' "$app_secret" | sha256sum | awk '{print $1}')"
+  if [ "$actual_sha256" != "$expected_sha256" ]; then
+    remote_fail "APP_SECRET fingerprint differs from the pre-upgrade auth secret; refusing an implicit rotation"
+  fi
+  log "Remnawave 3.4.3 image identity and APP_SECRET continuity attestations passed"
+}
+
+require_remnawave_subscription_page_contract() {
+  is_requested subscription-page || return 0
+
+  compose_env="$COMPOSE_DIR/.env"
+  secrets_dir="$(remote_env_value "$compose_env" CYBERVPN_SECRETS_DIR || true)"
+  if [ -z "$secrets_dir" ]; then
+    secrets_dir="/srv/cybervpn-h/secrets"
+  fi
+  subscription_env="${secrets_dir%/}/remnawave-subscription-page.env"
+  if ! $REMOTE_SUDO test -f "$subscription_env"; then
+    remote_fail "subscription-page secret file is missing: ${subscription_env}"
+  fi
+
+  subscription_token="$(remote_env_value "$subscription_env" REMNAWAVE_API_TOKEN || true)"
+  if [ "${#subscription_token}" -lt 32 ]; then
+    remote_fail "subscription-page REMNAWAVE_API_TOKEN must be a dedicated token of at least 32 characters"
+  fi
+  token_lower="$(printf '%s' "$subscription_token" | tr '[:upper:]' '[:lower:]')"
+  case "$token_lower" in
+    *replace*|*example*|*test*|*placeholder*|*changeme*|*dummy*|*local*|*development*|*dev-*|*redacted*|*your_*|*todo*)
+      remote_fail "subscription-page REMNAWAVE_API_TOKEN must not use a placeholder value"
+      ;;
+  esac
+
+  worker_token="$(remote_env_value "${secrets_dir%/}/remnawave.env" REMNAWAVE_API_TOKEN 2>/dev/null || true)"
+  backend_token="$(remote_env_value "${secrets_dir%/}/app.env" REMNAWAVE_TOKEN 2>/dev/null || true)"
+  panel_secret="$(remote_env_value "${secrets_dir%/}/remnawave-panel.env" APP_SECRET 2>/dev/null || true)"
+  for reused_token in "$worker_token" "$backend_token" "$panel_secret"; do
+    if [ -n "$reused_token" ] && [ "$subscription_token" = "$reused_token" ]; then
+      remote_fail "subscription-page REMNAWAVE_API_TOKEN must not reuse a worker, backend, or panel secret"
+    fi
+  done
+
+  backend_subnet="$(remote_env_value "$compose_env" CYBERVPN_STAGE1_BACKEND_SUBNET || true)"
+  [ -n "$backend_subnet" ] || backend_subnet="172.30.3.0/24"
+  trusted_proxy="$(remote_env_value "$compose_env" REMNAWAVE_SUBSCRIPTION_PAGE_TRUST_PROXY || true)"
+  [ -n "$trusted_proxy" ] || trusted_proxy="172.30.3.0/24"
+  if [ "$trusted_proxy" != "$backend_subnet" ]; then
+    remote_fail "REMNAWAVE_SUBSCRIPTION_PAGE_TRUST_PROXY must exactly match CYBERVPN_STAGE1_BACKEND_SUBNET"
+  fi
+
+  subscription_image="$(remote_env_value "$compose_env" REMNAWAVE_SUBSCRIPTION_PAGE_IMAGE || true)"
+  [ -n "$subscription_image" ] || subscription_image="remnawave/subscription-page:8.0.0@sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac"
+  if ! printf '%s' "$subscription_image" | grep -Eq '^.+@sha256:[a-f0-9]{64}$'; then
+    remote_fail "REMNAWAVE_SUBSCRIPTION_PAGE_IMAGE must be an immutable digest-pinned image"
+  fi
+
+  rollback_image="$(remote_env_value "$compose_env" REMNAWAVE_SUBSCRIPTION_PAGE_ROLLBACK_IMAGE || true)"
+  [ -n "$rollback_image" ] || rollback_image="remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c"
+  if ! printf '%s' "$rollback_image" | grep -Eq '^.+:7[.]2[.]6@sha256:[a-f0-9]{64}$'; then
+    remote_fail "REMNAWAVE_SUBSCRIPTION_PAGE_ROLLBACK_IMAGE must be the digest-pinned 7.2.6 fallback"
+  fi
+
+  log "subscription-page token, proxy CIDR, current image and 7.2.6 rollback contract passed"
 }
 
 require_task2_evidence_config_if_enabled() {
@@ -1003,6 +1146,16 @@ if [ "${PRIMARY_DEPLOY_REQUESTED:-false}" = "true" ]; then
     $REMOTE_SUDO install -m 0644 "$REMOTE_SRC/infra/deploy/stage1/docker-compose.stage1.yml" "$COMPOSE_DIR/docker-compose.yml"
     log "compose backup: ${compose_backup}"
   fi
+  if [ -f "$REMOTE_SRC/infra/deploy/stage1/docker-compose.subscription-page-rollback.yml" ]; then
+    subscription_rollback_compose="$COMPOSE_DIR/docker-compose.subscription-page-rollback.yml"
+    if $REMOTE_SUDO test -e "$subscription_rollback_compose"; then
+      $REMOTE_SUDO cp -a "$subscription_rollback_compose" "${subscription_rollback_compose}.pre-${RELEASE_TAG}"
+    fi
+    $REMOTE_SUDO install -m 0644 \
+      "$REMOTE_SRC/infra/deploy/stage1/docker-compose.subscription-page-rollback.yml" \
+      "$subscription_rollback_compose"
+    log "installed component-only subscription-page 7.2.6 rollback override"
+  fi
 
   cd "$COMPOSE_DIR"
   $REMOTE_SUDO sed -i "s/^CYBERVPN_IMAGE_TAG=.*/CYBERVPN_IMAGE_TAG=${RELEASE_TAG}/" .env
@@ -1032,6 +1185,7 @@ fi
 
 compose_services=()
 is_requested backend && compose_services+=(cybervpn-backend)
+is_requested subscription-page && compose_services+=(cybervpn-remnawave-subscription-page)
 is_requested frontend && compose_services+=(cybervpn-frontend)
 is_requested admin && compose_services+=(cybervpn-admin)
 is_requested partner && compose_services+=(cybervpn-partner)
@@ -1043,6 +1197,10 @@ fi
 
 if [ "${PRIMARY_DEPLOY_REQUESTED:-false}" = "true" ]; then
   ensure_backend_device_cookie_pepper
+  require_remnawave_stream_hmac_secret
+  require_remnawave_connection_drop_hmac_secret
+  require_remnawave_app_secret_continuity
+  require_remnawave_subscription_page_contract
 fi
 
 if task2_route_evidence_requested; then
@@ -1059,6 +1217,9 @@ fi
 if is_requested backend; then
   log "running backend database migrations"
   $REMOTE_SUDO docker compose exec -T cybervpn-backend alembic upgrade heads
+fi
+if is_requested subscription-page; then
+  retry_curl subscription-page-health $REMOTE_SUDO docker compose exec -T cybervpn-remnawave-subscription-page curl -fsS -o /dev/null --max-time 2 http://127.0.0.1:3010/internal/health
 fi
 
 log "compose status"

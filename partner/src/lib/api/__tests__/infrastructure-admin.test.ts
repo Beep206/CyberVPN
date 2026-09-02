@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe('hostsApi admin operations', () => {
-  it('creates a host with optional network metadata', async () => {
+  it('serializes the exact Remnawave 3.4 host create shape', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
@@ -35,35 +35,47 @@ describe('hostsApi admin operations', () => {
 
         return HttpResponse.json({
           uuid: 'host_001',
-          name: 'Edge Host EU',
+          viewPosition: 1,
+          remark: 'Edge Host EU',
           address: 'edge-eu.ozoxy.ru',
           port: 443,
           sni: 'edge-eu.ozoxy.ru',
-          hostHeader: 'edge-eu.ozoxy.ru',
+          host: 'edge-eu.ozoxy.ru',
           path: '/reality',
-          alpn: ['h2', 'http/1.1'],
+          alpn: 'h2,http/1.1',
           isDisabled: false,
-        });
+        }, { status: 201 });
       }),
     );
 
     const response = await hostsApi.create({
-      name: 'Edge Host EU',
+      inbound: {
+        configProfileUuid: '550e8400-e29b-41d4-a716-446655440000',
+        configProfileInboundUuid: '550e8400-e29b-41d4-a716-446655440001',
+      },
+      remark: 'Edge Host EU',
       address: 'edge-eu.ozoxy.ru',
       port: 443,
-      sni: 'edge-eu.ozoxy.ru',
-      host_header: 'edge-eu.ozoxy.ru',
-      path: '/reality',
-      alpn: ['h2', 'http/1.1'],
-      is_disabled: false,
+      sni: ['edge-eu.ozoxy.ru'],
+      host: ['edge-eu.ozoxy.ru'],
+      path: ['/reality'],
+      alpn: 'h2,http/1.1',
+      isDisabled: false,
+      securityLayer: 'TLS',
+      isHidden: false,
+      overrideSniFromAddress: false,
+      keepSniBlank: false,
+      shuffleHost: false,
+      mihomoX25519: false,
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     expect(response.data.uuid).toBe('host_001');
     expect(capturedBody).toMatchObject({
-      name: 'Edge Host EU',
+      remark: 'Edge Host EU',
       address: 'edge-eu.ozoxy.ru',
-      host_header: 'edge-eu.ozoxy.ru',
+      host: ['edge-eu.ozoxy.ru'],
+      securityLayer: 'TLS',
     });
   });
 
@@ -77,28 +89,28 @@ describe('hostsApi admin operations', () => {
 
         return HttpResponse.json({
           uuid: updatedUuid,
-          name: body.name,
+          remark: body.remark,
           address: body.address,
           port: body.port,
-          sni: body.sni,
-          hostHeader: body.host_header,
-          path: body.path,
-          alpn: body.alpn ?? [],
-          isDisabled: body.is_disabled ?? false,
+          sni: 'edge-prime.ozoxy.ru',
+          host: null,
+          path: null,
+          alpn: null,
+          isDisabled: body.isDisabled ?? false,
         });
       }),
     );
 
     const response = await hostsApi.update('host_001', {
-      name: 'Edge Host EU Prime',
+      remark: 'Edge Host EU Prime',
       address: 'edge-prime.ozoxy.ru',
       port: 8443,
-      is_disabled: true,
+      isDisabled: true,
     });
 
     expect(response.status).toBe(200);
     expect(updatedUuid).toBe('host_001');
-    expect(response.data.name).toBe('Edge Host EU Prime');
+    expect(response.data.remark).toBe('Edge Host EU Prime');
   });
 });
 

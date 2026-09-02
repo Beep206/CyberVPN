@@ -3,15 +3,19 @@ vault_control_plane_postgres_password: "replace-with-postgres-password"
 vault_control_plane_registry_username: ""
 vault_control_plane_registry_password: ""
 
-vault_control_plane_remnawave_jwt_auth_secret: "replace-with-remnawave-jwt-auth-secret"
-vault_control_plane_remnawave_jwt_api_tokens_secret: "replace-with-remnawave-jwt-api-tokens-secret"
+# On 2.x -> 3.x upgrade copy the exact former JWT_AUTH_SECRET value here.
+vault_control_plane_remnawave_app_secret: ""
 vault_control_plane_remnawave_metrics_user: "metrics"
 vault_control_plane_remnawave_metrics_pass: "replace-with-remnawave-metrics-password"
+# Shared only by the CyberVPN backend and scoped Remnawave broker. Exactly 128
+# lowercase hex characters; keep distinct from APP_SECRET/JWT/internal tokens.
+vault_control_plane_remnawave_node_ssh_broker_secret: ""
 vault_control_plane_helix_internal_auth_token: "replace-with-shared-helix-internal-token"
 vault_control_plane_helix_remnawave_token: "replace-with-remnawave-token-for-helix"
 
 vault_control_plane_backend_remnawave_token: "replace-with-backend-remnawave-token"
 vault_control_plane_backend_remnawave_webhook_secret: "replace-with-backend-remnawave-webhook-secret"
+vault_control_plane_backend_webhook_log_fingerprint_secret: "replace-with-dedicated-webhook-log-fingerprint-secret"
 vault_control_plane_backend_remnawave_webhook_max_body_bytes: "65536"
 vault_control_plane_backend_remnawave_smart_ru_external_squad_uuid: ""
 vault_control_plane_backend_remnawave_smart_ru_internal_squad_uuid: ""
@@ -26,6 +30,15 @@ vault_control_plane_backend_telegram_bot_token: ""
 vault_control_plane_backend_telegram_bot_username: ""
 vault_control_plane_backend_telegram_bot_internal_secret: ""
 vault_control_plane_backend_internal_secret: ""
+# Dedicated >=32-character secret; must differ from BACKEND_INTERNAL_SECRET.
+vault_control_plane_backend_remnawave_stream_ip_hmac_secret: ""
+# Stable backend-only >=32-character secret. Do not rotate while an
+# outcome_unknown connection-drop receipt remains unreconciled.
+vault_control_plane_backend_remnawave_connection_drop_hmac_secret: ""
+vault_control_plane_backend_remnawave_node_ssh_trusted_admin_ids: ""
+vault_control_plane_backend_remnawave_node_ssh_allowed_node_ids: ""
+vault_control_plane_backend_passkey_enabled: "false"
+vault_control_plane_backend_passkey_admin_enabled: "false"
 vault_control_plane_backend_payment_settlement_worker_secret: ""
 vault_control_plane_backend_totp_encryption_key: "replace-with-backend-totp-encryption-key"
 vault_control_plane_backend_oauth_token_encryption_key: "replace-with-backend-oauth-token-encryption-key"
@@ -38,6 +51,10 @@ vault_control_plane_worker_telegram_bot_token: ""
 vault_control_plane_worker_cryptobot_token: ""
 vault_control_plane_worker_admin_telegram_ids: ""
 
+# Dedicated subscription-page read token. Grant only metadata, subscription
+# lookup, and subscription-page-config read scopes; never reuse another token.
+vault_control_plane_subscription_page_remnawave_api_token: "replace-with-dedicated-subscription-page-token"
+
 vault_control_plane_helix_adapter_remnawave_token: "replace-with-helix-adapter-remnawave-token"
 vault_control_plane_manifest_signing_key: "replace-with-helix-manifest-signing-key"
 
@@ -48,4 +65,5 @@ vault_control_plane_backend_env_extra:
   VPN_TESTER_TASK2_SYNTHETIC_USER: ""
   VPN_TESTER_TASK2_SYNTHETIC_XRAY_EMAIL: ""
 vault_control_plane_worker_env_extra: {}
+vault_control_plane_subscription_page_env_extra: {}
 vault_control_plane_helix_adapter_env_extra: {}

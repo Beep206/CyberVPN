@@ -1,0 +1,5 @@
+services:
+  remnawave-subscription-page:
+    # Emergency component-only rollback. Keep the panel and CyberVPN services
+    # on their current release while replacing only subscription-page 8.0.0.
+    image: ${REMNAWAVE_SUBSCRIPTION_PAGE_ROLLBACK_IMAGE:-remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c}

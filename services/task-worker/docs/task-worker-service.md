@@ -173,28 +173,22 @@ CyberVPN — VPN-бизнес платформа с cyberpunk-тематикой
 Автоматическое управление подписками: проверка истечения, напоминания, отключение, сброс трафика.
 
 #### Feature 2.1: Проверка истекающих подписок
-- **Description**: Периодическая проверка пользователей с подписками, истекающими в ближайшее время
-- **Inputs**: Remnawave API: `GET /api/users` → фильтр по `expire_at`
-- **Outputs**: Telegram-уведомления пользователям с напоминанием о продлении
-- **Behavior**: Каждый час запрашивает всех активных пользователей. Фильтрует по bracket'ам: 7 дней, 3 дня, 24 часа, 6 часов до истечения. Для каждого bracket'а отправляет соответствующее уведомление. Дедупликация через Redis ключ: `cybervpn:sub_reminder:{user_uuid}:{bracket}` с TTL = bracket_duration.
+- **Status**: Временно `safety_disabled` для Remnawave 3; задача зарегистрирована, но выполняет ноль чтений, записей и уведомлений.
+- **Required replacement**: `RemnawaveScheduledCustomerOperationSaga` из `docs/remnawave-3-worker-safety-boundary.md`.
 
 #### Feature 2.2: Отключение просроченных пользователей
-- **Description**: Автоматическая деактивация пользователей с истёкшей подпиской
-- **Inputs**: Remnawave API: пользователи с `expire_at < now()` AND `status = 'active'`
-- **Outputs**: Remnawave API: `PATCH /api/users/{uuid}` → status=disabled. Telegram-уведомление.
-- **Behavior**: Каждые 15 минут. Запрашивает просроченных пользователей. Для каждого: отключает через Remnawave API, отправляет Telegram уведомление о деактивации с инструкцией по продлению. Логирует в audit.
+- **Status**: Временно `safety_disabled`; задача не перечисляет и не изменяет provider users.
+- **Required replacement**: backend-owned exact identity/mutation/reconciliation/notification saga.
 
 #### Feature 2.3: Сброс ежемесячного трафика
-- **Description**: Обнуление счётчиков трафика для активных пользователей в начале месяца
-- **Inputs**: Remnawave API: все пользователи с активной подпиской
-- **Outputs**: Remnawave API: сброс `used_traffic_bytes = 0`
-- **Behavior**: 1-го числа каждого месяца в 00:00 UTC. Запрашивает всех активных пользователей. Пачками по 100 вызывает Remnawave API для сброса трафика. Отправляет broadcast-уведомление.
+- **Status**: Временно `safety_disabled`; задача выполняет ноль mutation/notification side effects.
+- **Required replacement**: `RemnawaveScheduledCustomerOperationSaga` с period-keyed receipt и exact GET reconciliation.
 
 #### Feature 2.4: Автопродление подписок
 - **Description**: Автоматическое продление подписок для пользователей с настроенным auto-renew
-- **Inputs**: Пользователи с `auto_renew=true` и `expire_at < now() + 1 hour`
-- **Outputs**: Создание invoice через CryptoBot, уведомление пользователя
-- **Behavior**: Каждые 30 минут проверяет пользователей с auto-renew. Создаёт CryptoBot invoice. Отправляет уведомление со ссылкой на оплату. При успешной оплате (webhook) — продлевает подписку.
+- **Inputs**: Полный bounded/cycle-detecting `/api/users/stream` snapshot; numeric IDs с expiry в окне `now - 2h .. now + 1h`; backend фильтрует по CyberVPN-owned consent и exact numeric+legacy reconciliation.
+- **Outputs**: Backend-owned persisted `PaymentModel`, идемпотентный invoice и одна запись общей `notification_queue`; worker получает только несекретный delivery receipt.
+- **Behavior**: Каждые 30 минут worker передаёт bounded batch numeric IDs в `/internal/remnawave/auto-renew/eligible`. Для eligible IDs backend повторно получает пользователя по exact mapped ref, сверяет numeric ID, legacy UUID и expiry, применяет окно не старше двух часов, выбирает план/цену только из CyberVPN billing state и атомарно создаёт invoice+canonical-recipient notification receipt. Worker не получает payment URL/Telegram ID и не отправляет Telegram сам.
 
 ---
 
@@ -402,7 +396,7 @@ CyberVPN — VPN-бизнес платформа с cyberpunk-тематикой
 
 #### Feature 9.1: Массовое управление пользователями
 - **Description**: Batch disable/enable/reset traffic для списка пользователей
-- **Inputs**: `operation: str (disable|enable|reset_traffic|delete)`, `user_uuids: list[UUID]`, `params: dict`, `initiated_by: str`
+- **Inputs**: `operation: str (disable|enable|reset_traffic|delete)`, `user_ids: list[positive int]`, `params: dict`, `initiated_by: str`
 - **Outputs**: Redis progress: `cybervpn:bulk:{job_id}:progress` = JSON(processed, total, failed, errors). Telegram-уведомление по завершении.
 - **Behavior**: Обрабатывает пользователей пачками по 50. Для каждого: вызывает соответствующий метод Remnawave API. Записывает прогресс в Redis после каждой пачки. При ошибке на конкретном пользователе: логирует и продолжает (partial failure OK). По завершении: отправляет summary через Telegram, публикует SSE-event.
 
@@ -785,9 +779,9 @@ services/task-worker/
 - [ ] Реализовать `tasks/subscriptions/reset_traffic.py` (depends on: remnawave_client)
   - Acceptance: Трафик сбрасывается 1-го числа каждого месяца
   - Test: Unit test с mock API
-- [ ] Реализовать `tasks/subscriptions/auto_renew.py` (depends on: remnawave_client, cryptobot_client, notifications)
-  - Acceptance: Auto-renew создаёт invoice и уведомляет пользователя
-  - Test: Unit test с mock CryptoBot
+- [x] Реализовать `tasks/subscriptions/auto_renew.py` (depends on: remnawave_client, backend_api_client, notifications)
+  - Acceptance: Backend-owned consent/billing создаёт persisted idempotent invoice и worker уведомляет пользователя
+  - Test: Unit tests с mock backend internal API; Remnawave plan/price игнорируются
 - [ ] Добавить schedules для подписок (depends on: все tasks/subscriptions)
 
 **Exit Criteria**: Ежечасно проверяются подписки. Просроченные — отключаются за 15 минут. Напоминания отправляются.
@@ -994,10 +988,10 @@ services/task-worker/
 
 **Edge cases**:
 - Empty user list → immediate completion, no errors
-- Duplicate UUIDs in list → deduplicate before processing
+- Duplicate numeric user IDs in list → deduplicate before processing
 
 **Error cases**:
-- 10 out of 500 users fail to disable → partial success reported → failed UUIDs listed
+- 10 out of 500 users fail to disable → partial success reported → failed numeric IDs listed
 - Redis unavailable for progress tracking → continue without progress (graceful degradation)
 
 ### Test Generation Guidelines
@@ -1223,6 +1217,15 @@ CMD ["taskiq", "worker", "src.worker:broker", "--workers", "2", "--fs-discover"]
 |----------|----------|---------|-------------|
 | `DATABASE_URL` | Yes | - | PostgreSQL async URL (`postgresql+asyncpg://...`) |
 | `REDIS_URL` | Yes | - | Redis/Valkey URL (`redis://host:port/db`) |
+| `REMNAWAVE_STREAM_REDIS_URL` | When streams enabled | - | Отдельный Remnawave export Valkey; fallback на `REDIS_URL` запрещён |
+| `REMNAWAVE_STREAM_CONSUMER_ENABLED` | No | `false` | Включает durable consumer трёх Remnawave 3.4 export streams |
+| `REMNAWAVE_STREAM_CONSUMER_GROUP` | No | `cybervpn-remnawave-v1` | Стабильная consumer group для reclaim/ACK semantics |
+| `REMNAWAVE_STREAM_IP_HMAC_SECRET` | Когда streams включены | - | Независимо сгенерированный ключ длиной не менее 32 байт для domain-separated HMAC fingerprint; равенство с любым worker/backend/provider credential, metrics/email/SMTP secret или декодированным паролем из database/Valkey URL запрещено, raw IP/User-Agent в DLQ и логах не попадают |
+| `REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS` | No | `14` | Должен совпадать с backend retention; PEL старше этой границы проходит gap/REST reconciliation вместо повторного additive persist |
+| `REMNAWAVE_STREAM_CHECKPOINT_OBSERVE_INTERVAL_SECONDS` | No | `30` | Период durable epoch/range/group сверки; startup и `NOGROUP` проверяются немедленно до MKSTREAM |
+| `REMNAWAVE_STREAM_RETENTION_ENABLED` | No | `false` | Включает ежедневное bounded удаление PostgreSQL stream metadata по серверным `expires_at` |
+| `REMNAWAVE_STREAM_RETENTION_BATCH_LIMIT` | No | `1000` | Максимум строк в одной backend-транзакции |
+| `REMNAWAVE_STREAM_RETENTION_MAX_BATCHES` | No | `20` | Максимум транзакций за один запуск; оставшийся backlog отражается метрикой |
 | `REMNAWAVE_URL` | Yes | - | Remnawave backend URL (`http://host:port`) |
 | `REMNAWAVE_API_TOKEN` | Yes | - | Bearer token для Remnawave API |
 | `TELEGRAM_BOT_TOKEN` | Yes | - | Telegram Bot API token |
@@ -1377,7 +1380,7 @@ CMD ["taskiq", "worker", "src.worker:broker", "--workers", "2", "--fs-discover"]
 ### Open Questions
 
 1. **Remnawave API rate limits**: Какой максимальный RPS поддерживает Remnawave API? (нужно тестировать)
-2. **Auto-renew flow**: Поддерживает ли CryptoBot recurring payments или только one-time invoices?
+2. **Auto-renew flow**: CryptoBot invoice остаётся one-time; повтор worker-а возвращает backend-persisted invoice по тому же idempotency key.
 3. **Export storage**: Использовать S3/MinIO для экспортов или локальный volume?
 4. **Multi-region**: Нужна ли поддержка нескольких task-worker инстансов в разных регионах?
 5. **Backend API для dispatch**: Нужен ли REST endpoint в worker для отправки задач (помимо прямого `.kiq()`)?

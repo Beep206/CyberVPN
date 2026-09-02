@@ -1,3 +1,4 @@
+import logging
 from dataclasses import asdict
 from decimal import Decimal
 from uuid import UUID
@@ -5,6 +6,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.remnawave_create_attempts import (
+    RemnawaveCreateAttemptConflict,
+    RemnawaveGiftProvisioningAttemptService,
+    remnawave_create_request_hash,
+    remnawave_customer_create_key,
+)
+from src.application.services.remnawave_identity_access import (
+    persist_runtime_mapped_mobile_identity,
+    resolve_exact_mapped_mobile_user_ref,
+)
 from src.application.services.stage1_growth_policy import (
     Stage1GrowthPolicyError,
     assert_stage1_gift_codes_enabled,
@@ -15,7 +26,17 @@ from src.application.use_cases.gifts import (
     QuoteGiftPurchaseUseCase,
     RedeemGiftCodeUseCase,
 )
+from src.application.use_cases.gifts.provisioning import (
+    GiftProvisioningGateway,
+    GiftProvisioningService,
+    build_gift_provisioning_request,
+)
+from src.application.use_cases.service_access.service_identities import (
+    BindProvisionedRemnawaveServiceIdentityUseCase,
+)
 from src.config.settings import settings
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
+from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.growth_code_model import (
     GiftCodePolicyModel,
     GrowthCodeIssuanceModel,
@@ -23,6 +44,11 @@ from src.infrastructure.database.models.growth_code_model import (
     GrowthCodeRedemptionModel,
 )
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
+from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
+from src.infrastructure.database.session import AsyncSessionLocal
+from src.infrastructure.remnawave.client import RemnawaveClient, get_remnawave_client
+from src.infrastructure.remnawave.stage1_gift_gateway import RemnawaveGiftProvisioningGateway
+from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.payments.routes import _serialize_quote
 from src.presentation.api.v1.payments.schemas import InvoiceResponse
 from src.presentation.dependencies.auth import get_current_mobile_user_id
@@ -41,6 +67,189 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/gifts", tags=["gifts"])
+logger = logging.getLogger(__name__)
+
+
+def _gift_provisioning_attempts(
+    db: AsyncSession,
+    *,
+    is_create: bool,
+) -> RemnawaveGiftProvisioningAttemptService:
+    return RemnawaveGiftProvisioningAttemptService(
+        db,
+        customer_resource_type="remnawave_user_create" if is_create else "remnawave_user_update",
+    )
+
+
+async def get_gift_provisioning_gateway(
+    remnawave_client: RemnawaveClient = Depends(get_remnawave_client),
+) -> GiftProvisioningGateway | None:
+    if not settings.stage1_paid_provisioning_enabled:
+        return None
+    return RemnawaveGiftProvisioningGateway(RemnawaveUserGateway(remnawave_client))
+
+
+def require_gift_provisioning_gateway(
+    provisioning_gateway: GiftProvisioningGateway | None,
+) -> GiftProvisioningGateway:
+    """Fail before a one-use gift can be consumed without data-plane access."""
+
+    if provisioning_gateway is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Gift VPN provisioning is unavailable",
+        )
+    return provisioning_gateway
+
+
+async def provision_redeemed_gift_access(
+    *,
+    db: AsyncSession,
+    user_id: UUID,
+    result,
+    provisioning_gateway: GiftProvisioningGateway | None,
+) -> None:
+    provisioning_gateway = require_gift_provisioning_gateway(provisioning_gateway)
+
+    user_repo = MobileUserRepository(db)
+    user = await user_repo.get_by_id(user_id)
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mobile user not found")
+
+    grant = await db.get(EntitlementGrantModel, result.entitlement_grant_id)
+    if grant is None or grant.expires_at is None:
+        raise RuntimeError("Gift entitlement grant is incomplete before provisioning")
+    if grant.customer_account_id != user_id or grant.auth_realm_id != user.auth_realm_id:
+        raise RuntimeError("Gift entitlement grant does not belong to the redeeming customer")
+
+    identity_binding = BindProvisionedRemnawaveServiceIdentityUseCase(db)
+    await identity_binding.validate_target(
+        service_identity_id=grant.service_identity_id,
+        customer_account_id=user_id,
+        auth_realm_id=grant.auth_realm_id,
+    )
+
+    snapshot = dict(result.entitlement_snapshot or {})
+    effective_entitlements = dict(snapshot.get("effective_entitlements") or {})
+    device_limit = effective_entitlements.get("device_limit")
+    if isinstance(device_limit, bool) or not isinstance(device_limit, int) or device_limit <= 0:
+        raise RuntimeError("Gift entitlement snapshot has no valid device limit")
+    existing_ref = await resolve_exact_mapped_mobile_user_ref(db, user)
+    request = build_gift_provisioning_request(
+        customer_account_id=user_id,
+        gift_code_id=result.growth_code.id,
+        email=user.email,
+        username=user.username,
+        telegram_id=user.telegram_id,
+        plan_code=result.policy.plan_family or snapshot.get("plan_code"),
+        access_expires_at=grant.expires_at,
+        traffic_limit_bytes=effective_entitlements.get("traffic_limit_bytes"),
+        device_limit=device_limit,
+        existing_remnawave_uuid=(
+            str(existing_ref.legacy_uuid) if existing_ref is not None and existing_ref.legacy_uuid is not None else None
+        ),
+        existing_remnawave_user_id=(existing_ref.require_numeric_id() if existing_ref is not None else None),
+    )
+
+    is_create = existing_ref is None
+    attempt_scope = "remnawave-customer:create" if is_create else "remnawave-customer:update"
+    attempt_key = (
+        remnawave_customer_create_key(user_id)
+        if is_create
+        else remnawave_create_request_hash(
+            {
+                "operation": "gift_redemption_update",
+                "customer_account_id": str(user_id),
+                "gift_code_id": str(result.growth_code.id),
+            }
+        )
+    )
+    request_hash = remnawave_create_request_hash(
+        {
+            "customer_account_id": str(user_id),
+            "gift_code_id": str(result.growth_code.id),
+            "entitlement_grant_id": str(result.entitlement_grant_id),
+            "access_expires_at": request.access_expires_at,
+            "plan_code": request.plan_code,
+            "traffic_limit_bytes": request.traffic_limit_bytes,
+            "device_limit": request.device_limit,
+            "provider_numeric_subject_id": request.existing_remnawave_user_id,
+        }
+    )
+    try:
+        async with AsyncSessionLocal() as marker_db:
+            decision = await _gift_provisioning_attempts(marker_db, is_create=is_create).begin(
+                gift_code_id=result.growth_code.id,
+                customer_account_id=user_id,
+                customer_scope=attempt_scope,
+                customer_idempotency_key=attempt_key,
+                request_hash=request_hash,
+            )
+    except RemnawaveCreateAttemptConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Gift Remnawave mutation requires reconciliation",
+        ) from exc
+    if not decision.should_mutate:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Gift Remnawave mutation requires reconciliation",
+        )
+
+    try:
+        provisioning = await GiftProvisioningService(provisioning_gateway).provision(request)
+    except Exception as exc:
+        async with AsyncSessionLocal() as marker_db:
+            marker_attempts = _gift_provisioning_attempts(marker_db, is_create=is_create)
+            marker_decision = await marker_attempts.begin(
+                gift_code_id=result.growth_code.id,
+                customer_account_id=user_id,
+                customer_scope=attempt_scope,
+                customer_idempotency_key=attempt_key,
+                request_hash=request_hash,
+            )
+            await marker_attempts.mark_reconciliation_required(marker_decision)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Gift Remnawave mutation requires reconciliation",
+        ) from exc
+
+    remnawave_user_id = provisioning.require_remnawave_user_id()
+    await persist_runtime_mapped_mobile_identity(
+        db,
+        customer=user,
+        remnawave_user_id=remnawave_user_id,
+        remnawave_uuid=provisioning.remnawave_uuid,
+        source="gift_redemption",
+    )
+    await identity_binding.execute(
+        service_identity_id=grant.service_identity_id,
+        customer_account_id=user_id,
+        auth_realm_id=grant.auth_realm_id,
+        remnawave_user_id=remnawave_user_id,
+        remnawave_uuid=provisioning.remnawave_uuid,
+        mapping_source="gift_redemption",
+    )
+    user.subscription_url = provisioning.subscription_url
+    await user_repo.update(user)
+
+    attempts = _gift_provisioning_attempts(db, is_create=is_create)
+    completion_decision = await attempts.begin(
+        gift_code_id=result.growth_code.id,
+        customer_account_id=user_id,
+        customer_scope=attempt_scope,
+        customer_idempotency_key=attempt_key,
+        request_hash=request_hash,
+    )
+    if completion_decision.should_mutate:
+        raise RuntimeError("Gift Remnawave mutation marker disappeared before local commit")
+    await attempts.mark_completed(
+        completion_decision,
+        user_ref=RemnawaveUserRef(
+            id=remnawave_user_id,
+            legacy_uuid=(UUID(provisioning.remnawave_uuid) if provisioning.remnawave_uuid is not None else None),
+        ),
+    )
 
 
 def _assert_gift_public_flow_enabled() -> None:
@@ -178,8 +387,10 @@ async def redeem_gift(
     db: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_current_mobile_user_id),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
+    provisioning_gateway: GiftProvisioningGateway | None = Depends(get_gift_provisioning_gateway),
 ) -> GiftRedeemResponse:
     _assert_gift_public_flow_enabled()
+    provisioning_gateway = require_gift_provisioning_gateway(provisioning_gateway)
     use_case = RedeemGiftCodeUseCase(db)
     try:
         result = await use_case.execute(
@@ -196,6 +407,29 @@ async def redeem_gift(
         if "expired" in detail.lower():
             raise HTTPException(status_code=status.HTTP_410_GONE, detail=detail) from None
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail) from None
+
+    try:
+        await provision_redeemed_gift_access(
+            db=db,
+            user_id=user_id,
+            result=result,
+            provisioning_gateway=provisioning_gateway,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception(
+            "gift_vpn_provisioning_failed",
+            extra={
+                "user_id": str(user_id),
+                "gift_code_id": str(result.growth_code.id),
+                "entitlement_grant_id": str(result.entitlement_grant_id),
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="VPN access provisioning failed",
+        ) from exc
 
     issuance_items = await GrowthCodeRepository(db).list_issuances(result.growth_code.id)
     issuance = issuance_items[0] if issuance_items else None

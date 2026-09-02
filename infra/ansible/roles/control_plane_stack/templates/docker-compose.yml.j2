@@ -28,12 +28,84 @@ services:
         condition: service_healthy
 {% endif %}
     networks:
-      - control-backend
-      - control-data
+      control-backend:
+      control-data:
+{% if control_plane_stack_enable_subscription_page %}
+      control-subscription:
+        ipv4_address: {{ control_plane_stack_subscription_page_remnawave_ipv4 }}
+        aliases:
+          - remnawave
+{% endif %}
+{% if control_plane_stack_enable_node_ssh_proxy %}
+      control-ssh-broker:
+        ipv4_address: {{ control_plane_stack_node_ssh_remnawave_ipv4 }}
+{% endif %}
 {% if control_plane_stack_manage_notifications_config %}
     volumes:
       - {{ control_plane_stack_notifications_config_path }}:/var/lib/remnawave/configs/notifications/notifications-config.yml:ro
 {% endif %}
+{% endif %}
+{% if control_plane_stack_enable_subscription_page %}
+  remnawave-subscription-page:
+    image: {{ control_plane_stack_subscription_page_image | to_json }}
+    container_name: {{ control_plane_stack_subscription_page_container_name }}
+    hostname: {{ control_plane_stack_subscription_page_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m,mode=0700,uid=1000,gid=1000
+    env_file:
+      - {{ control_plane_stack_subscription_page_env_filename }}
+    ports:
+      - "{{ control_plane_stack_subscription_page_bind_host }}:{{ control_plane_stack_subscription_page_port }}:{{ control_plane_stack_subscription_page_app_port }}"
+    depends_on:
+      remnawave:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "2", "http://127.0.0.1:{{ control_plane_stack_subscription_page_app_port }}/internal/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      control-subscription:
+        ipv4_address: {{ control_plane_stack_subscription_page_ipv4 }}
+{% endif %}
+{% if control_plane_stack_enable_node_ssh_proxy %}
+  remnawave-node-ssh-proxy:
+    image: {{ control_plane_stack_node_ssh_proxy_image | to_json }}
+    container_name: {{ control_plane_stack_node_ssh_proxy_container_name }}
+    hostname: {{ control_plane_stack_node_ssh_proxy_container_name }}
+    restart: {{ control_plane_stack_restart_policy }}
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /config:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=1000,gid=1000
+      - /data:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=1000,gid=1000
+      - /tmp:rw,noexec,nosuid,nodev,size=1m,mode=0700,uid=1000,gid=1000
+    volumes:
+      - ./{{ control_plane_stack_node_ssh_proxy_config_filename }}:/etc/caddy/Caddyfile:ro
+    depends_on:
+      remnawave:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:{{ control_plane_stack_node_ssh_proxy_port }}/internal/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      control-ssh-broker:
+        ipv4_address: {{ control_plane_stack_node_ssh_proxy_ipv4 }}
 {% endif %}
 {% if control_plane_stack_enable_postgres %}
   remnawave-db:
@@ -129,6 +201,10 @@ services:
       remnawave:
         condition: service_healthy
 {% endif %}
+{% if control_plane_stack_enable_node_ssh_proxy %}
+      remnawave-node-ssh-proxy:
+        condition: service_healthy
+{% endif %}
     healthcheck:
       test:
         [
@@ -142,8 +218,12 @@ services:
       retries: 3
       start_period: 20s
     networks:
-      - control-backend
-      - control-data
+      control-backend:
+      control-data:
+{% if control_plane_stack_enable_node_ssh_proxy %}
+      control-ssh-broker:
+        ipv4_address: {{ control_plane_stack_node_ssh_backend_ipv4 }}
+{% endif %}
 {% endif %}
 {% if control_plane_stack_enable_worker %}
   cybervpn-worker:
@@ -192,7 +272,7 @@ services:
     restart: {{ control_plane_stack_restart_policy }}
     env_file:
       - {{ control_plane_stack_scheduler_env_filename }}
-    command: ["taskiq", "scheduler", "src.broker:scheduler"]
+    command: ["taskiq", "scheduler", "src.scheduler:scheduler"]
     depends_on:
 {% if control_plane_stack_enable_worker %}
       cybervpn-worker:
@@ -245,3 +325,17 @@ services:
 networks:
   control-backend:
   control-data:
+{% if control_plane_stack_enable_subscription_page %}
+  control-subscription:
+    internal: true
+    ipam:
+      config:
+        - subnet: {{ control_plane_stack_subscription_page_subnet }}
+{% endif %}
+{% if control_plane_stack_enable_node_ssh_proxy %}
+  control-ssh-broker:
+    internal: true
+    ipam:
+      config:
+        - subnet: {{ control_plane_stack_node_ssh_proxy_subnet }}
+{% endif %}

@@ -2,9 +2,9 @@
 
 import logging
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
 
 from src.domain.entities.user import User
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ class GetUserUsageUseCase:
         """
         self.user_gateway = user_gateway
 
-    async def execute(self, user_uuid: UUID) -> UsageData:
+    async def execute(self, user_ref: RemnawaveUserRef | int) -> UsageData:
         """Fetch VPN usage statistics for a user from Remnawave.
 
         Args:
@@ -56,10 +56,17 @@ class GetUserUsageUseCase:
             ValueError: If user not found in Remnawave
         """
         # Fetch user from Remnawave
-        user = await self.user_gateway.get_by_uuid(user_uuid)
+        normalized_ref = user_ref if isinstance(user_ref, RemnawaveUserRef) else RemnawaveUserRef(id=user_ref)
+        user = await self.user_gateway.get_by_ref(normalized_ref)
         if not user:
-            logger.warning("User not found in Remnawave", extra={"user_uuid": str(user_uuid)})
-            raise ValueError(f"User {user_uuid} not found in VPN backend")
+            logger.warning(
+                "User not found in Remnawave",
+                extra={
+                    "numeric_id": normalized_ref.id,
+                    "legacy_uuid_present": normalized_ref.legacy_uuid is not None,
+                },
+            )
+            raise ValueError("User not found in VPN backend")
 
         return self._map_user_to_usage(user)
 

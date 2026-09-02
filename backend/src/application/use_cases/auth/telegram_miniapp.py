@@ -97,7 +97,6 @@ class TelegramMiniAppUseCase:
         self._session = session
         self._telegram = telegram_provider
         self._replay_guard = replay_guard
-        self._remnawave_gateway = remnawave_gateway
         self._allow_new_users = allow_new_users
         self._bootstrap_usernames = _normalize_bootstrap_usernames(bootstrap_usernames)
 
@@ -197,20 +196,6 @@ class TelegramMiniAppUseCase:
                 extra={"user_id": str(user.id), "login": login},
             )
 
-            # Create Remnawave VPN user (best-effort)
-            if self._remnawave_gateway:
-                try:
-                    await self._remnawave_gateway.create_user(
-                        username=login,
-                        email="",
-                        telegram_id=int(telegram_id),
-                    )
-                except Exception as e:
-                    logger.exception(
-                        "Failed to create Remnawave user for Mini App registration: %s",
-                        e,
-                        extra={"user_id": str(user.id)},
-                    )
         else:
             logger.info(
                 "Telegram Mini App login for existing user",

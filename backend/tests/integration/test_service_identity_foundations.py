@@ -20,6 +20,7 @@ from tests.helpers.realm_auth import (
     initialize_realm_test_database,
     override_realm_test_db,
 )
+from tests.helpers.remnawave_identity import seed_exact_mobile_user_mapping
 from tests.integration.test_order_commit import _seed_order_context
 from tests.integration.test_quote_checkout_sessions import _make_customer_access_token
 
@@ -81,7 +82,13 @@ async def test_service_identity_and_provisioning_profile_foundations_are_idempot
                 )
                 customer_user = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
                 assert customer_user is not None
-                customer_user.remnawave_uuid = "remnawave-subject-001"
+                seed_exact_mobile_user_mapping(
+                    db,
+                    customer_user,
+                    numeric_user_id=500_601,
+                    legacy_uuid=uuid.UUID("00000000-0000-4000-8000-000000000601"),
+                    source="service_identity_foundations_fixture",
+                )
                 customer_user.subscription_url = "https://partner.example.test/sub/legacy-001"
                 db.add(admin_user)
                 db.commit()
@@ -150,13 +157,12 @@ async def test_service_identity_and_provisioning_profile_foundations_are_idempot
             assert service_identity_payload["source_order_id"] == order_payload["id"]
             assert service_identity_payload["origin_storefront_id"] == seeded["storefront_id"]
             assert service_identity_payload["provider_name"] == "remnawave"
-            assert service_identity_payload["provider_subject_ref"] == "remnawave-subject-001"
+            assert service_identity_payload["provider_subject_ref"] == "00000000-0000-4000-8000-000000000601"
+            assert service_identity_payload["provider_numeric_subject_id"] == 500_601
             assert service_identity_payload["identity_status"] == "active"
-            assert service_identity_payload["service_context"]["delivery_hint"] == "shared-clients"
-            assert (
-                service_identity_payload["service_context"]["legacy_subscription_url"]
-                == "https://partner.example.test/sub/legacy-001"
-            )
+            assert service_identity_payload["subscription_key"] is None
+            assert service_identity_payload["service_context"] == {}
+            assert "legacy-001" not in str(service_identity_payload)
 
             repeated_service_identity_response = await async_client.post(
                 "/api/v1/service-identities/",
@@ -206,7 +212,7 @@ async def test_service_identity_and_provisioning_profile_foundations_are_idempot
             assert provisioning_profile_payload["service_identity_id"] == service_identity_payload["id"]
             assert provisioning_profile_payload["provider_name"] == "remnawave"
             assert provisioning_profile_payload["profile_status"] == "active"
-            assert provisioning_profile_payload["provisioning_payload"]["config_format"] == "vless"
+            assert provisioning_profile_payload["provisioning_payload"] == {}
 
             repeated_provisioning_profile_response = await async_client.post(
                 "/api/v1/provisioning-profiles/",

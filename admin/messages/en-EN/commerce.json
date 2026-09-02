@@ -45,8 +45,10 @@
     "price": "Price",
     "provider": "Provider",
     "reset": "Reset",
+    "retry": "Retry",
     "save": "Save",
     "saving": "Saving...",
+    "loading": "Loading",
     "status": "Status",
     "templateType": "Template type",
     "userUuid": "User UUID",
@@ -75,7 +77,9 @@
     "templatesDescription": "Most recent subscription templates currently available to operators.",
     "withdrawalsTitle": "Withdrawal Queue",
     "withdrawalsDescription": "Pending payout requests waiting for a staff decision.",
-    "noFlow": "No flow",
+    "templateEmpty": "No template payload",
+    "templateJson": "JSON template",
+    "templateYaml": "Encoded YAML template",
     "routes": {
       "plans": "Create, tune, and retire monetization plans without leaving the admin app.",
       "addons": "Maintain the add-on catalog, quantity caps, and entitlement deltas used across checkout surfaces.",
@@ -367,13 +371,26 @@
     "metaTitle": "Subscription Templates - Ozoxy Admin",
     "eyebrow": "DELIVERY TEMPLATES",
     "title": "Subscription Templates",
-    "description": "Manage Remnawave template definitions, host bindings, flows, and config payloads used for delivery.",
+    "description": "Manage the exact Remnawave 3.4.3 template name, JSON payload, and encoded YAML payload.",
+    "configured": "Configured",
     "createAction": "Create template",
+    "createUnavailable": "Template creation is temporarily unavailable because safe durable settlement is not enabled. Existing templates can still be edited.",
     "createTitle": "Create template",
     "editTitle": "Edit template",
     "deleteTitle": "Delete template",
     "deleteConfirm": "Delete this subscription template?",
     "empty": "No subscription templates found.",
+    "loadFailed": "Subscription templates could not be loaded. No empty state has been assumed.",
+    "updatePending": "Remnawave accepted the template update, but authoritative reconciliation is still pending. Do not submit it again.",
+    "updateSuccess": "Subscription template updated.",
+    "fields": {
+      "encodedTemplateYaml": "Encoded template YAML",
+      "tags": "Tags",
+      "templateJson": "Template JSON"
+    },
+    "validation": {
+      "jsonObjectRequired": "Template JSON must be a JSON object."
+    },
     "form": {
       "namePlaceholder": "VLESS Vision Template",
       "configPlaceholder": "{\n  \"security\": \"reality\"\n}"
@@ -381,12 +398,12 @@
     "metrics": {
       "total": "Templates",
       "totalHint": "template records",
-      "withFlow": "Flow enabled",
-      "withFlowHint": "templates with flow control",
-      "hostBound": "Host bound",
-      "hostBoundHint": "templates attached to a host",
       "jsonConfig": "JSON config",
-      "jsonConfigHint": "templates with config payload"
+      "jsonConfigHint": "templates with a JSON payload",
+      "yamlConfig": "YAML config",
+      "yamlConfigHint": "templates with encoded YAML",
+      "tagged": "Tagged",
+      "taggedHint": "templates with one or more tags"
     }
   },
   "payments": {

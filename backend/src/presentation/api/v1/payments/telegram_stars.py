@@ -40,7 +40,7 @@ def extract_telegram_stars_amount(features: dict[str, Any] | None) -> int | None
     ]
 
     for candidate in candidates:
-        if candidate in (None, ""):
+        if candidate is None or candidate == "":
             continue
         try:
             value = int(candidate)

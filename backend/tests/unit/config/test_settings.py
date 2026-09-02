@@ -122,6 +122,22 @@ class TestWeakSecretPatterns:
 
         assert settings.debug is False
 
+    def test_gift_codes_require_paid_remnawave_provisioning(self) -> None:
+        values = {
+            "environment": "development",
+            "jwt_secret": SecretStr(self.STRONG_SECRET),
+            "remnawave_token": SecretStr(self.VALID_TOKEN),
+            "cryptobot_token": SecretStr(self.VALID_TOKEN),
+            "gift_codes_enabled": True,
+        }
+
+        with pytest.raises(ValidationError, match="STAGE1_PAID_PROVISIONING_ENABLED"):
+            Settings(**values, stage1_paid_provisioning_enabled=False)
+
+        settings = Settings(**values, stage1_paid_provisioning_enabled=True)
+        assert settings.gift_codes_enabled is True
+        assert settings.stage1_paid_provisioning_enabled is True
+
     def test_default_remnawave_squad_targets_premium_smart_ru(self) -> None:
         settings = Settings(
             _env_file=None,

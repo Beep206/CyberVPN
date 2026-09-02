@@ -30,18 +30,20 @@ pytestmark = [pytest.mark.integration]
 
 
 class _SafeClientRemnawave:
-    def __init__(self, *, subscription_url: str) -> None:
+    def __init__(self, *, subscription_url: str, numeric_user_id: int, legacy_uuid: uuid.UUID) -> None:
         self.subscription_url = subscription_url
+        self.numeric_user_id = numeric_user_id
+        self.legacy_uuid = legacy_uuid
 
     async def get_validated(self, path, schema):
         now = datetime.now(UTC)
-        if path.startswith("/api/users/") and schema is RemnawaveUserResponse:
-            user_uuid = path.rsplit("/", 1)[-1]
+        if path == f"/api/users/{self.numeric_user_id}" and schema is RemnawaveUserResponse:
             return RemnawaveUserResponse(
-                uuid=user_uuid,
+                id=self.numeric_user_id,
+                uuid=str(self.legacy_uuid),
                 username="safe-client-active",
                 status="ACTIVE",
-                shortUuid=user_uuid[:8],
+                shortUuid=str(self.legacy_uuid)[:8],
                 createdAt=now - timedelta(days=1),
                 updatedAt=now,
                 expireAt=now + timedelta(days=30),
@@ -52,12 +54,11 @@ class _SafeClientRemnawave:
                 onlineAt=now - timedelta(minutes=5),
                 telegramId=990001,
             )
-        if path.startswith("/subscriptions/by-uuid/") and schema is RemnawaveSubscriptionDetailsResponse:
-            user_uuid = path.rsplit("/", 1)[-1]
+        if path == f"/subscriptions/by-id/{self.numeric_user_id}" and schema is RemnawaveSubscriptionDetailsResponse:
             return RemnawaveSubscriptionDetailsResponse(
                 isFound=True,
                 user={
-                    "shortUuid": user_uuid[:8],
+                    "shortUuid": str(self.legacy_uuid)[:8],
                     "username": "safe-client-active",
                     "userStatus": "ACTIVE",
                 },
@@ -89,9 +90,15 @@ async def test_safe_client_fixture_pack_exercises_business_flows_without_secret_
     try:
         async with override_realm_test_db(sessionmaker):
             pack = await seed_safe_client_fixture_pack(sessionmaker, auth_service)
+            assert pack.active.remnawave_user_id is not None
+            assert pack.active.remnawave_uuid is not None
 
             async def _override_remnawave():
-                return _SafeClientRemnawave(subscription_url=pack.subscription_url)
+                return _SafeClientRemnawave(
+                    subscription_url=pack.subscription_url,
+                    numeric_user_id=pack.active.remnawave_user_id,
+                    legacy_uuid=pack.active.remnawave_uuid,
+                )
 
             app.dependency_overrides[get_remnawave_client] = _override_remnawave
             app.dependency_overrides[get_infrastructure_remnawave_client] = _override_remnawave
@@ -143,9 +150,10 @@ async def test_safe_client_fixture_pack_exercises_business_flows_without_secret_
                 pack.active.device_subject_key
             )
             assert service_state_payload["access_delivery_channel"]["channel_status"] == "active"
-            assert service_state_payload["access_delivery_channel"]["delivery_payload"]["subscription_url"] == (
-                pack.subscription_url
-            )
+            assert service_state_payload["access_delivery_channel"]["delivery_payload"] == {}
+            assert service_state_payload["device_credential"]["provider_credential_ref"] is None
+            assert service_state_payload["device_credential"]["credential_context"] == {}
+            assert pack.subscription_url not in str(service_state_payload)
 
             current_delivery = await async_client.post(
                 "/api/v1/access-delivery-channels/resolve/current",
@@ -157,10 +165,39 @@ async def test_safe_client_fixture_pack_exercises_business_flows_without_secret_
                     "credential_subject_key": pack.active.device_subject_key,
                 },
             )
-            assert current_delivery.status_code == 201
+            assert current_delivery.status_code == 200
             current_delivery_payload = current_delivery.json()
+            assert current_delivery_payload["service_identity_id"] == service_state_payload["service_identity"]["id"]
+            assert (
+                current_delivery_payload["access_delivery_channel"]["id"]
+                == service_state_payload["access_delivery_channel"]["id"]
+            )
             assert current_delivery_payload["device_credential"]["subject_key"] == pack.active.device_subject_key
+            assert current_delivery_payload["device_credential"]["provider_credential_ref"] is None
+            assert current_delivery_payload["device_credential"]["credential_context"] == {}
+            assert current_delivery_payload["access_delivery_channel"]["delivery_payload"] == {}
             assert current_delivery_payload["entitlement_status"] == "active"
+
+            current_service_state = await async_client.post(
+                "/api/v1/access-delivery-channels/current/service-state",
+                headers=headers,
+                json={
+                    "provider_name": "remnawave",
+                    "channel_type": "shared_client",
+                    "credential_type": "desktop_client",
+                    "credential_subject_key": pack.active.device_subject_key,
+                },
+            )
+            assert current_service_state.status_code == 200
+            current_service_state_payload = current_service_state.json()
+            assert (
+                current_service_state_payload["service_identity"]["id"]
+                == service_state_payload["service_identity"]["id"]
+            )
+            assert (
+                current_service_state_payload["access_delivery_channel"]["id"]
+                == service_state_payload["access_delivery_channel"]["id"]
+            )
 
             wallet = await async_client.get("/api/v1/wallet", headers=headers)
             assert wallet.status_code == 200
@@ -236,6 +273,7 @@ async def test_safe_client_fixture_pack_exercises_business_flows_without_secret_
                     "config": config_payload,
                     "service_state": service_state_payload,
                     "current_delivery": current_delivery_payload,
+                    "current_service_state": current_service_state_payload,
                     "wallet": wallet.json(),
                     "wallet_transactions": wallet_transactions.json(),
                     "payments": payments.json(),

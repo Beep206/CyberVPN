@@ -647,7 +647,9 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
     ).scalar_one()
 
     mock_adapter = AsyncMock()
-    mock_adapter.create_user = AsyncMock(return_value={"uuid": "stage1-remnawave-user"})
+    mock_adapter.create_user = AsyncMock(
+        side_effect=AssertionError("auth-time Remnawave provisioning must stay disabled"),
+    )
     app.dependency_overrides[get_remnawave_adapter] = lambda: mock_adapter
     try:
         verify_response = await async_client.post(
@@ -656,6 +658,7 @@ async def test_stage1_email_password_http_flow_register_verify_login_refresh_log
         )
     finally:
         app.dependency_overrides.pop(get_remnawave_adapter, None)
+    mock_adapter.create_user.assert_not_awaited()
 
     assert verify_response.status_code == 200
     verify_body = verify_response.json()

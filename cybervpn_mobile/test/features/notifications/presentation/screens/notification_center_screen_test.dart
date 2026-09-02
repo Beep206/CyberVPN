@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/notifications/domain/entities/app_notification.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:cybervpn_mobile/features/notifications/presentation/providers/notification_state.dart';
@@ -80,11 +82,14 @@ class _FakeNotificationNotifier extends AsyncNotifier<NotificationState>
       return n;
     }).toList();
     final wasUnread = current.notifications.any((n) => n.id == id && !n.isRead);
-    state = AsyncData(current.copyWith(
-      notifications: updated,
-      unreadCount:
-          wasUnread ? (current.unreadCount - 1).clamp(0, 999) : current.unreadCount,
-    ));
+    state = AsyncData(
+      current.copyWith(
+        notifications: updated,
+        unreadCount: wasUnread
+            ? (current.unreadCount - 1).clamp(0, 999)
+            : current.unreadCount,
+      ),
+    );
   }
 
   @override
@@ -92,8 +97,9 @@ class _FakeNotificationNotifier extends AsyncNotifier<NotificationState>
     markAllAsReadCalled = true;
     final current = state.value;
     if (current == null) return;
-    final updated =
-        current.notifications.map((n) => n.copyWith(isRead: true)).toList();
+    final updated = current.notifications
+        .map((n) => n.copyWith(isRead: true))
+        .toList();
     state = AsyncData(current.copyWith(notifications: updated, unreadCount: 0));
   }
 
@@ -104,11 +110,14 @@ class _FakeNotificationNotifier extends AsyncNotifier<NotificationState>
     if (current == null) return;
     final wasUnread = current.notifications.any((n) => n.id == id && !n.isRead);
     final updated = current.notifications.where((n) => n.id != id).toList();
-    state = AsyncData(current.copyWith(
-      notifications: updated,
-      unreadCount:
-          wasUnread ? (current.unreadCount - 1).clamp(0, 999) : current.unreadCount,
-    ));
+    state = AsyncData(
+      current.copyWith(
+        notifications: updated,
+        unreadCount: wasUnread
+            ? (current.unreadCount - 1).clamp(0, 999)
+            : current.unreadCount,
+      ),
+    );
   }
 }
 
@@ -139,21 +148,26 @@ Widget _buildTestWidget({
   _FakeNotificationNotifier? notifier,
 }) {
   final fakeNotifier = notifier ?? _FakeNotificationNotifier(state);
-  return ProviderScope(
-    overrides: [
-      notificationProvider.overrideWith(() => fakeNotifier),
+  final router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const NotificationCenterScreen(),
+      ),
+      GoRoute(
+        path: '/billing',
+        builder: (context, state) =>
+            const Scaffold(body: Text('Navigated: /billing')),
+      ),
     ],
-    child: MaterialApp(
-      home: const NotificationCenterScreen(),
-      onGenerateRoute: (settings) {
-        // Catch navigation pushes for testing actionRoute.
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Text('Navigated: ${settings.name}'),
-          ),
-          settings: settings,
-        );
-      },
+  );
+  return ProviderScope(
+    overrides: [notificationProvider.overrideWith(() => fakeNotifier)],
+    child: MaterialApp.router(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+      routerConfig: router,
     ),
   );
 }
@@ -206,10 +220,7 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('Your payment of'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Your payment of'), findsOneWidget);
     });
 
     testWidgets('shows unread dot for unread notifications', (tester) async {
@@ -248,21 +259,28 @@ void main() {
       expect(find.text('3h ago'), findsOneWidget);
     });
 
-    testWidgets('shows loading indicator in loading state', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            notificationProvider.overrideWith(_LoadingNotifier.new),
-          ],
-          child: const MaterialApp(
-            home: NotificationCenterScreen(),
+    testWidgets(
+      'shows loading indicator in loading state',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              notificationProvider.overrideWith(_LoadingNotifier.new),
+            ],
+            child: const MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: Locale('en'),
+              home: NotificationCenterScreen(),
+            ),
           ),
-        ),
-      );
-      await tester.pump(const Duration(milliseconds: 100));
+        );
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    }, timeout: const Timeout(Duration(seconds: 10)));
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      },
+      timeout: const Timeout(Duration(seconds: 10)),
+    );
   });
 
   // =========================================================================
@@ -276,7 +294,7 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
-      expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.text('No notifications yet.'), findsOneWidget);
       expect(find.byKey(const Key('empty_state')), findsOneWidget);
       expect(find.byIcon(Icons.notifications_off_outlined), findsOneWidget);
     });
@@ -287,7 +305,7 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mark all read'), findsNothing);
+      expect(find.text('Mark All as Read'), findsNothing);
     });
   });
 
@@ -306,11 +324,10 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(state: state));
       await tester.pumpAndSettle();
 
-      expect(find.text('Mark all read'), findsOneWidget);
+      expect(find.text('Mark All as Read'), findsOneWidget);
     });
 
-    testWidgets('tapping "Mark all read" calls markAllAsRead',
-        (tester) async {
+    testWidgets('tapping "Mark all read" calls markAllAsRead', (tester) async {
       final notifications = _buildTestNotifications();
       final state = NotificationState(
         notifications: notifications,
@@ -323,7 +340,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Mark all read'));
+      await tester.tap(find.text('Mark All as Read'));
       await tester.pumpAndSettle();
 
       expect(notifier.markAllAsReadCalled, isTrue);
@@ -355,8 +372,9 @@ void main() {
       expect(notifier.markedAsReadIds, contains('notif-1'));
     });
 
-    testWidgets('tapping read notification does not call markAsRead',
-        (tester) async {
+    testWidgets('tapping read notification does not call markAsRead', (
+      tester,
+    ) async {
       final notifications = _buildTestNotifications();
       final state = NotificationState(
         notifications: notifications,
@@ -396,10 +414,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Swipe the first notification to the left.
-      await tester.drag(
-        find.text('Payment Received'),
-        const Offset(-500, 0),
-      );
+      await tester.drag(find.text('Payment Received'), const Offset(-500, 0));
       await tester.pumpAndSettle();
 
       expect(notifier.deletedIds, contains('notif-1'));
@@ -418,10 +433,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.drag(
-        find.text('Payment Received'),
-        const Offset(-500, 0),
-      );
+      await tester.drag(find.text('Payment Received'), const Offset(-500, 0));
       await tester.pumpAndSettle();
 
       expect(find.text('Notification dismissed'), findsOneWidget);

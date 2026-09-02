@@ -329,6 +329,8 @@ async def register(
             step="session_started",
         )
         await sync_auth_security_posture(db)
+        if result.user is None:
+            raise RuntimeError("Successful mobile registration result has no user")
         observe_auth_activation_duration(
             channel="mobile",
             method="password",
@@ -647,7 +649,7 @@ async def get_me(
     """
     user_repo = MobileUserRepository(db)
 
-    use_case = MobileGetProfileUseCase(user_repo=user_repo, subscription_client=sub_client)
+    use_case = MobileGetProfileUseCase(user_repo=user_repo, subscription_client=sub_client, session=db)
 
     try:
         result = await use_case.execute(user_id)
@@ -688,6 +690,7 @@ async def delete_me(
     """Delete the current mobile account and revoke VPN access."""
     user_repo = MobileUserRepository(db)
     use_case = MobileDeleteAccountUseCase(
+        session=db,
         user_repo=user_repo,
         user_gateway=RemnawaveUserGateway(remnawave_client),
         redis_client=redis_client,
@@ -1025,6 +1028,8 @@ async def telegram_callback(
             status="success",
         )
         if result.is_new_user:
+            if result.user is None:
+                raise RuntimeError("New Telegram authentication result has no user")
             track_registration(method="telegram")
             track_auth_flow_event(
                 channel="mobile",
@@ -1216,6 +1221,8 @@ async def telegram_oidc(
             status="success",
         )
         if result.is_new_user:
+            if result.user is None:
+                raise RuntimeError("New Telegram OIDC authentication result has no user")
             track_registration(method="telegram")
             track_auth_flow_event(
                 channel="mobile",

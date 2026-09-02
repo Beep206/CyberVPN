@@ -8,7 +8,7 @@ type HostResponse =
 type CreateHostRequest =
   operations['create_host_api_v1_hosts__post']['requestBody']['content']['application/json'];
 type CreateHostResponse =
-  operations['create_host_api_v1_hosts__post']['responses'][200]['content']['application/json'];
+  operations['create_host_api_v1_hosts__post']['responses'][201]['content']['application/json'];
 type UpdateHostRequest =
   operations['update_host_api_v1_hosts__uuid__put']['requestBody']['content']['application/json'];
 type UpdateHostResponse =

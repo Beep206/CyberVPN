@@ -14,14 +14,29 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
-const OPENAPI_SPEC = resolve(ROOT, "..", "backend", "docs", "api", "openapi.json");
+const OPENAPI_SPEC = resolve(
+  ROOT,
+  "..",
+  "backend",
+  "docs",
+  "api",
+  "openapi.json",
+);
 const OUTPUT_FILE = resolve(ROOT, "src", "lib", "api", "generated", "types.ts");
 const OPENAPI_TYPESCRIPT_CLI = resolve(
   ROOT,
@@ -31,7 +46,12 @@ const OPENAPI_TYPESCRIPT_CLI = resolve(
   "bin",
   "cli.js",
 );
-const RETRYABLE_WRITE_ERROR_CODES = new Set(["EBUSY", "EACCES", "EPERM", "UNKNOWN"]);
+const RETRYABLE_WRITE_ERROR_CODES = new Set([
+  "EBUSY",
+  "EACCES",
+  "EPERM",
+  "UNKNOWN",
+]);
 
 function sleepSync(milliseconds) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
@@ -71,17 +91,6 @@ if (!existsSync(outputDir)) {
   mkdirSync(outputDir, { recursive: true });
 }
 
-// Run the lockfile-backed openapi-typescript CLI using execFileSync (no shell injection risk)
-try {
-  execFileSync(process.execPath, [OPENAPI_TYPESCRIPT_CLI, OPENAPI_SPEC, "-o", OUTPUT_FILE], {
-    cwd: ROOT,
-    stdio: "inherit",
-  });
-} catch {
-  console.error("Failed to generate API types.");
-  process.exit(1);
-}
-
 // Prepend project-specific comment to the generated file
 const HEADER = `/* eslint-disable */
 /**
@@ -94,5 +103,31 @@ const HEADER = `/* eslint-disable */
 
 `;
 
-const content = readFileSync(OUTPUT_FILE, "utf-8");
-writeGeneratedFile(OUTPUT_FILE, HEADER + content);
+function generateTypes() {
+  const temporaryDirectory = mkdtempSync(join(tmpdir(), "cybervpn-openapi-"));
+  const generatedFile = join(temporaryDirectory, "types.ts");
+
+  try {
+    // Generate away from the watched workspace. Windows indexers and language
+    // servers may briefly lock the committed target after a prior run.
+    execFileSync(
+      process.execPath,
+      [OPENAPI_TYPESCRIPT_CLI, OPENAPI_SPEC, "-o", generatedFile],
+      {
+        cwd: ROOT,
+        stdio: "inherit",
+      },
+    );
+    const content = readFileSync(generatedFile, "utf-8");
+    writeGeneratedFile(OUTPUT_FILE, HEADER + content);
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+}
+
+try {
+  generateTypes();
+} catch {
+  console.error("Failed to generate API types.");
+  process.exit(1);
+}

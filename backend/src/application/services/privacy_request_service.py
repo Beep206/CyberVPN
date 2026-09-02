@@ -635,6 +635,7 @@ class PrivacyRequestService:
             mobile_result: dict[str, Any] = {"mobile_user_present": mobile_user is not None}
             if mobile_user is not None:
                 result = await MobileDeleteAccountUseCase(
+                    session=self._session,
                     user_repo=mobile_repo,
                     user_gateway=user_gateway,
                     redis_client=redis_client,

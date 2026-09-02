@@ -4,9 +4,12 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from httpx import HTTPStatusError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.use_cases.auth.permissions import Permission
 from src.application.use_cases.growth_notifications.automation import (
     AutomateCustomerGrowthNotificationRepairUseCase,
@@ -16,11 +19,6 @@ from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
 from src.infrastructure.remnawave.client import RemnawaveClient
-from src.infrastructure.remnawave.contracts import RemnawaveSubscriptionDetailsResponse
-from src.infrastructure.remnawave.subscription_urls import (
-    normalize_public_subscription_url,
-    normalize_public_subscription_urls,
-)
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.dependencies.auth import get_current_active_user
 from src.presentation.dependencies.database import get_db
@@ -54,6 +52,7 @@ def _serialize_mobile_user_list_item(
         is_partner=user.is_partner,
         telegram_id=user.telegram_id,
         telegram_username=user.telegram_username,
+        remnawave_user_id=user.remnawave_user_id,
         remnawave_uuid=user.remnawave_uuid,
         referral_code=user.referral_code,
         referred_by_user_id=user.referred_by_user_id,
@@ -65,12 +64,19 @@ def _serialize_mobile_user_list_item(
     )
 
 
+def _serialize_mobile_device(device: object) -> AdminMobileDeviceResponse:
+    serialized = AdminMobileDeviceResponse.model_validate(device)
+    return serialized.model_copy(update={"push_token": None})
+
+
 def _serialize_mobile_user_detail(user: MobileUserModel) -> AdminMobileUserDetailResponse:
     return AdminMobileUserDetailResponse(
         **_serialize_mobile_user_list_item(user, len(user.devices)).model_dump(),
-        subscription_url=normalize_public_subscription_url(user.subscription_url),
+        # USER_READ is intentionally metadata-only. Live VPN material is
+        # available solely through the fresh-auth credential boundary.
+        subscription_url=None,
         updated_at=user.updated_at,
-        devices=[AdminMobileDeviceResponse.model_validate(device) for device in user.devices],
+        devices=[_serialize_mobile_device(device) for device in user.devices],
     )
 
 
@@ -89,40 +95,6 @@ def _compute_days_left(expires_at: datetime | None) -> int | None:
     expires_in_utc = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=UTC)
     remaining = expires_in_utc - datetime.now(UTC)
     return max(int(remaining.total_seconds() // 86400), 0)
-
-
-def _is_placeholder_config_link(link: str) -> bool:
-    lowered = link.lower()
-    return (
-        "00000000-0000-0000-0000-000000000000@0.0.0.0:1" in lowered
-        or "no%20hosts%20found" in lowered
-        or "check%20hosts%20tab" in lowered
-        or "check%20internal%20squads%20tab" in lowered
-    )
-
-
-def _select_primary_subscription_config(
-    *,
-    links: list[str],
-    subscription_url: str | None,
-) -> str | None:
-    for link in links:
-        if link and not _is_placeholder_config_link(link):
-            return link
-
-    if subscription_url and not _is_placeholder_config_link(subscription_url):
-        return subscription_url
-
-    return None
-
-
-def _detect_config_client_type(config: str | None) -> str | None:
-    if not config:
-        return None
-    if "://" not in config:
-        return "subscription"
-    scheme = config.split("://", 1)[0].lower()
-    return "subscription" if scheme in {"http", "https"} else scheme
 
 
 async def _write_audit_entry(
@@ -200,86 +172,44 @@ async def get_mobile_user(
 async def build_mobile_user_subscription_snapshot(
     user: MobileUserModel,
     remnawave_client: RemnawaveClient,
+    db: AsyncSession,
 ) -> AdminMobileUserSubscriptionSnapshotResponse:
-    if not user.remnawave_uuid:
-        return AdminMobileUserSubscriptionSnapshotResponse(
-            exists=False,
-            remnawave_uuid=None,
-            subscription_url=normalize_public_subscription_url(user.subscription_url),
-            config_error="Customer has no linked VPN user",
-        )
-
     try:
-        vpn_uuid = UUID(user.remnawave_uuid)
-    except ValueError:
+        user_ref = await resolve_exact_mapped_remnawave_ref(
+            db,
+            subject_type="mobile_user",
+            subject_id=user.id,
+            numeric_user_id=user.remnawave_user_id,
+            legacy_uuid_raw=user.remnawave_uuid,
+        )
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Remnawave identity reconciliation required",
+        ) from exc
+    if user_ref is None:
         return AdminMobileUserSubscriptionSnapshotResponse(
             exists=False,
-            remnawave_uuid=user.remnawave_uuid,
-            subscription_url=normalize_public_subscription_url(user.subscription_url),
-            config_error="Invalid Remnawave UUID",
+            remnawave_user_id=None,
+            remnawave_uuid=None,
+            subscription_url=None,
+            config_error="VPN credential material is redacted",
         )
 
     gateway = RemnawaveUserGateway(client=remnawave_client)
-    vpn_user = await gateway.get_by_uuid(vpn_uuid)
+    vpn_user = await gateway.get_by_ref(user_ref)
 
-    details: RemnawaveSubscriptionDetailsResponse | None = None
-    config_error: str | None = None
-    try:
-        details = await remnawave_client.get_validated(
-            f"/subscriptions/by-uuid/{vpn_uuid}",
-            RemnawaveSubscriptionDetailsResponse,
-        )
-    except HTTPStatusError as exc:
-        if exc.response.status_code != status.HTTP_404_NOT_FOUND:
-            raise
-        config_error = "Subscription snapshot not found"
-    except Exception:
-        config_error = "Subscription snapshot unavailable"
-
-    links = normalize_public_subscription_urls(details.links if details is not None else [])
-    ss_conf_links = details.ss_conf_links if details is not None else {}
-    subscription_url = normalize_public_subscription_url(
-        details.subscription_url
-        if details is not None and details.subscription_url
-        else vpn_user.subscription_url
-        if vpn_user is not None
-        else user.subscription_url
-    )
-    config = _select_primary_subscription_config(
-        links=links,
-        subscription_url=subscription_url,
-    )
-    if config is None and config_error is None:
-        config_error = "Subscription config unavailable"
-
-    expires_at = (
-        vpn_user.expire_at
-        if vpn_user is not None
-        else (details.user.expires_at if details is not None and details.user is not None else None)
-    )
+    expires_at = vpn_user.expire_at if vpn_user is not None else None
 
     return AdminMobileUserSubscriptionSnapshotResponse(
-        exists=vpn_user is not None or (details is not None and details.is_found),
+        exists=vpn_user is not None,
+        remnawave_user_id=user.remnawave_user_id,
         remnawave_uuid=user.remnawave_uuid,
-        status=vpn_user.status.value
-        if vpn_user is not None
-        else (
-            details.user.user_status.lower()
-            if details is not None and details.user is not None and details.user.user_status
-            else None
-        ),
-        short_uuid=vpn_user.short_uuid
-        if vpn_user is not None
-        else (details.user.short_uuid if details is not None and details.user is not None else None),
-        subscription_uuid=(
-            str(vpn_user.subscription_uuid) if vpn_user is not None and vpn_user.subscription_uuid else None
-        ),
+        status=vpn_user.status.value if vpn_user is not None else None,
+        short_uuid=None,
+        subscription_uuid=None,
         expires_at=expires_at,
-        days_left=(
-            details.user.days_left
-            if details is not None and details.user is not None
-            else _compute_days_left(expires_at)
-        ),
+        days_left=_compute_days_left(expires_at),
         traffic_limit_bytes=vpn_user.traffic_limit_bytes if vpn_user is not None else None,
         used_traffic_bytes=vpn_user.used_traffic_bytes if vpn_user is not None else None,
         download_bytes=vpn_user.download_bytes if vpn_user is not None else None,
@@ -290,13 +220,13 @@ async def build_mobile_user_subscription_snapshot(
         sub_revoked_at=vpn_user.sub_revoked_at if vpn_user is not None else None,
         last_traffic_reset_at=vpn_user.last_traffic_reset_at if vpn_user is not None else None,
         hwid_device_limit=vpn_user.hwid_device_limit if vpn_user is not None else None,
-        subscription_url=subscription_url,
-        config_available=config is not None,
-        config=config,
-        config_client_type=_detect_config_client_type(config),
-        config_error=config_error,
-        links=links,
-        ss_conf_links=ss_conf_links,
+        subscription_url=None,
+        config_available=False,
+        config=None,
+        config_client_type=None,
+        config_error="VPN credential material is redacted",
+        links=[],
+        ss_conf_links={},
     )
 
 
@@ -312,7 +242,7 @@ async def get_mobile_user_subscription_snapshot(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mobile user not found")
 
-    snapshot = await build_mobile_user_subscription_snapshot(user, remnawave_client)
+    snapshot = await build_mobile_user_subscription_snapshot(user, remnawave_client, db)
     route_operations_total.labels(route="admin_mobile_users", action="subscription_snapshot", status="success").inc()
     return snapshot
 

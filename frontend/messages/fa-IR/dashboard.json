@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "دسترس‌پذیری سرویس VPN",
+    "connections": "اتصال‌ها",
+    "usage": "مصرف",
+    "devices": "دستگاه‌ها",
+    "available": "در دسترس",
+    "unavailable": "در دسترس نیست",
+    "loading": "در حال بارگذاری وضعیت سرویس VPN",
+    "degraded": "تا حدی مختل"
   }
 }

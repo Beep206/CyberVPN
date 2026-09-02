@@ -1,109 +1,139 @@
-"""Auto-renew subscriptions for users with auto_renew enabled."""
+"""Create tracked auto-renew invoices through the CyberVPN billing boundary."""
 
 from datetime import UTC, datetime, timedelta
 
 import structlog
 
 from src.broker import broker
-from src.config import get_settings
-from src.services.cryptobot_client import CryptoBotClient
+from src.services.backend_api_client import (
+    BackendAPIAutoRenewPermanentError,
+    BackendAPIAutoRenewTransientError,
+    BackendAPIClient,
+)
 from src.services.remnawave_client import RemnawaveClient
-from src.services.telegram_client import TelegramClient
-from src.utils.formatting import auto_renew_invoice
 
 logger = structlog.get_logger(__name__)
+AUTO_RENEW_ELIGIBILITY_BATCH_SIZE = 1000
+AUTO_RENEW_PAST_WINDOW = timedelta(hours=2)
 
 
 @broker.task(task_name="auto_renew_subscriptions", queue="subscriptions")
 async def auto_renew_subscriptions() -> dict:
-    """Auto-renew subscriptions for users with auto_renew=true and expire_at < now() + 1 hour.
+    """Create invoices for backend-authorized users expiring within one hour.
 
-    Queries users from Remnawave API, filters those with auto_renew enabled
-    and expiring within 1 hour, creates CryptoBot invoices, and sends
-    Telegram notifications with payment links.
+    Remnawave remains authoritative for the numeric user identity and current
+    expiry. CyberVPN backend remains authoritative for customer mapping,
+    billing plan, price, invoice persistence, and provider reconciliation.
 
     Returns:
         Dictionary with invoices_created count
     """
-    settings = get_settings()
     invoices_created = 0
+    invoices_reused = 0
+    notifications_queued = 0
+    failures = 0
     users_checked = 0
 
     try:
         async with RemnawaveClient() as rw:
             users = await rw.get_users()
 
-        renewal_threshold = datetime.now(UTC) + timedelta(hours=1)
+        now = datetime.now(UTC)
+        renewal_threshold = now + timedelta(hours=1)
+        oldest_eligible_expiry = now - AUTO_RENEW_PAST_WINDOW
+        candidates: dict[int, tuple[datetime, str]] = {}
+        for user in users:
+            users_checked += 1
+            expire_at = user.get("expire_at")
+            if not isinstance(expire_at, str) or not expire_at:
+                continue
+            user_id = user.get("id")
+            if not isinstance(user_id, int) or isinstance(user_id, bool) or user_id <= 0:
+                logger.warning("invalid_auto_renew_user_id")
+                continue
+            try:
+                exp_dt = datetime.fromisoformat(expire_at.replace("Z", "+00:00"))
+                if exp_dt.tzinfo is None or exp_dt.utcoffset() is None:
+                    raise ValueError("expiration timestamp must include a timezone")
+                exp_dt = exp_dt.astimezone(UTC)
+            except (ValueError, TypeError):
+                logger.warning("invalid_auto_renew_expire_date", remnawave_user_id=user_id)
+                continue
+            if exp_dt < oldest_eligible_expiry or exp_dt > renewal_threshold:
+                continue
+            if user_id in candidates:
+                logger.warning("duplicate_auto_renew_user_id", remnawave_user_id=user_id)
+                continue
+            candidates[user_id] = (exp_dt, expire_at)
 
-        async with CryptoBotClient(settings.cryptobot_token) as cb, TelegramClient() as tg:
-            for user in users:
-                users_checked += 1
+        async with BackendAPIClient() as backend:
+            candidate_ids = list(candidates)
+            eligible_user_ids: set[int] = set()
+            for offset in range(0, len(candidate_ids), AUTO_RENEW_ELIGIBILITY_BATCH_SIZE):
+                batch = candidate_ids[offset : offset + AUTO_RENEW_ELIGIBILITY_BATCH_SIZE]
+                eligible_user_ids.update(await backend.filter_remnawave_auto_renew_eligible(batch))
 
-                # Check auto_renew flag
-                auto_renew = user.get("auto_renew", False)
-                if not auto_renew:
-                    continue
-
-                # Parse expiration date
-                expire_at = user.get("expire_at")
-                if not expire_at:
+            for user_id, (exp_dt, expire_at) in candidates.items():
+                if user_id not in eligible_user_ids:
                     continue
 
                 try:
-                    exp_dt = datetime.fromisoformat(expire_at.replace("Z", "+00:00"))
-                except (ValueError, TypeError):
-                    logger.warning("invalid_expire_date", user=user.get("username"), expire_at=expire_at)
-                    continue
-
-                # Only process if expiring within 1 hour
-                if exp_dt > renewal_threshold:
-                    continue
-
-                username = user.get("username", "unknown")
-                telegram_id = user.get("telegram_id")
-                user_uuid = user.get("uuid")
-
-                if not telegram_id or not user_uuid:
-                    logger.warning("missing_user_data", username=username)
-                    continue
-
-                # Get subscription plan details
-                plan_name = user.get("plan_name", "Standard")
-                amount = user.get("plan_price", 10.0)
-                currency = user.get("plan_currency", "USD")
-
-                try:
-                    # Create invoice via CryptoBot
-                    invoice = await cb.create_invoice(
-                        amount=amount,
-                        currency=currency,
-                        description=f"Auto-renewal: {plan_name}",
-                        payload=str(user_uuid),
+                    invoice = await backend.create_remnawave_auto_renew_invoice(
+                        remnawave_user_id=user_id,
+                        expected_expire_at=exp_dt,
                     )
-                    pay_url = invoice.get("pay_url", "")
-
-                    if not pay_url:
-                        logger.error("no_pay_url_in_invoice", username=username, invoice=invoice)
-                        continue
-
-                    # Send notification with payment link
-                    msg = auto_renew_invoice(username, amount, currency, pay_url)
-                    await tg.send_message(chat_id=int(telegram_id), text=msg)
-                    invoices_created += 1
+                    if invoice.notification_status == "queued":
+                        notifications_queued += 1
+                    if invoice.reused:
+                        invoices_reused += 1
+                    else:
+                        invoices_created += 1
 
                     logger.info(
                         "auto_renew_invoice_created",
-                        username=username,
-                        amount=amount,
-                        currency=currency,
+                        remnawave_user_id=user_id,
+                        payment_id=invoice.payment_id,
+                        reused=invoice.reused,
                         expires_at=expire_at,
                     )
-                except Exception as e:
-                    logger.exception("auto_renew_failed", username=username, error=str(e))
+                except BackendAPIAutoRenewPermanentError as exc:
+                    failures += 1
+                    logger.warning(
+                        "auto_renew_permanently_rejected",
+                        remnawave_user_id=user_id,
+                        error_type=type(exc).__name__,
+                    )
+                except BackendAPIAutoRenewTransientError as exc:
+                    failures += 1
+                    logger.warning(
+                        "auto_renew_transient_failure",
+                        remnawave_user_id=user_id,
+                        error_type=type(exc).__name__,
+                    )
+                except Exception as exc:
+                    failures += 1
+                    logger.exception(
+                        "auto_renew_failed",
+                        remnawave_user_id=user_id,
+                        error_type=type(exc).__name__,
+                    )
 
-    except Exception as e:
-        logger.exception("auto_renew_task_failed", error=str(e))
+    except Exception as exc:
+        logger.exception("auto_renew_task_failed", error_type=type(exc).__name__)
         raise
 
-    logger.info("auto_renew_complete", users_checked=users_checked, invoices_created=invoices_created)
-    return {"users_checked": users_checked, "invoices_created": invoices_created}
+    logger.info(
+        "auto_renew_complete",
+        users_checked=users_checked,
+        invoices_created=invoices_created,
+        invoices_reused=invoices_reused,
+        notifications_queued=notifications_queued,
+        failures=failures,
+    )
+    return {
+        "users_checked": users_checked,
+        "invoices_created": invoices_created,
+        "invoices_reused": invoices_reused,
+        "notifications_queued": notifications_queued,
+        "failures": failures,
+    }

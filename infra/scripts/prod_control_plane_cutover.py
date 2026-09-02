@@ -881,7 +881,7 @@ def command_render_scaffold(args: argparse.Namespace) -> int:
             digest_placeholder="sha256:REPLACE_ME_TASK_SCHEDULER_IMAGE_DIGEST",
             target_name="task-scheduler-runtime",
             mode="scheduler",
-            command=["taskiq", "scheduler", "src.broker:scheduler"],
+            command=["taskiq", "scheduler", "src.scheduler:scheduler"],
             args=[],
             multiproc_enabled=False,
             replica_count=1,

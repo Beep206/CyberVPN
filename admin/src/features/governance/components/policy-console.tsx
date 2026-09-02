@@ -6,7 +6,11 @@ import { RefreshCw, Settings2, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { governanceApi } from '@/lib/api/governance';
+import {
+  governanceApi,
+  type RemnawaveSettingsResponse,
+  type UpdateRemnawaveSettingsRequest,
+} from '@/lib/api/governance';
 import { GovernanceEmptyState } from '@/features/governance/components/governance-empty-state';
 import { GovernanceJsonPreview } from '@/features/governance/components/governance-json-preview';
 import { GovernancePageShell } from '@/features/governance/components/governance-page-shell';
@@ -16,8 +20,6 @@ import {
   formatDateTime,
   getErrorMessage,
   humanizeToken,
-  matchesSearch,
-  settingFamily,
   shortId,
   summarizeJsonValue,
 } from '@/features/governance/lib/formatting';
@@ -30,12 +32,105 @@ import {
   TableRow,
 } from '@/shared/ui/organisms/table';
 
-function defaultSettingValue() {
-  return JSON.stringify({ enabled: true }, null, 2);
-}
-
 function parseJsonInput(value: string) {
   return JSON.parse(value);
+}
+
+type SettingsSectionKey = keyof RemnawaveSettingsResponse;
+type EditableSettingsSectionKey = Exclude<SettingsSectionKey, 'oauth2Settings'>;
+
+const SETTINGS_SECTION_KEYS = [
+  'passkeySettings',
+  'oauth2Settings',
+  'passwordSettings',
+  'brandingSettings',
+] as const satisfies readonly SettingsSectionKey[];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowedKeys: readonly string[]) {
+  return Object.keys(value).every((key) => allowedKeys.includes(key));
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return typeof value === 'string' || value === null;
+}
+
+function isPasskeySettings(
+  value: unknown,
+): value is NonNullable<RemnawaveSettingsResponse['passkeySettings']> {
+  return isRecord(value)
+    && hasOnlyKeys(value, ['enabled', 'rpId', 'origin'])
+    && typeof value.enabled === 'boolean'
+    && isNullableString(value.rpId)
+    && isNullableString(value.origin);
+}
+
+function isPasswordSettings(
+  value: unknown,
+): value is NonNullable<RemnawaveSettingsResponse['passwordSettings']> {
+  return isRecord(value)
+    && hasOnlyKeys(value, ['enabled'])
+    && typeof value.enabled === 'boolean';
+}
+
+function isBrandingSettings(
+  value: unknown,
+): value is NonNullable<RemnawaveSettingsResponse['brandingSettings']> {
+  return isRecord(value)
+    && hasOnlyKeys(value, ['title', 'logoUrl'])
+    && isNullableString(value.title)
+    && isNullableString(value.logoUrl);
+}
+
+function defaultSettingsSectionValue(key: EditableSettingsSectionKey) {
+  switch (key) {
+    case 'passkeySettings':
+      return { enabled: false, rpId: null, origin: null };
+    case 'passwordSettings':
+      return { enabled: false };
+    case 'brandingSettings':
+      return { title: null, logoUrl: null };
+  }
+}
+
+function buildSettingsPatch(
+  key: EditableSettingsSectionKey,
+  value: unknown,
+): UpdateRemnawaveSettingsRequest | null {
+  switch (key) {
+    case 'passkeySettings':
+      return isPasskeySettings(value) ? { passkeySettings: value } : null;
+    case 'passwordSettings':
+      return isPasswordSettings(value) ? { passwordSettings: value } : null;
+    case 'brandingSettings':
+      return isBrandingSettings(value) ? { brandingSettings: value } : null;
+  }
+}
+
+function settingsSectionPreview(
+  settings: RemnawaveSettingsResponse,
+  key: SettingsSectionKey,
+) {
+  if (key !== 'oauth2Settings') {
+    return settings[key];
+  }
+
+  const oauth = settings.oauth2Settings;
+  if (!oauth) {
+    return null;
+  }
+
+  return {
+    github: { enabled: oauth.github.enabled },
+    pocketid: { enabled: oauth.pocketid.enabled },
+    yandex: { enabled: oauth.yandex.enabled },
+    keycloak: oauth.keycloak ? { enabled: oauth.keycloak.enabled } : null,
+    generic: oauth.generic ? { enabled: oauth.generic.enabled } : null,
+    telegram: oauth.telegram ? { enabled: oauth.telegram.enabled } : null,
+  };
 }
 
 type MiniAppRuntimeDraft = {
@@ -189,13 +284,13 @@ function buildMiniAppLaunchReadinessDraft(input?: {
 export function PolicyConsole() {
   const t = useTranslations('Governance');
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [selectedSettingId, setSelectedSettingId] = useState<number | null>(null);
-  const [editorMode, setEditorMode] = useState<'create' | 'update'>('create');
-  const [editorKey, setEditorKey] = useState('');
-  const [editorValue, setEditorValue] = useState(defaultSettingValue());
-  const [editorDescription, setEditorDescription] = useState('');
-  const [editorIsPublic, setEditorIsPublic] = useState(false);
+  const [selectedSectionKey, setSelectedSectionKey] =
+    useState<SettingsSectionKey>('passkeySettings');
+  const [editorSectionKey, setEditorSectionKey] =
+    useState<EditableSettingsSectionKey>('passkeySettings');
+  const [editorValue, setEditorValue] = useState(() =>
+    JSON.stringify(defaultSettingsSectionValue('passkeySettings'), null, 2),
+  );
   const [miniAppDraft, setMiniAppDraft] = useState<MiniAppRuntimeDraft | null>(null);
   const [miniAppLaunchReadinessDraft, setMiniAppLaunchReadinessDraft] =
     useState<MiniAppLaunchReadinessDraft | null>(null);
@@ -249,35 +344,9 @@ export function PolicyConsole() {
     staleTime: 10_000,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (payload: {
-      key: string;
-      value: unknown;
-      description: string | null;
-      is_public: boolean;
-    }) => governanceApi.createSetting(payload),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['governance', 'settings'] });
-      resetEditor();
-      setFeedback(t('policy.createSuccess'));
-    },
-    onError: (error) => {
-      setFeedback(getErrorMessage(error, t('common.actionFailed')));
-    },
-  });
-
   const updateMutation = useMutation({
-    mutationFn: (payload: {
-      id: number;
-      value: unknown;
-      description: string | null;
-      is_public: boolean;
-    }) =>
-      governanceApi.updateSetting(payload.id, {
-        value: payload.value,
-        description: payload.description,
-        is_public: payload.is_public,
-      }),
+    mutationFn: (payload: UpdateRemnawaveSettingsRequest) =>
+      governanceApi.updateSettings(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['governance', 'settings'] });
       setFeedback(t('policy.updateSuccess'));
@@ -381,17 +450,18 @@ export function PolicyConsole() {
     },
   });
 
-  const settings = settingsQuery.data ?? [];
-  const filteredSettings = settings.filter((setting) =>
-    matchesSearch(
-      [setting.key, setting.description, setting.value, setting.isPublic],
-      search,
-    ),
-  );
-  const selectedSetting =
-    filteredSettings.find((setting) => setting.id === selectedSettingId) ??
-    filteredSettings[0] ??
-    null;
+  const settings = settingsQuery.data ?? null;
+  const settingsSections = SETTINGS_SECTION_KEYS.map((key) => ({
+    key,
+    value: settings?.[key] ?? null,
+    preview: settings ? settingsSectionPreview(settings, key) : null,
+  }));
+  const selectedSection = settings
+    ? {
+        key: selectedSectionKey,
+        value: settingsSectionPreview(settings, selectedSectionKey),
+      }
+    : null;
   const miniAppRuntime = miniAppRuntimeQuery.data ?? null;
   const miniAppLaunchSummary = miniAppLaunchSummaryQuery.data ?? null;
   const miniAppLaunchTimeline = miniAppLaunchTimelineQuery.data ?? [];
@@ -480,34 +550,18 @@ export function PolicyConsole() {
   ];
   const launchChecklistCompletedCount = launchChecklistItems.filter((item) => item.complete).length;
   const isMiniAppLaunchReady = Boolean(miniAppLaunchSummary?.live_switch_allowed);
-  const publicCount = settings.filter((setting) => setting.isPublic).length;
-  const describedCount = settings.filter((setting) => Boolean(setting.description)).length;
-  const familyCount = new Set(settings.map((setting) => settingFamily(setting.key))).size;
+  const configuredSectionCount = settingsSections.filter(
+    (section) => section.value !== null,
+  ).length;
 
-  function resetEditor() {
-    setEditorMode('create');
-    setSelectedSettingId(null);
-    setEditorKey('');
-    setEditorValue(defaultSettingValue());
-    setEditorDescription('');
-    setEditorIsPublic(false);
-  }
-
-  function loadSettingIntoEditor(setting: (typeof settings)[number]) {
-    setEditorMode('update');
-    setSelectedSettingId(setting.id);
-    setEditorKey(setting.key);
-    setEditorValue(JSON.stringify(setting.value, null, 2));
-    setEditorDescription(setting.description ?? '');
-    setEditorIsPublic(setting.isPublic);
+  function loadSectionIntoEditor(key: EditableSettingsSectionKey) {
+    const value = settings?.[key] ?? defaultSettingsSectionValue(key);
+    setSelectedSectionKey(key);
+    setEditorSectionKey(key);
+    setEditorValue(JSON.stringify(value, null, 2));
   }
 
   function submitEditor() {
-    if (editorMode === 'create' && !editorKey.trim()) {
-      setFeedback(t('common.validation.keyRequired'));
-      return;
-    }
-
     if (!editorValue.trim()) {
       setFeedback(t('common.validation.valueRequired'));
       return;
@@ -522,27 +576,13 @@ export function PolicyConsole() {
       return;
     }
 
-    if (editorMode === 'create') {
-      createMutation.mutate({
-        key: editorKey.trim(),
-        value: parsedValue,
-        description: editorDescription.trim() || null,
-        is_public: editorIsPublic,
-      });
+    const patch = buildSettingsPatch(editorSectionKey, parsedValue);
+    if (!patch) {
+      setFeedback(t('common.validation.jsonInvalid'));
       return;
     }
 
-    if (!selectedSettingId) {
-      setFeedback(t('policy.selectionRequired'));
-      return;
-    }
-
-    updateMutation.mutate({
-      id: selectedSettingId,
-      value: parsedValue,
-      description: editorDescription.trim() || null,
-      is_public: editorIsPublic,
-    });
+    updateMutation.mutate(patch);
   }
 
   return (
@@ -552,63 +592,55 @@ export function PolicyConsole() {
       description={t('policy.description')}
       icon={Settings2}
       actions={
-        <>
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={t('policy.searchPlaceholder')}
-            className="w-[15rem]"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            magnetic={false}
-            onClick={() => {
-              setMiniAppDraft(null);
-              setMiniAppLaunchReadinessDraft(null);
-              setMiniAppLaunchActionReason('');
-              void queryClient.invalidateQueries({ queryKey: ['governance', 'settings'] });
-              void queryClient.invalidateQueries({
-                queryKey: ['governance', 'system-config', 'miniapp-runtime'],
-              });
-              void queryClient.invalidateQueries({
-                queryKey: ['governance', 'system-config', 'miniapp-launch-readiness'],
-              });
-              void queryClient.invalidateQueries({
-                queryKey: ['governance', 'system-config', 'miniapp-launch-summary'],
-              });
-              void queryClient.invalidateQueries({
-                queryKey: ['governance', 'system-config', 'miniapp-launch-timeline'],
-              });
-            }}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t('common.refresh')}
-          </Button>
-        </>
+        <Button
+          type="button"
+          variant="ghost"
+          magnetic={false}
+          onClick={() => {
+            setMiniAppDraft(null);
+            setMiniAppLaunchReadinessDraft(null);
+            setMiniAppLaunchActionReason('');
+            void queryClient.invalidateQueries({ queryKey: ['governance', 'settings'] });
+            void queryClient.invalidateQueries({
+              queryKey: ['governance', 'system-config', 'miniapp-runtime'],
+            });
+            void queryClient.invalidateQueries({
+              queryKey: ['governance', 'system-config', 'miniapp-launch-readiness'],
+            });
+            void queryClient.invalidateQueries({
+              queryKey: ['governance', 'system-config', 'miniapp-launch-summary'],
+            });
+            void queryClient.invalidateQueries({
+              queryKey: ['governance', 'system-config', 'miniapp-launch-timeline'],
+            });
+          }}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          {t('common.refresh')}
+        </Button>
       }
       metrics={[
         {
           label: t('policy.metrics.total'),
-          value: String(settings.length),
+          value: settingsQuery.isError ? '—' : String(configuredSectionCount),
           hint: t('policy.metrics.totalHint'),
           tone: 'info',
         },
         {
           label: t('policy.metrics.public'),
-          value: String(publicCount),
+          value: '—',
           hint: t('policy.metrics.publicHint'),
-          tone: 'warning',
+          tone: 'neutral',
         },
         {
           label: t('policy.metrics.described'),
-          value: String(describedCount),
+          value: '—',
           hint: t('policy.metrics.describedHint'),
-          tone: 'success',
+          tone: 'neutral',
         },
         {
           label: t('policy.metrics.families'),
-          value: String(familyCount),
+          value: settingsQuery.isError ? '—' : String(SETTINGS_SECTION_KEYS.length),
           hint: t('policy.metrics.familiesHint'),
           tone: 'neutral',
         },
@@ -633,15 +665,19 @@ export function PolicyConsole() {
             <div className="mt-5">
               {settingsQuery.isLoading ? (
                 <div className="grid gap-3">
-                  {Array.from({ length: 5 }).map((_, index) => (
+                  {Array.from({ length: 4 }).map((_, index) => (
                     <div
                       key={index}
                       className="h-16 animate-pulse rounded-2xl border border-grid-line/20 bg-terminal-bg/45"
                     />
                   ))}
                 </div>
-              ) : filteredSettings.length === 0 ? (
-                <GovernanceEmptyState label={t('policy.empty')} />
+              ) : settingsQuery.isError ? (
+                <div role="alert">
+                  <GovernanceEmptyState
+                    label={getErrorMessage(settingsQuery.error, t('common.actionFailed'))}
+                  />
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -653,34 +689,35 @@ export function PolicyConsole() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSettings.map((setting) => {
-                      const isSelected = selectedSetting?.id === setting.id;
+                    {settingsSections.map((section) => {
+                      const isSelected = selectedSectionKey === section.key;
+                      const isEditable = section.key !== 'oauth2Settings';
 
                       return (
                         <TableRow
-                          key={setting.id}
+                          key={section.key}
                           className={isSelected ? 'border-l-2 border-l-neon-cyan bg-neon-cyan/5' : undefined}
-                          onClick={() => setSelectedSettingId(setting.id)}
+                          onClick={() => setSelectedSectionKey(section.key)}
                         >
                           <TableCell>
                             <div className="space-y-1">
                               <p className="font-display uppercase tracking-[0.14em] text-white">
-                                {setting.key}
+                                {section.key}
                               </p>
                               <p className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                                {setting.description ?? t('common.none')}
+                                /api/remnawave-settings
                               </p>
                             </div>
                           </TableCell>
                           <TableCell className="max-w-[18rem]">
                             <span className="text-xs text-muted-foreground">
-                              {summarizeJsonValue(setting.value)}
+                              {summarizeJsonValue(section.preview)}
                             </span>
                           </TableCell>
                           <TableCell>
                             <GovernanceStatusChip
-                              label={setting.isPublic ? t('common.public') : t('common.private')}
-                              tone={setting.isPublic ? 'warning' : 'info'}
+                              label={section.value === null ? t('common.none') : t('common.processed')}
+                              tone={section.value === null ? 'neutral' : 'success'}
                             />
                           </TableCell>
                           <TableCell>
@@ -689,12 +726,15 @@ export function PolicyConsole() {
                               size="sm"
                               variant="ghost"
                               magnetic={false}
+                              disabled={!isEditable}
                               onClick={(event) => {
                                 event.stopPropagation();
-                                loadSettingIntoEditor(setting);
+                                if (section.key !== 'oauth2Settings') {
+                                  loadSectionIntoEditor(section.key);
+                                }
                               }}
                             >
-                              {t('common.edit')}
+                              {isEditable ? t('common.edit') : t('policy.gapTitle')}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -1440,20 +1480,18 @@ export function PolicyConsole() {
                   {t('policy.editorTitle')}
                 </h2>
                 <p className="mt-2 text-sm font-mono leading-6 text-muted-foreground">
-                  {t(`policy.editorDescription.${editorMode}`)}
+                  {t('policy.editorDescription.update')}
                 </p>
               </div>
-              {editorMode === 'update' ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  magnetic={false}
-                  onClick={() => resetEditor()}
-                >
-                  {t('policy.resetEditor')}
-                </Button>
-              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                magnetic={false}
+                onClick={() => loadSectionIntoEditor(editorSectionKey)}
+              >
+                {t('policy.resetEditor')}
+              </Button>
             </div>
 
             <div className="mt-5 space-y-4">
@@ -1462,21 +1500,8 @@ export function PolicyConsole() {
                   {t('common.key')}
                 </span>
                 <Input
-                  value={editorKey}
-                  disabled={editorMode === 'update'}
-                  onChange={(event) => setEditorKey(event.target.value)}
-                  placeholder={t('policy.keyPlaceholder')}
-                />
-              </label>
-
-              <label className="block space-y-2">
-                <span className="text-xs font-mono uppercase tracking-[0.18em] text-muted-foreground">
-                  {t('common.description')}
-                </span>
-                <Input
-                  value={editorDescription}
-                  onChange={(event) => setEditorDescription(event.target.value)}
-                  placeholder={t('policy.descriptionPlaceholder')}
+                  value={editorSectionKey}
+                  disabled
                 />
               </label>
 
@@ -1492,25 +1517,13 @@ export function PolicyConsole() {
                 />
               </label>
 
-              <label className="flex items-center gap-3 rounded-2xl border border-grid-line/20 bg-terminal-bg/45 px-4 py-3">
-                <input
-                  type="checkbox"
-                  checked={editorIsPublic}
-                  onChange={(event) => setEditorIsPublic(event.target.checked)}
-                  className="h-4 w-4 rounded border border-input bg-transparent"
-                />
-                <span className="text-sm font-mono text-foreground">
-                  {t('policy.publicToggle')}
-                </span>
-              </label>
-
               <Button
                 type="button"
                 magnetic={false}
-                disabled={createMutation.isPending || updateMutation.isPending}
+                disabled={updateMutation.isPending}
                 onClick={() => submitEditor()}
               >
-                {editorMode === 'create' ? t('common.create') : t('common.update')}
+                {t('common.update')}
               </Button>
             </div>
           </article>
@@ -1523,19 +1536,19 @@ export function PolicyConsole() {
               {t('policy.detailDescription')}
             </p>
 
-            {selectedSetting ? (
+            {selectedSection ? (
               <div className="mt-5 space-y-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <GovernanceStatusChip
-                    label={selectedSetting.isPublic ? t('common.public') : t('common.private')}
-                    tone={selectedSetting.isPublic ? 'warning' : 'info'}
+                    label={selectedSection.key}
+                    tone="info"
                   />
                   <GovernanceStatusChip
-                    label={settingFamily(selectedSetting.key)}
-                    tone="neutral"
+                    label={selectedSection.value === null ? t('common.none') : t('common.processed')}
+                    tone={selectedSection.value === null ? 'neutral' : 'success'}
                   />
                 </div>
-                <GovernanceJsonPreview value={selectedSetting.value} maxHeightClassName="max-h-[20rem]" />
+                <GovernanceJsonPreview value={selectedSection.value} maxHeightClassName="max-h-[20rem]" />
               </div>
             ) : (
               <div className="mt-5">

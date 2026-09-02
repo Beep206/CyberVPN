@@ -460,7 +460,17 @@
     "serverStatus": "סטטוס שרת",
     "statusLabel": "סטטוס מערכת:",
     "statusValue": "אופטימלי",
-    "title": "מרכז פיקוד VPN"
+    "title": "מרכז פיקוד VPN",
+    "vpnServiceStatus": {
+      "available": "זמין",
+      "connections": "חיבורים",
+      "degraded": "פגיעה חלקית",
+      "devices": "מכשירים",
+      "loading": "מצב שירות ה-VPN נטען",
+      "title": "זמינות שירות ה-VPN",
+      "unavailable": "לא זמין",
+      "usage": "שימוש"
+    }
   },
   "DeleteAccount": {
     "contact": {

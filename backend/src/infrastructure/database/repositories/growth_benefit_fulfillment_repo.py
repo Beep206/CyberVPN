@@ -603,6 +603,8 @@ def _fulfillment_record(model: GrowthBenefitFulfillmentModel) -> BenefitFulfillm
 
 
 def _invite_batch_record(model: InviteBatchModel) -> InviteBatchRecord:
+    if model.owner_user_id is None:
+        raise ValueError("growth invite batch is missing its owner")
     return InviteBatchRecord(
         id=model.id,
         owner_user_id=model.owner_user_id,
@@ -628,7 +630,12 @@ def _invite_batch_record(model: InviteBatchModel) -> InviteBatchRecord:
 
 
 def _invite_code_record(model: InviteCodeModel) -> InviteCodeRecord:
-    if model.batch_id is None or model.source_growth_code_id is None or model.source_benefit_id is None:
+    if (
+        model.owner_user_id is None
+        or model.batch_id is None
+        or model.source_growth_code_id is None
+        or model.source_benefit_id is None
+    ):
         raise ValueError("growth invite code is missing source references")
     if model.source_payment_id is None:
         raise ValueError("growth invite code is missing source payment")

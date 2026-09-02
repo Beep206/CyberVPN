@@ -32,20 +32,19 @@ class HapticService {
   /// [ref] is used to access the settings repository to check if haptics
   /// are enabled. The enabled state is cached at construction to avoid
   /// async reads on every haptic call.
-  HapticService(this._ref) {
+  HapticService(this._ref, {bool Function()? isPlatformSupported})
+    : _isPlatformSupported =
+          isPlatformSupported ?? (() => Platform.isIOS || Platform.isAndroid) {
     unawaited(_loadEnabledState());
   }
 
   final Ref _ref;
+  final bool Function() _isPlatformSupported;
 
   /// Cached haptics-enabled state. Defaults to `true` until loaded.
   bool _cachedEnabled = true;
 
   /// Checks if haptics are supported on the current platform.
-  bool get _isPlatformSupported {
-    return Platform.isIOS || Platform.isAndroid;
-  }
-
   /// Whether haptics are currently enabled (synchronous, cached).
   bool get isEnabled => _cachedEnabled;
 
@@ -79,7 +78,7 @@ class HapticService {
   ///
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> selection() async {
-    if (!_isPlatformSupported) return;
+    if (!_isPlatformSupported()) return;
     if (!_cachedEnabled) return;
 
     try {
@@ -101,7 +100,7 @@ class HapticService {
   ///
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> impact() async {
-    if (!_isPlatformSupported) return;
+    if (!_isPlatformSupported()) return;
     if (!_cachedEnabled) return;
 
     try {
@@ -123,7 +122,7 @@ class HapticService {
   ///
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> heavy() async {
-    if (!_isPlatformSupported) return;
+    if (!_isPlatformSupported()) return;
     if (!_cachedEnabled) return;
 
     try {
@@ -146,7 +145,7 @@ class HapticService {
   ///
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> success() async {
-    if (!_isPlatformSupported) return;
+    if (!_isPlatformSupported()) return;
     if (!_cachedEnabled) return;
 
     try {
@@ -171,7 +170,7 @@ class HapticService {
   ///
   /// This is a no-op if haptics are disabled or unsupported.
   Future<void> error() async {
-    if (!_isPlatformSupported) return;
+    if (!_isPlatformSupported()) return;
     if (!_cachedEnabled) return;
 
     try {

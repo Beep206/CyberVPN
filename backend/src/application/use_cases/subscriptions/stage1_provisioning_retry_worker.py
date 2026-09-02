@@ -23,12 +23,16 @@ from src.application.use_cases.trial.stage1_trial_provisioning import (
     Stage1TrialProvisioningGateway,
     Stage1TrialProvisioningRequest,
 )
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.presentation.api.shared.stage1_contract import JsonScalar
 
 JsonSafeObject = dict[str, Any]
 
 
 class Stage1ProvisioningRetryClaimRepository(Protocol):
+    async def resolve_current_remnawave_user_ref(self, customer_account_id: UUID) -> RemnawaveUserRef | None:
+        """Resolve the customer's exact current mapped identity in this transaction."""
+
     async def claim_due_jobs(
         self,
         *,
@@ -120,6 +124,9 @@ class Stage1ProvisioningRetryWorker:
                 counts["dead_letter"] += 1
                 counts["reconciliation_required"] += 1
                 _increment(dependency_errors, decision.retry_job.last_error_code or "RemnawaveProvisioningError")
+            elif state == Stage1ProvisioningRetryJobState.RECONCILIATION_REQUIRED:
+                counts["reconciliation_required"] += 1
+                _increment(dependency_errors, decision.retry_job.last_error_code or "RemnawaveProvisioningError")
             else:
                 counts["retrying"] += 1
                 _increment(dependency_errors, decision.retry_job.last_error_code or "RemnawaveProvisioningError")
@@ -139,16 +146,17 @@ class Stage1ProvisioningRetryWorker:
 
     async def _retry_one(self, job: Stage1ProvisioningRetryJob) -> Stage1ProvisioningRetryDecision:
         try:
+            current_user_ref = await self._require_current_job_identity(job)
             if job.operation == Stage1ProvisioningRetryOperation.PAID_ACCESS:
                 return await self._retry_service.retry_paid_job(
                     job=job,
-                    request=_paid_request_from_job(job),
+                    request=_paid_request_from_job(job, current_user_ref=current_user_ref),
                     gateway=self._paid_gateway,
                 )
             if job.operation == Stage1ProvisioningRetryOperation.TRIAL_ACCESS:
                 return await self._retry_service.retry_trial_job(
                     job=job,
-                    request=_trial_request_from_job(job),
+                    request=_trial_request_from_job(job, current_user_ref=current_user_ref),
                     gateway=self._trial_gateway,
                 )
         except Exception as exc:  # noqa: BLE001 - retry runner must never leak raw upstream details.
@@ -180,8 +188,38 @@ class Stage1ProvisioningRetryWorker:
             completed=False,
         )
 
+    async def _require_current_job_identity(self, job: Stage1ProvisioningRetryJob) -> RemnawaveUserRef | None:
+        current_ref = await self._repository.resolve_current_remnawave_user_ref(job.customer_account_id)
+        stored_numeric_raw = job.request_payload.get("existing_remnawave_user_id")
+        if stored_numeric_raw is None:
+            stored_numeric_id = None
+        elif isinstance(stored_numeric_raw, bool) or not isinstance(stored_numeric_raw, int) or stored_numeric_raw <= 0:
+            raise RuntimeError("Provisioning retry numeric identity is invalid")
+        else:
+            stored_numeric_id = stored_numeric_raw
+        stored_legacy_raw = _optional_str(job.request_payload.get("existing_remnawave_uuid"))
+        if stored_numeric_id is None and stored_legacy_raw is None:
+            if current_ref is not None:
+                raise RuntimeError("Provisioning retry identity changed after the initial create attempt")
+            return None
+        if stored_numeric_id is None or current_ref is None:
+            raise RuntimeError("Provisioning retry identity is no longer exactly reconciled")
+        stored_legacy_uuid = None
+        if stored_legacy_raw is not None:
+            try:
+                stored_legacy_uuid = UUID(stored_legacy_raw)
+            except ValueError as exc:
+                raise RuntimeError("Provisioning retry rollback identity is invalid") from exc
+        if current_ref.require_numeric_id() != stored_numeric_id or current_ref.legacy_uuid != stored_legacy_uuid:
+            raise RuntimeError("Provisioning retry identity changed after the job was queued")
+        return current_ref
 
-def _paid_request_from_job(job: Stage1ProvisioningRetryJob) -> Stage1PaidProvisioningRequest:
+
+def _paid_request_from_job(
+    job: Stage1ProvisioningRetryJob,
+    *,
+    current_user_ref: RemnawaveUserRef | None,
+) -> Stage1PaidProvisioningRequest:
     payload = job.request_payload
     customer_account_id = _uuid_from_payload(payload, "customer_account_id")
     order_id = _uuid_from_payload(payload, "order_id")
@@ -200,13 +238,22 @@ def _paid_request_from_job(job: Stage1ProvisioningRetryJob) -> Stage1PaidProvisi
         traffic_limit_bytes=_optional_int(payload.get("traffic_limit_bytes")),
         device_limit=_int_from_payload(payload, "device_limit"),
         profile_id=str(payload["profile_id"]),
-        existing_remnawave_uuid=_optional_str(payload.get("existing_remnawave_uuid")),
+        existing_remnawave_uuid=(
+            str(current_user_ref.legacy_uuid)
+            if current_user_ref is not None and current_user_ref.legacy_uuid is not None
+            else None
+        ),
+        existing_remnawave_user_id=(current_user_ref.require_numeric_id() if current_user_ref is not None else None),
         source_provider=_optional_str(payload.get("source_provider")),
         source_payment_id=None,
     )
 
 
-def _trial_request_from_job(job: Stage1ProvisioningRetryJob) -> Stage1TrialProvisioningRequest:
+def _trial_request_from_job(
+    job: Stage1ProvisioningRetryJob,
+    *,
+    current_user_ref: RemnawaveUserRef | None,
+) -> Stage1TrialProvisioningRequest:
     payload = job.request_payload
     customer_account_id = _uuid_from_payload(payload, "customer_account_id")
     return Stage1TrialProvisioningRequest(
@@ -216,7 +263,12 @@ def _trial_request_from_job(job: Stage1ProvisioningRetryJob) -> Stage1TrialProvi
         telegram_id=None,
         trial_expires_at=_datetime_from_payload(payload, "trial_expires_at"),
         profile_id=str(payload["profile_id"]),
-        existing_remnawave_uuid=_optional_str(payload.get("existing_remnawave_uuid")),
+        existing_remnawave_uuid=(
+            str(current_user_ref.legacy_uuid)
+            if current_user_ref is not None and current_user_ref.legacy_uuid is not None
+            else None
+        ),
+        existing_remnawave_user_id=(current_user_ref.require_numeric_id() if current_user_ref is not None else None),
         traffic_limit_bytes=_int_from_payload(payload, "traffic_limit_bytes"),
         device_limit=_int_from_payload(payload, "device_limit"),
     )
@@ -231,7 +283,10 @@ def _datetime_from_payload(payload: Mapping[str, JsonScalar], key: str) -> datet
 
 
 def _int_from_payload(payload: Mapping[str, JsonScalar], key: str) -> int:
-    return int(payload[key])
+    value = payload[key]
+    if value is None:
+        raise ValueError(f"{key} is required")
+    return int(value)
 
 
 def _optional_int(value: JsonScalar | None) -> int | None:

@@ -896,6 +896,7 @@
       "inactive": "Inactive",
       "inboundTag": "Inbound tag",
       "isActive": "Active plan",
+      "loading": "Loading",
       "maxDevices": "Max devices",
       "method": "Method",
       "name": "Name",
@@ -903,6 +904,7 @@
       "price": "Price",
       "provider": "Provider",
       "reset": "Reset",
+      "retry": "Retry",
       "save": "Save",
       "saving": "Saving...",
       "status": "Status",
@@ -952,7 +954,6 @@
       },
       "modulesDescription": "Use the commerce routes below to move from revenue overview into the exact operational queue you need.",
       "modulesTitle": "Operator Routes",
-      "noFlow": "No flow",
       "paymentsDescription": "Latest payment records across providers with current settlement state.",
       "paymentsTitle": "Recent Payments",
       "routes": {
@@ -965,8 +966,11 @@
         "wallets": "Lookup a user wallet by UUID and apply manual top-ups when operations requires it.",
         "withdrawals": "Approve or reject pending withdrawal requests with operator notes."
       },
+      "templateEmpty": "No template payload",
+      "templateJson": "JSON template",
       "templatesDescription": "Most recent subscription templates currently available to operators.",
       "templatesTitle": "Template Inventory",
+      "templateYaml": "Encoded YAML template",
       "title": "Commerce Control",
       "withdrawalsDescription": "Pending payout requests waiting for a staff decision.",
       "withdrawalsTitle": "Withdrawal Queue"
@@ -1149,30 +1153,43 @@
       }
     },
     "subscriptionTemplates": {
+      "configured": "Configured",
       "createAction": "Create template",
       "createTitle": "Create template",
+      "createUnavailable": "Template creation is temporarily unavailable because safe durable settlement is not enabled. Existing templates can still be edited.",
       "deleteConfirm": "Delete this subscription template?",
       "deleteTitle": "Delete template",
-      "description": "Manage Remnawave template definitions, host bindings, flows, and config payloads used for delivery.",
+      "description": "Manage the exact Remnawave 3.4.3 template name, JSON payload, and encoded YAML payload.",
       "editTitle": "Edit template",
       "empty": "No subscription templates found.",
       "eyebrow": "DELIVERY TEMPLATES",
+      "fields": {
+        "encodedTemplateYaml": "Encoded template YAML",
+        "tags": "Tags",
+        "templateJson": "Template JSON"
+      },
       "form": {
         "configPlaceholder": "{\n  \"security\": \"reality\"\n}",
         "namePlaceholder": "VLESS Vision Template"
       },
+      "loadFailed": "Subscription templates could not be loaded. No empty state has been assumed.",
       "metaTitle": "Subscription Templates - Ozoxy Admin",
       "metrics": {
-        "hostBound": "Host bound",
-        "hostBoundHint": "templates attached to a host",
         "jsonConfig": "JSON config",
-        "jsonConfigHint": "templates with config payload",
+        "jsonConfigHint": "templates with a JSON payload",
+        "tagged": "Tagged",
+        "taggedHint": "templates with one or more tags",
         "total": "Templates",
         "totalHint": "template records",
-        "withFlow": "Flow enabled",
-        "withFlowHint": "templates with flow control"
+        "yamlConfig": "YAML config",
+        "yamlConfigHint": "templates with encoded YAML"
       },
-      "title": "Subscription Templates"
+      "title": "Subscription Templates",
+      "updatePending": "Remnawave accepted the template update, but authoritative reconciliation is still pending. Do not submit it again.",
+      "updateSuccess": "Subscription template updated.",
+      "validation": {
+        "jsonObjectRequired": "Template JSON must be a JSON object."
+      }
     },
     "wallets": {
       "activeLookup": "Active wallet lookup",
@@ -3990,6 +4007,7 @@
       "heartbeat": "Heartbeat",
       "hostHeader": "Host header",
       "inbounds": "Inbounds",
+      "loading": "Loading",
       "manifestVersion": "Manifest version",
       "maxMembers": "Max members",
       "members": "Members",
@@ -4007,6 +4025,7 @@
       "profile": "Profile",
       "protocol": "Protocol",
       "reset": "Reset",
+      "retry": "Retry",
       "revokeOnError": "Revoke on manifest error",
       "rolloutId": "Rollout ID",
       "save": "Save",
@@ -4025,7 +4044,7 @@
       "validation": {
         "helixPublishInvalid": "Rollout ID, batch ID, and manifest version are required.",
         "helixTargetsRequired": "Provide at least one target node ID.",
-        "hostFormInvalid": "Name, address, and a valid port are required.",
+        "hostFormInvalid": "Remark, address, valid port, UUID pairs, enums, and JSON fields must satisfy the Remnawave host contract.",
         "nameRequired": "Name is required.",
         "profileFormInvalid": "Name, profile type, and content are required.",
         "serverFormInvalid": "Name, address, and a valid port are required.",
@@ -4090,12 +4109,42 @@
       "createDescription": "Add a new host definition with TLS metadata and optional path/header overrides.",
       "createSuccess": "Host created.",
       "createTitle": "Create host",
+      "createUnavailable": "Host creation is temporarily unavailable because safe durable settlement is not enabled. Existing hosts can still be edited.",
+      "createUnavailableTitle": "Creation safety lock",
       "deleteSuccess": "Host deleted.",
       "description": "Operate delivery hosts, TLS metadata, path routing, and disablement state used by config delivery.",
       "editDescription": "Update the selected host when addressing SNI, header, or path changes.",
       "editTitle": "Edit host",
       "empty": "No hosts found.",
       "eyebrow": "EDGE HOST CONTROL",
+      "fields": {
+        "configProfileInboundUuid": "Config profile inbound UUID",
+        "configProfileUuid": "Config profile UUID",
+        "excludeFromSubscriptionTypes": "Excluded subscription types",
+        "finalMask": "Final mask JSON",
+        "fingerprint": "Fingerprints",
+        "internalSquads": "Internal squad UUIDs",
+        "internalSquadsMode": "Internal squads mode",
+        "isHidden": "Hidden",
+        "keepSniBlank": "Keep SNI blank",
+        "mihomoIpVersion": "Mihomo IP version",
+        "mihomoX25519": "Mihomo X25519",
+        "muxParams": "Mux parameters JSON",
+        "nodes": "Node UUIDs",
+        "overrideSniFromAddress": "Override SNI from address",
+        "pinnedPeerCertSha256": "Pinned peer certificate SHA-256",
+        "remark": "Remark",
+        "securityLayer": "Security layer",
+        "serverDescription": "Server description",
+        "shuffleHost": "Shuffle host",
+        "sockoptParams": "Socket options JSON",
+        "tags": "Tags",
+        "verifyPeerCertByName": "Peer certificate names",
+        "vlessRouteId": "VLESS route ID",
+        "xhttpExtraParams": "XHTTP extra parameters JSON",
+        "xrayJsonTemplateUuid": "Xray JSON template UUID"
+      },
+      "loadFailed": "Host inventory could not be loaded. No empty state has been assumed.",
       "metaTitle": "Hosts - Ozoxy Admin",
       "metrics": {
         "disabled": "Disabled",
@@ -4109,7 +4158,11 @@
       },
       "selectedHost": "Selected host",
       "title": "Hosts Console",
-      "updateSuccess": "Host updated."
+      "updatePending": "Remnawave accepted the update, but authoritative reconciliation is still pending. Do not submit it again.",
+      "updateSuccess": "Host updated.",
+      "validation": {
+        "jsonInvalid": "JSON parameter fields must contain valid JSON."
+      }
     },
     "inbounds": {
       "description": "Browse inbound listeners, attached nodes, security settings, and full inbound payloads.",
@@ -4217,6 +4270,622 @@
       "totalServers": "Total servers",
       "totalUsers": "Total users",
       "usersOnline": "users online"
+    },
+    "remnawave": {
+      "capabilities": {
+        "description": "Safe feature availability for the current CyberVPN adapter. Node SSH remains an admin-only capability; this page never exposes terminal tickets, vault material, hosts, or credentials.",
+        "empty": "No Remnawave 3.4 capabilities are enabled for this deployment.",
+        "eyebrow": "DEPLOYMENT CONTRACT",
+        "items": {
+          "connections": {
+            "description": "Connection events are available to the operational ingestion path.",
+            "title": "Connection telemetry"
+          },
+          "geo_check": {
+            "description": "Administrative GeoCheck job status is supported.",
+            "title": "GeoCheck jobs"
+          },
+          "host_mapper": {
+            "description": "The 3.4 host base64 mapper contract is supported.",
+            "title": "Host mapper"
+          },
+          "node_integrations": {
+            "description": "Node integration assignments are supported in the control plane.",
+            "title": "Node integrations"
+          },
+          "node_ssh": {
+            "description": "Privileged SSH is available only through the trusted-admin, passkey-gated console on this page.",
+            "title": "Node SSH (admin only)"
+          },
+          "numeric_user_ids": {
+            "description": "Integrations use Remnawave numeric user identifiers.",
+            "title": "Numeric user IDs"
+          },
+          "redis_stream_export": {
+            "description": "Bounded operational event streams are exported for CyberVPN consumers.",
+            "title": "Redis stream export"
+          },
+          "root_snippets": {
+            "description": "Root-level snippet synchronization is available.",
+            "title": "Root snippets"
+          },
+          "shared_lists": {
+            "description": "Hierarchical shared-list routes are supported.",
+            "title": "Shared lists"
+          },
+          "tags": {
+            "description": "Tags are available for supported Remnawave resources under their existing RBAC.",
+            "title": "Resource tags"
+          }
+        },
+        "title": "Global capabilities"
+      },
+      "degraded": {
+        "streams": "{count} Redis stream(s) are degraded or unknown.",
+        "title": "Operational data is degraded"
+      },
+      "description": "Admin-only capability inventory and receipt-backed Redis stream state for the panel 3.4.3 and node 3.4.1 contract.",
+      "disabled": "Unavailable",
+      "enabled": "Enabled",
+      "error": {
+        "description": "The last request failed. Existing administration routes remain available; retry this read-only snapshot.",
+        "title": "Remnawave status is unavailable"
+      },
+      "eyebrow": "REMNAWAVE CONTROL PLANE",
+      "forbidden": {
+        "description": "This operational surface is restricted to administrators with Remnawave diagnostics access. No control-plane data was loaded.",
+        "title": "Admin permission required"
+      },
+      "grants": {
+        "columns": {
+          "actions": "Actions",
+          "grantedAt": "Granted at",
+          "permissions": "Permissions",
+          "resource": "Resource",
+          "status": "Status",
+          "workspace": "Workspace"
+        },
+        "create": {
+          "action": "Issue grant",
+          "description": "Use canonical workspace and resource UUIDs. SSH is intentionally not a partner-grant permission.",
+          "pending": "Issuing grant…",
+          "title": "Issue an explicit grant"
+        },
+        "description": "Issue or revoke explicit workspace/resource grants. Nothing is granted automatically; every mutation requires a reason and is committed with an admin audit event.",
+        "empty": "No active Remnawave resource grants exist.",
+        "eyebrow": "PARTNER RESOURCE BOUNDARY",
+        "feedback": {
+          "alreadyRevoked": "That grant is already revoked or changed. Refresh the list.",
+          "conflict": "An active grant already exists for that workspace and resource.",
+          "created": "The object grant was issued and audited.",
+          "failed": "The grant mutation failed. No success state was applied.",
+          "revoked": "The object grant was revoked and audited.",
+          "validation": "Enter valid UUIDs, select at least one permission, and provide an audit reason of at least 5 characters."
+        },
+        "fields": {
+          "permissions": "Partner permissions",
+          "reason": "Audit reason",
+          "resourceType": "Resource type",
+          "resourceUuid": "Resource UUID",
+          "workspaceId": "Workspace UUID"
+        },
+        "includeRevoked": "Include revoked grants",
+        "loadError": "Resource grants could not be loaded. Retry the read-only request.",
+        "loading": "Loading Remnawave resource grants",
+        "permissionDenied": "Managing object grants requires the admin-management permission. No grant data was requested.",
+        "permissions": {
+          "remnawave_execute": "Execute allowed resource operation",
+          "remnawave_read": "Read assigned resource",
+          "remnawave_write": "Modify assigned resource"
+        },
+        "refresh": "Refresh grants",
+        "resourceTypes": {
+          "host": "Host",
+          "integration": "Integration",
+          "node": "Node",
+          "profile": "Profile",
+          "service_identity": "Service identity",
+          "shared_list": "Shared list",
+          "squad": "Squad",
+          "tag": "Tag"
+        },
+        "retry": "Retry",
+        "revoke": {
+          "cancel": "Cancel",
+          "confirmAction": "Confirm revoke",
+          "description": "Enter a specific audit reason. Access changes only after the backend commits the revocation.",
+          "pending": "Revoking…",
+          "selectAction": "Revoke",
+          "title": "Revoke this grant"
+        },
+        "status": {
+          "active": "Active",
+          "revoked": "Revoked"
+        },
+        "tableCaption": "Explicit workspace Remnawave resource grants",
+        "title": "Object-level Remnawave grants"
+      },
+      "loading": "Loading Remnawave capabilities and stream receipt state",
+      "metaTitle": "Remnawave 3.4 status - Ozoxy Admin",
+      "metrics": {
+        "capabilities": "Capabilities",
+        "capabilitiesHint": "enabled for this deployment",
+        "contract": "Contract: {version}",
+        "nodeTarget": "Node target",
+        "panelTarget": "Target: {version}",
+        "panelVersion": "Panel version",
+        "streams": "Streams without recorded issues",
+        "streamsHint": "of {total} receipt-backed observations"
+      },
+      "nodeSsh": {
+        "commandPlaceholder": "Enter terminal input",
+        "connect": "Authenticate and connect",
+        "connectPending": "Establishing secure session…",
+        "description": "One-time, passkey-gated terminal access through the CyberVPN backend. The backend rechecks the admin, realm, session, origin, source IP, node allowlist, and revocation state.",
+        "disabled": "Browser SSH is unavailable for this administrator or deployment. No node inventory or terminal ticket was requested.",
+        "disconnect": "Disconnect and revoke",
+        "eyebrow": "TRUSTED ADMIN ONLY",
+        "feedback": {
+          "closed": "The terminal relay closed and the backend revocation path was triggered.",
+          "commandInvalid": "Terminal input must contain between 1 and 4096 characters.",
+          "connected": "The audited terminal relay is connected.",
+          "connectFailed": "The secure terminal session could not be established. Any issued ticket was revoked.",
+          "permissionDenied": "Fresh passkey authentication or trusted-admin access was denied.",
+          "relayError": "The terminal relay failed. Disconnect to force local cleanup and revocation.",
+          "revoked": "The terminal session was closed and its ticket was revoked.",
+          "unavailable": "Browser Node SSH is not available for this node or deployment.",
+          "validation": "Select a valid node and enter an access reason of at least 8 characters."
+        },
+        "fields": {
+          "command": "Terminal input",
+          "node": "Node",
+          "reason": "Audited access reason"
+        },
+        "loadingNodes": "Loading the permitted node diagnostics",
+        "nodesEmpty": "No valid nodes are available for terminal selection.",
+        "nodesError": "Node diagnostics are unavailable. No terminal session was opened.",
+        "phases": {
+          "authenticating": "Passkey check",
+          "closed": "Closed",
+          "connected": "Connected",
+          "connecting": "Connecting",
+          "disconnecting": "Revoking",
+          "error": "Error",
+          "idle": "Idle"
+        },
+        "privacyNote": "The one-time ticket stays only in transient memory, is never rendered or stored, and is revoked when the session stops or this console unmounts.",
+        "retry": "Retry node inventory",
+        "selectNode": "Select a node",
+        "send": "Send",
+        "terminalEmpty": "Terminal output will appear after the one-time session connects.",
+        "terminalLabel": "Remnawave Node SSH terminal output",
+        "title": "Browser Node SSH"
+      },
+      "operatorHub": {
+        "description": "Permission-aware routes open the CyberVPN admin surfaces that already have an enforced backend contract. A capability without a CyberVPN admin operation is shown as unavailable instead of sending an unscoped upstream request.",
+        "eyebrow": "OPERATOR ROUTES",
+        "items": {
+          "connections": {
+            "description": "Inspect per-user and per-node connection topology and use the receipt-backed drop workflow.",
+            "title": "Per-user connection control"
+          },
+          "geoCheck": {
+            "description": "Queue a bounded node GeoCheck and poll its result without replaying an ambiguous mutation.",
+            "title": "GeoCheck"
+          },
+          "hosts": {
+            "description": "Manage delivery hosts, TLS metadata, paths, and the supported host-mapper fields.",
+            "title": "Hosts and mappers"
+          },
+          "integrations": {
+            "description": "Manage bounded Remnawave node integrations while keeping configuration values inside an explicit protected edit form.",
+            "title": "Node integrations"
+          },
+          "nodes": {
+            "description": "Operate the existing server inventory, state, and traffic controls.",
+            "title": "Nodes and servers"
+          },
+          "plugins": {
+            "description": "Manage node plugins and audited execution commands; no generic shell proxy is used.",
+            "title": "Plugins and execution"
+          },
+          "profiles": {
+            "description": "Maintain the exported client profile templates exposed by CyberVPN.",
+            "title": "Configuration profiles"
+          },
+          "responseRules": {
+            "description": "The current squad contract does not expose responseHeadersAdd/Remove mutations, so editing stays unavailable.",
+            "title": "Response-header rules"
+          },
+          "sharedLists": {
+            "description": "Create, edit, delete, inspect and synchronize hierarchical shared lists through the guarded operator API.",
+            "title": "Shared lists"
+          },
+          "snippets": {
+            "description": "Create and inspect reusable delivery snippets and their execution order.",
+            "title": "Root snippets"
+          },
+          "squads": {
+            "description": "Operate internal and external squad records through the existing scoped API.",
+            "title": "Squads"
+          },
+          "stats": {
+            "description": "Open the aggregate admin dashboard for active connections, usage, health, and traffic.",
+            "title": "Connections and statistics"
+          },
+          "systemConfig": {
+            "description": "Open the governed settings registry and the dedicated system-configuration families.",
+            "title": "System configuration"
+          },
+          "tags": {
+            "description": "Inspect every supported tag inventory and assign tags through the exact mutable resource contracts.",
+            "title": "Remnawave tags"
+          },
+          "users": {
+            "description": "Search customers and run the existing audited subscription and credential workflows.",
+            "title": "Users"
+          }
+        },
+        "open": "Open console",
+        "states": {
+          "disabled": "This capability is disabled for the current deployment.",
+          "locked": "Your admin role does not have the required permission.",
+          "notExposed": "CyberVPN does not expose a scoped admin operation for this capability yet.",
+          "open": "Available"
+        },
+        "title": "Remnawave operator hub"
+      },
+      "retry": "Refresh status",
+      "streams": {
+        "columns": {
+          "deadLetters": "Dead letters",
+          "lag": "Reported lag",
+          "lastConsumed": "Last consumed",
+          "pending": "Reported pending",
+          "retention": "Retention",
+          "status": "Status",
+          "stream": "Stream"
+        },
+        "description": "State derived from retained committed receipts, open reconciliation gaps, and dead letters. Lag and pending values appear only when reported; this snapshot does not prove live consumer freshness and is not customer entitlement truth.",
+        "empty": "No Redis stream receipt records are available yet.",
+        "eyebrow": "INGESTION HEALTH",
+        "items": {
+          "node_connections": "Node connections",
+          "subscription_requests": "Subscription requests",
+          "user_usage": "User usage"
+        },
+        "retentionDays": "{count} days",
+        "status": {
+          "degraded": "Degraded",
+          "healthy": "No recorded issue",
+          "unknown": "Unknown"
+        },
+        "title": "Redis stream receipt state"
+      },
+      "title": "Remnawave 3.4 readiness",
+      "unknown": "Unknown"
+    },
+    "remnawaveConnections": {
+      "actions": {
+        "inspectNode": "Inspect node",
+        "inspectUser": "Inspect user",
+        "retryRead": "Retry read"
+      },
+      "description": "Admin-only asynchronous inspection by numeric Remnawave user ID or node UUID. IP addresses and topology stay inside this protected operator surface.",
+      "drop": {
+        "action": "Drop connections",
+        "allNodes": "All nodes",
+        "alreadyAttempted": "This exact payload was already submitted in this session. Reconcile it through a fresh read; it will not be sent again.",
+        "byIpAddresses": "IP addresses",
+        "byLabel": "Match connections by",
+        "byUserIds": "Numeric user IDs",
+        "capabilityUnavailable": "The backend did not confirm a receipt-backed, idempotent drop contract for this deployment.",
+        "capabilityUnverified": "Run a user or node inspection first. Drop controls remain unavailable until the backend confirms the final receipt and idempotency contract.",
+        "commaSeparated": "Enter comma-separated values; at most 1,000 targets.",
+        "confirm": "I confirm that these active connections should be dropped and understand that an ambiguous outcome must be reconciled, not blindly retried.",
+        "description": "A security-sensitive mutation with one local idempotency key per exact payload. The UI never retries an ambiguous mutation automatically.",
+        "ipAddressesLabel": "IP addresses",
+        "noBlindRetry": "Do not retry this mutation blindly; reconcile with a fresh connection read.",
+        "nodeUuidsLabel": "Node UUIDs",
+        "outcomeWarning": "The provider may report an unknown outcome. Keep the receipt and reconcile through a fresh read.",
+        "pending": "Submitting once…",
+        "receipt": {
+          "accepted": "The drop request was accepted once and recorded by the backend.",
+          "outcome_unknown": "The upstream outcome is unknown. The backend recorded the receipt and disabled retries."
+        },
+        "receiptId": "Receipt: {receiptId}",
+        "retrySameKey": "Retry safely with the same key",
+        "specificNodes": "Specific nodes",
+        "targetLabel": "Target nodes",
+        "title": "Drop active connections",
+        "userIdsLabel": "User IDs",
+        "validation": "Enter valid bounded targets and confirm the operation."
+      },
+      "errors": {
+        "conflict": "The requested identity or idempotency state conflicts with the authoritative record.",
+        "expired": "The connection request no longer exists or expired. Create a fresh read request.",
+        "forbidden": "Your administrator role cannot access this connection operation. No topology was loaded.",
+        "generic": "The connection request failed. No success state was applied.",
+        "invalidProviderResponse": "Remnawave returned an invalid connection response. No partial topology is shown.",
+        "unavailable": "Remnawave connections are temporarily unavailable.",
+        "validation": "The request did not satisfy the bounded connection contract."
+      },
+      "eyebrow": "REMNAWAVE CONNECTION CONTROL",
+      "metaTitle": "Remnawave connections - Ozoxy Admin",
+      "node": {
+        "description": "Request a bounded upstream snapshot for one canonical Remnawave node UUID.",
+        "label": "Node UUID",
+        "placeholder": "00000000-0000-4000-8000-000000000000",
+        "title": "Node connections",
+        "validation": "Enter a valid Remnawave node UUID."
+      },
+      "reconciliation": {
+        "actions": {
+          "next": "Next page",
+          "previous": "Previous page",
+          "reconcile": "Record reconciliation",
+          "reconciling": "Recording once…",
+          "refresh": "Refresh queue",
+          "select": "Review receipt"
+        },
+        "audiences": {
+          "admin": "Administrator",
+          "customer": "Customer",
+          "partner": "Partner"
+        },
+        "description": "Resolve an ambiguous provider outcome only after an administrator has verified the authoritative postcondition. The queue never exposes receipt secrets or permits mutation of retention and security metadata.",
+        "errors": {
+          "conflict": "The receipt already has a different terminal outcome. Refresh the authoritative queue.",
+          "generic": "The reconciliation request failed. No terminal outcome was assumed.",
+          "notFound": "This receipt no longer exists. Refresh the queue before taking another action.",
+          "unavailable": "The durable receipt or audit store is temporarily unavailable. No outcome was recorded."
+        },
+        "form": {
+          "accepted": "Accepted — the drop was applied",
+          "confirm": "I verified the authoritative provider or connection postcondition and confirm that this irreversible terminal outcome is accurate.",
+          "outcome": "Terminal outcome",
+          "reason": "Verification reason",
+          "reference": "Support or incident reference",
+          "referenceHelp": "Use 11–64 uppercase characters in the form CASE-, INC-, REQ-, TKT-, or RW- followed by a bounded ticket identifier.",
+          "rejected": "Rejected — the drop was not applied",
+          "title": "Record the verified outcome",
+          "validation": "Choose a compatible outcome and reason, enter a valid bounded reference, and confirm the verification."
+        },
+        "pagination": {
+          "label": "Unresolved receipt pages"
+        },
+        "reasons": {
+          "postcondition_confirmed_applied": "Connection postcondition confirms the drop was applied",
+          "postcondition_confirmed_not_applied": "Connection postcondition confirms the drop was not applied",
+          "provider_confirmed_applied": "Provider confirmed the drop was applied",
+          "provider_confirmed_not_applied": "Provider confirmed the drop was not applied"
+        },
+        "states": {
+          "empty": "There are no unresolved connection-drop receipts.",
+          "loading": "Loading unresolved receipts…",
+          "success": {
+            "accepted": "The verified accepted outcome was recorded and removed from the unresolved queue.",
+            "rejected": "The verified rejected outcome was recorded and removed from the unresolved queue."
+          }
+        },
+        "table": {
+          "action": "Action",
+          "audience": "Audience",
+          "caption": "Ambiguous connection-drop receipts awaiting administrator reconciliation",
+          "created": "Created",
+          "receipt": "Receipt",
+          "updated": "Updated"
+        },
+        "title": "Unresolved drop receipts"
+      },
+      "states": {
+        "jobFailed": "Remnawave could not complete this connection request.",
+        "nodeEmpty": "Enter a node UUID to request an asynchronous connection snapshot.",
+        "noNodeConnections": "No active user connections were reported for this node.",
+        "noUserConnections": "No active IP connections were reported for this user.",
+        "polling": "The request is in progress. Results update automatically.",
+        "pollingProgress": "The request is in progress: {percent}%.",
+        "requesting": "Creating request…",
+        "userEmpty": "Enter a user ID to request an asynchronous connection snapshot."
+      },
+      "tables": {
+        "country": "Country",
+        "ip": "IP address",
+        "lastSeen": "Last seen",
+        "node": "Node",
+        "nodeCaption": "Connection IPs grouped by numeric Remnawave user for the selected node",
+        "userCaption": "Connection IPs grouped by Remnawave node for the selected user",
+        "userId": "Numeric user ID"
+      },
+      "title": "Connections console",
+      "user": {
+        "description": "Request a bounded upstream snapshot for one canonical numeric Remnawave user ID.",
+        "label": "Numeric user ID",
+        "placeholder": "For example: 1842",
+        "title": "User connections",
+        "validation": "Enter a positive numeric Remnawave user ID."
+      }
+    },
+    "remnawaveOperator": {
+      "accessDenied": "This route requires an Admin-or-higher role with server-read permission. No Remnawave operator data was requested.",
+      "accessDeniedTitle": "Infrastructure permission required",
+      "actions": {
+        "refreshCapabilities": "Refresh capabilities",
+        "retry": "Retry"
+      },
+      "capabilityUnavailable": "This capability is disabled for the current deployment. No operator request was sent.",
+      "degraded": "Capability state is degraded: {reason}",
+      "description": "Admin-only control for GeoCheck, resource tags, node integrations, shared lists and exact root snippets. Mutations are sent once and ambiguous outcomes stay in reconciliation.",
+      "errors": {
+        "forbidden": "Your administrator role is not authorized for this resource. No protected data is shown.",
+        "loadFailed": "The authoritative data could not be loaded. An empty state was not substituted."
+      },
+      "eyebrow": "REMNAWAVE 3.4.3 OPERATOR PLANE",
+      "feedback": {
+        "accepted": "The backend accepted the background operation. Application is not reported as complete; refresh authoritative state before another action.",
+        "failed": "The mutation failed. No successful state was assumed.",
+        "receipt": "Reconciliation receipt: {attemptId}",
+        "reconciliation": "The request was accepted, but its authoritative outcome requires reconciliation. Do not submit it again blindly."
+      },
+      "geoCheck": {
+        "continuePolling": "Continue safe reads",
+        "description": "Queue one bounded GeoCheck on a selected node, then poll the returned job without retrying the mutation.",
+        "failed": "The GeoCheck job failed.",
+        "interface": "Network interface",
+        "ip": "Source IP address",
+        "job": "Job: {jobId}",
+        "nodeUuid": "Node UUID",
+        "polling": "Waiting for the node result…",
+        "pollLimitReached": "Automatic polling stopped after 30 bounded reads. The job was not replayed.",
+        "queued": "GeoCheck was queued and its job is being polled.",
+        "queueing": "Queueing once…",
+        "rawReport": "Structured node report",
+        "reportImage": "GeoCheck network report",
+        "run": "Queue GeoCheck",
+        "source": "Source override",
+        "sources": {
+          "interface": "Network interface",
+          "ip": "IP address",
+          "none": "Node default"
+        },
+        "success": "GeoCheck passed",
+        "title": "Node GeoCheck",
+        "validation": "Enter a valid node UUID and, when selected, exactly one non-empty source override."
+      },
+      "integrations": {
+        "action": "Action",
+        "cancel": "Close protected form",
+        "caption": "Remnawave node integrations without configuration values",
+        "config": "Configuration JSON",
+        "configPrivacy": "Protected value: do not paste secrets into logs or support messages. The configuration is visible only in this explicit edit form.",
+        "confirmDelete": "I confirm deletion of this exact integration. The action is audited and is not retried automatically.",
+        "create": "Create integration",
+        "created": "The backend committed the integration.",
+        "createTitle": "Create node integration",
+        "delete": "Delete integration",
+        "deleted": "The backend committed the integration deletion.",
+        "description": "Manage Remnawave node integrations. Configuration values are never displayed in the inventory and appear only after an explicit edit action.",
+        "descriptionColumn": "Description",
+        "descriptionField": "Description (optional)",
+        "edit": "Edit securely",
+        "editNamed": "Edit integration {name} and reveal its configuration in the protected form",
+        "editTitle": "Edit selected integration",
+        "empty": "No node integrations are configured.",
+        "loading": "Loading node integrations",
+        "name": "Name",
+        "restartNodes": "Restart affected nodes after the update",
+        "saving": "Sending once…",
+        "title": "Node integrations",
+        "update": "Update integration",
+        "updated": "The backend committed the integration update.",
+        "validation": "Use a 2-30 character name and a valid JSON object within the bounded contract."
+      },
+      "loading": "Loading the operator capability contract",
+      "metaTitle": "Remnawave operator console - Ozoxy Admin",
+      "metrics": {
+        "access": "Current access",
+        "accessHint": "backend authorization remains authoritative",
+        "enabled": "Operator capabilities",
+        "enabledHint": "enabled by the deployment contract",
+        "none": "NO ACCESS",
+        "read": "READ ONLY",
+        "write": "READ + WRITE"
+      },
+      "readOnly": "Your role has read-only infrastructure access. Mutations require server-update permission and remain enforced by the backend.",
+      "sections": {
+        "geoCheck": "GeoCheck",
+        "integrations": "Node integrations",
+        "sharedLists": "Shared lists",
+        "snippets": "Root snippets",
+        "tags": "Tags"
+      },
+      "sharedLists": {
+        "actions": "Actions",
+        "cancel": "Cancel edit",
+        "caption": "Remnawave shared-list previews",
+        "confirmDelete": "I confirm deletion of this exact shared list. Referencing plugins may require reconciliation.",
+        "create": "Create shared list",
+        "created": "The backend committed the shared list.",
+        "createTitle": "Create shared list",
+        "delete": "Delete shared list",
+        "deleted": "The backend committed the shared-list deletion.",
+        "description": "Operate hierarchical shared-list configuration and explicitly sync dependent plugins to their active nodes.",
+        "edit": "Edit",
+        "editNamed": "Edit shared list {name}",
+        "editTitle": "Edit selected shared list",
+        "empty": "No shared lists are configured.",
+        "loading": "Loading shared-list previews",
+        "name": "Name",
+        "preview": "{type}; {count} item(s)",
+        "saving": "Sending once…",
+        "summary": "Preview",
+        "sync": "Sync",
+        "synced": "The backend committed the shared-list synchronization.",
+        "syncNamed": "Sync shared list {name} to active nodes",
+        "title": "Shared lists",
+        "update": "Update shared list",
+        "updated": "The backend committed the shared-list update.",
+        "validation": "Use a valid hierarchical name and a bounded JSON object.",
+        "value": "Configuration JSON object"
+      },
+      "snippets": {
+        "actions": "Actions",
+        "cancel": "Cancel edit",
+        "caption": "Remnawave root snippets",
+        "confirmDelete": "I confirm deletion of this exact root snippet. Affected profiles may require reconciliation.",
+        "create": "Create snippet",
+        "created": "The backend committed the root snippet.",
+        "createTitle": "Create root snippet",
+        "delete": "Delete snippet",
+        "deleted": "The backend committed the root-snippet deletion.",
+        "description": "Create, update, delete and synchronize the root-level snippet arrays used by Remnawave configuration profiles.",
+        "edit": "Edit",
+        "editNamed": "Edit root snippet {name}",
+        "editTitle": "Edit selected root snippet",
+        "empty": "No root snippets are configured.",
+        "loading": "Loading root snippets",
+        "name": "Name",
+        "preview": "{count} JSON object(s)",
+        "saving": "Sending once…",
+        "summary": "Payload",
+        "sync": "Sync",
+        "synced": "The backend committed the root-snippet synchronization.",
+        "syncNamed": "Sync root snippet {name} to affected profiles",
+        "title": "Exact root snippets",
+        "update": "Update snippet",
+        "updated": "The backend committed the root-snippet update.",
+        "validation": "Use a valid root-snippet name and a bounded JSON array containing objects only.",
+        "value": "Snippet JSON array"
+      },
+      "tablist": "Remnawave operator capabilities",
+      "tags": {
+        "description": "Inspect tag inventories for every supported resource family and assign tags only through upstream-mutable contracts.",
+        "empty": "No tags are registered for this resource family.",
+        "help": "Comma-separated, unique uppercase values; characters A-Z, 0-9, underscore and colon; at most 10.",
+        "inventory": "Available tags",
+        "inventoryOnly": "This upstream resource exposes tag inventory only. Assignment remains unavailable here.",
+        "loading": "Loading tag inventory",
+        "resource": "Resource family",
+        "resources": {
+          "config-profiles": "Config profiles",
+          "external-squads": "External squads",
+          "hosts": "Hosts",
+          "internal-squads": "Internal squads",
+          "node-plugins": "Node plugins",
+          "nodes": "Nodes",
+          "subscription-page-configs": "Subscription page configs",
+          "subscription-templates": "Subscription templates",
+          "users": "Users"
+        },
+        "save": "Assign tags",
+        "saved": "The backend committed the exact tag assignment.",
+        "saving": "Assigning once…",
+        "title": "Resource tags",
+        "uuid": "Resource UUID",
+        "validation": "Enter a valid resource UUID and no more than 10 unique uppercase tags.",
+        "values": "Tags"
+      },
+      "title": "Remnawave operator console"
     },
     "servers": {
       "createAction": "Create server",
@@ -5507,6 +6176,12 @@
       "realtimeHint": "Realtime topics and tickets",
       "referrals": "Referrals",
       "referralsHint": "Referral signals and risk",
+      "remnawaveConnections": "Remnawave connections",
+      "remnawaveConnectionsHint": "Per-user and per-node topology",
+      "remnawaveOperator": "Remnawave operator console",
+      "remnawaveOperatorHint": "GeoCheck, tags, integrations and shared assets",
+      "remnawaveStatus": "Remnawave 3.4 status",
+      "remnawaveStatusHint": "Capabilities and stream receipt state",
       "reporting": "Reporting",
       "reportingHint": "Rollups, subscriptions, exports",
       "reviewQueue": "Review queue",

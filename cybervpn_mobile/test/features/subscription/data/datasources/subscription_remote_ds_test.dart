@@ -82,7 +82,7 @@ void main() {
                         'catalogItemKey': 'plus_30',
                         'contextCacheKey': 'ctx-de-eur',
                       },
-                      'includedAddonCodes': const [],
+                      'includedAddonCodes': const <String>[],
                       'availability': ['web'],
                       'metadata': {'requires_quote': true},
                     },
@@ -104,7 +104,7 @@ void main() {
                         'catalogItemKey': 'plus_180',
                         'contextCacheKey': 'ctx-de-eur',
                       },
-                      'includedAddonCodes': const [],
+                      'includedAddonCodes': const <String>[],
                       'availability': ['web'],
                       'metadata': {'requires_quote': true},
                     },
@@ -116,7 +116,11 @@ void main() {
                   'serverPool': ['shared_plus'],
                   'supportSla': 'standard',
                   'dedicatedIp': {'included': 0, 'eligible': true},
-                  'inviteBundle': {'count': 0, 'friend_days': 0, 'expiry_days': 0},
+                  'inviteBundle': {
+                    'count': 0,
+                    'friend_days': 0,
+                    'expiry_days': 0,
+                  },
                   'trialEligible': false,
                   'promoEligible': true,
                   'metadata': {
@@ -124,7 +128,7 @@ void main() {
                   },
                 },
               ],
-              'addons': const [],
+              'addons': const <Object?>[],
               'trialEligible': false,
               'promoEligible': true,
               'metadata': {
@@ -134,8 +138,8 @@ void main() {
                 'addonsEnabled': false,
                 'promoCodesEnabled': true,
                 'checkoutCodeDiscountsEnabled': true,
-                'invalidationEvents': const [],
-                'policyIds': const [],
+                'invalidationEvents': const <String>[],
+                'policyIds': const <String>[],
               },
             },
             statusCode: 200,
@@ -162,16 +166,18 @@ void main() {
         expect(catalog.plans.last.duration, PlanDuration.semiannual);
         expect(catalog.plans.last.durationDays, 180);
 
-        final captured = verify(
-          () => mockApiClient.get<Map<String, dynamic>>(
-            ApiConstants.commercialCatalog,
-            queryParameters: captureAny<Map<String, dynamic>?>(
-              named: 'queryParameters',
-            ),
-            options: any<Options?>(named: 'options'),
-            cancelToken: any<CancelToken?>(named: 'cancelToken'),
-          ),
-        ).captured.single! as Map<String, dynamic>;
+        final captured =
+            verify(
+                  () => mockApiClient.get<Map<String, dynamic>>(
+                    ApiConstants.commercialCatalog,
+                    queryParameters: captureAny<Map<String, dynamic>?>(
+                      named: 'queryParameters',
+                    ),
+                    options: any<Options?>(named: 'options'),
+                    cancelToken: any<CancelToken?>(named: 'cancelToken'),
+                  ),
+                ).captured.single!
+                as Map<String, dynamic>;
 
         expect(captured, containsPair('channel', 'web'));
         expect(captured, containsPair('country', 'DE'));
@@ -211,7 +217,7 @@ void main() {
               },
               'invite_bundle': {'count': 0, 'friend_days': 0, 'expiry_days': 0},
               'is_trial': false,
-              'addons': const [],
+              'addons': const <Object?>[],
             },
             statusCode: 200,
             requestOptions: requestOptions(ApiConstants.activeSubscription),
@@ -281,9 +287,9 @@ void main() {
             data: {
               'status': 'none',
               'effective_entitlements': {'device_limit': 0},
-              'invite_bundle': const {},
+              'invite_bundle': const <String, dynamic>{},
               'is_trial': false,
-              'addons': const [],
+              'addons': const <Object?>[],
             },
             statusCode: 200,
             requestOptions: requestOptions(ApiConstants.activeSubscription),

@@ -1,14 +1,31 @@
 """Normalization helpers for Remnawave payloads consumed by task-worker.
 
 The task-worker still has a number of jobs that expect legacy field names like
-``expiresAt`` or ``trafficUp``. These helpers add a small compatibility layer
-for current Remnawave 2.7.x payloads while also exposing stable snake_case keys
-for future task migrations.
+``expiresAt`` or ``trafficUp``. These helpers expose stable snake_case keys for
+the Remnawave 3.4.3 contract while retaining harmless field aliases used by
+older task code. Remnawave user identity is numeric from 3.0 onward.
 """
 
 from __future__ import annotations
 
+from ipaddress import ip_address
 from typing import Any
+from uuid import UUID
+
+NODE_IP_STATUSES = frozenset(
+    {
+        "INBOUND",
+        "OUTBOUND",
+        "MANAGEMENT",
+        "TRANSIT",
+        "MONITORING",
+        "RESERVE",
+        "BLOCKED",
+        "FLAGGED",
+        "DEPRECATED",
+        "UNKNOWN",
+    }
+)
 
 
 def _pick(payload: dict[str, Any], *keys: str) -> Any:
@@ -25,9 +42,25 @@ def _pick_nested(payload: dict[str, Any], container_key: str, *keys: str) -> Any
     return _pick(nested, *keys)
 
 
+def _positive_numeric_id(value: Any, *, field_name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{field_name} must be a positive integer")
+    return value
+
+
+def _canonical_uuid(value: Any, *, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a UUID")
+    try:
+        return str(UUID(value))
+    except ValueError as exc:
+        raise ValueError(f"{field_name} must be a UUID") from exc
+
+
 def normalize_user(payload: dict[str, Any]) -> dict[str, Any]:
     result = dict(payload)
 
+    user_id = _positive_numeric_id(_pick(result, "id", "userId", "user_id"), field_name="user id")
     status = str(result.get("status", "")).lower() if result.get("status") is not None else ""
     expire_at = _pick(result, "expire_at", "expireAt", "expiresAt")
     traffic_limit_bytes = _pick(result, "traffic_limit_bytes", "trafficLimitBytes", "dataLimit")
@@ -61,6 +94,11 @@ def normalize_user(payload: dict[str, Any]) -> dict[str, Any]:
 
     if status:
         result["status"] = status
+
+    result["id"] = user_id
+    result["user_id"] = user_id
+    if user_id is not None:
+        result.setdefault("userId", user_id)
 
     result["expire_at"] = expire_at
     result.setdefault("expireAt", expire_at)
@@ -119,6 +157,8 @@ def normalize_node(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(versions, dict):
         versions = {}
 
+    node_id = _positive_numeric_id(_pick(result, "id", "nodeId", "node_id"), field_name="node id")
+    node_uuid = _canonical_uuid(_pick(result, "uuid", "nodeUuid", "node_uuid"), field_name="node uuid")
     address = _pick(result, "address", "hostname", "host")
     is_disabled = _pick(result, "is_disabled", "isDisabled")
     if is_disabled is None and "enabled" in result and result["enabled"] is not None:
@@ -134,6 +174,39 @@ def normalize_node(payload: dict[str, Any]) -> dict[str, Any]:
     node_version = _pick(result, "node_version", "nodeVersion") or _pick(versions, "node")
     xray_version = _pick(result, "xray_version", "xrayVersion") or _pick(versions, "xray")
     active_plugin_uuid = _pick(result, "active_plugin_uuid", "activePluginUuid")
+    integration_uuids = _pick(result, "integration_uuids", "integrationUuids")
+    if not isinstance(integration_uuids, list) or len(integration_uuids) > 20:
+        raise ValueError("integrationUuids must be an array with at most 20 values")
+    integration_uuids = [_canonical_uuid(value, field_name="integration uuid") for value in integration_uuids]
+    raw_ips = result.get("ips")
+    if not isinstance(raw_ips, list) or len(raw_ips) > 64:
+        raise ValueError("ips must be an array with at most 64 values")
+    ips: list[dict[str, str]] = []
+    for item in raw_ips:
+        if not isinstance(item, dict):
+            raise ValueError("each node IP must be an object")
+        raw_ip = item.get("ip")
+        raw_status = item.get("status")
+        if not isinstance(raw_ip, str) or not isinstance(raw_status, str):
+            raise ValueError("each node IP requires ip and status strings")
+        try:
+            canonical_ip = str(ip_address(raw_ip))
+        except ValueError as exc:
+            raise ValueError("node IP must be a valid IPv4 or IPv6 address") from exc
+        status = raw_status.upper()
+        if status not in NODE_IP_STATUSES:
+            raise ValueError("node IP status is not supported by Remnawave 3.4")
+        ips.append({"ip": canonical_ip, "status": status})
+
+    result["id"] = node_id
+    result["node_id"] = node_id
+    if node_id is not None:
+        result.setdefault("nodeId", node_id)
+
+    result["uuid"] = node_uuid
+    result["node_uuid"] = node_uuid
+    if node_uuid is not None:
+        result.setdefault("nodeUuid", node_uuid)
 
     result["address"] = address
     if address:
@@ -177,6 +250,10 @@ def normalize_node(payload: dict[str, Any]) -> dict[str, Any]:
     result["active_plugin_uuid"] = active_plugin_uuid
     if active_plugin_uuid is not None:
         result.setdefault("activePluginUuid", active_plugin_uuid)
+
+    result["integration_uuids"] = integration_uuids
+    result["integrationUuids"] = integration_uuids
+    result["ips"] = ips
 
     return result
 

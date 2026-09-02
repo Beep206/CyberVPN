@@ -1,12 +1,13 @@
 """User action routes (enable/disable) for VPN users."""
 
-from uuid import UUID
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 
 from src.application.use_cases.auth.permissions import Permission
-from src.application.use_cases.users.bulk_operations import BulkUserOperationsUseCase
+from src.domain.enums import UserStatus
 from src.domain.exceptions import UserNotFoundError
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 from src.presentation.api.v1.users.schemas import UserResponse
 from src.presentation.dependencies.remnawave import get_remnawave_client
@@ -17,23 +18,19 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("/{user_id}/disable", response_model=UserResponse)
 async def disable_user(
-    user_id: UUID,
+    user_id: Annotated[int, Path(ge=1)],
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
 ) -> UserResponse:
     """Disable a VPN user account."""
     try:
         gateway = RemnawaveUserGateway(client=client)
-        use_case = BulkUserOperationsUseCase(gateway=gateway)
-
-        users = await use_case.disable_users(uuids=[user_id])
-
-        if not users:
-            raise UserNotFoundError(f"User with UUID {user_id} not found")
-
-        user = users[0]
+        user = await gateway.update(RemnawaveUserRef(id=user_id), status=UserStatus.DISABLED)
+        if user is None:
+            raise UserNotFoundError(f"Remnawave user id {user_id} not found")
 
         return UserResponse(
+            id=user.ref.require_numeric_id(),
             uuid=user.uuid,
             username=user.username,
             status=user.status,
@@ -61,23 +58,19 @@ async def disable_user(
 
 @router.post("/{user_id}/enable", response_model=UserResponse)
 async def enable_user(
-    user_id: UUID,
+    user_id: Annotated[int, Path(ge=1)],
     client=Depends(get_remnawave_client),
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
 ) -> UserResponse:
     """Enable a VPN user account."""
     try:
         gateway = RemnawaveUserGateway(client=client)
-        use_case = BulkUserOperationsUseCase(gateway=gateway)
-
-        users = await use_case.enable_users(uuids=[user_id])
-
-        if not users:
-            raise UserNotFoundError(f"User with UUID {user_id} not found")
-
-        user = users[0]
+        user = await gateway.update(RemnawaveUserRef(id=user_id), status=UserStatus.ACTIVE)
+        if user is None:
+            raise UserNotFoundError(f"Remnawave user id {user_id} not found")
 
         return UserResponse(
+            id=user.ref.require_numeric_id(),
             uuid=user.uuid,
             username=user.username,
             status=user.status,

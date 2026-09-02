@@ -30,7 +30,7 @@
       "refresh": "Обновить capabilities",
       "refreshing": "Обновляем...",
       "running": "Выполняем...",
-      "actionFailed": "Действие не выполнено. Проверьте backend validation и permissions."
+      "actionFailed": "Действие не выполнено. Проверьте backend validation и права доступа."
     }
   },
   "campaigns": {
@@ -230,7 +230,7 @@
       "campaignCreated": "Invite campaign создана из backend response.",
       "campaignCreateFailed": "Создать invite campaign не удалось. Проверьте уникальность key, plan targeting и backend validation.",
       "campaignPublished": "Invite campaign version опубликована.",
-      "campaignPublishFailed": "Publish invite campaign не удался. Проверьте campaign version и permissions.",
+      "campaignPublishFailed": "Publish invite campaign не удался. Проверьте campaign version и права доступа.",
       "allowedSurfacesRequired": "Выберите хотя бы одну разрешённую поверхность перед созданием кампании.",
       "exported": "{count} invite-кодов экспортировано для выбранного batch.",
       "exportFailed": "Export invite batch не удался. Проверьте batch access и backend audit policy.",
@@ -1173,7 +1173,7 @@
     "coverageDescription": "Консоль вызывает generated capabilities и generated v3 FX admin endpoints.",
     "coverageTitle": "Backend Coverage",
     "degraded": {
-      "description": "FX status не удалось загрузить из generated admin endpoint. Operator actions остаются read-only, пока backend не ответит.",
+      "description": "Не удалось загрузить состояние FX из сгенерированной административной конечной точки. Действия оператора остаются доступны только для чтения, пока бэкенд не ответит.",
       "ratesDescription": "FX snapshots не удалось загрузить из generated admin endpoint. Approval controls остаются отключёнными.",
       "title": "Admin FX API ограничен"
     },
@@ -1329,7 +1329,7 @@
     "description": "Risk operations console для model lifecycle, decisions и manual review resolution.",
     "emptyDecisions": "По текущему query risk decisions не найдены.",
     "emptyModels": "По текущему query risk models не найдены.",
-    "emptyReviews": "По текущему query open risk reviews не найдены.",
+    "emptyReviews": "По текущему query open проверки рисков не найдены.",
     "errors": {
       "capabilities": "Risk capabilities не удалось загрузить."
     },
@@ -1460,7 +1460,7 @@
       "count": "{count} сигналов",
       "users": "{count} пользователей",
       "attachments": "{count} attachments",
-      "governance": "{count} governance actions"
+      "governance": "{count} управление actions"
     },
     "breakdownDescription": "Текущая referral reward-поза после hold, risk-block и availability transition.",
     "breakdownTitle": "Разбивка По Статусам Reward",
@@ -1482,11 +1482,11 @@
       "totalRedemptions": "Всего Redemption'ов",
       "totalRedemptionsHint": "Объём redemption, уже привязанный к lifecycle growth-кодов."
     },
-    "riskReviewsDescription": "Open security review queue из generated risk-review API, только с masked subject identifiers.",
-    "riskReviewsEmpty": "Открытых risk reviews для growth operations сейчас не видно.",
-    "riskReviewsLoadFailed": "Risk review queue не удалось загрузить.",
-    "riskReviewsLoading": "Загружаем risk review queue...",
-    "riskReviewsTitle": "Security Risk Reviews",
+    "riskReviewsDescription": "Open security очередь проверок из generated risk-review API, только с masked subject identifiers.",
+    "riskReviewsEmpty": "Открытых проверки рисков для growth operations сейчас не видно.",
+    "riskReviewsLoadFailed": "Risk очередь проверок не удалось загрузить.",
+    "riskReviewsLoading": "Загружаем risk очередь проверок...",
+    "riskReviewsTitle": "Security Проверки рисков",
     "title": "Referral-Сигналы"
   }
 }

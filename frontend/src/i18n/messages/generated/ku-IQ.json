@@ -460,7 +460,17 @@
     "serverStatus": "دۆخی سێرڤەر",
     "statusLabel": "دۆخی سیستەم:",
     "statusValue": "باشترین",
-    "title": "ناوەندی فەرماندەی VPN"
+    "title": "ناوەندی فەرماندەی VPN",
+    "vpnServiceStatus": {
+      "available": "بەردەستە",
+      "connections": "پەیوەندییەکان",
+      "degraded": "بەشێکی سنووردارە",
+      "devices": "ئامێرەکان",
+      "loading": "دۆخی خزمەتگوزاری VPN بار دەکرێت",
+      "title": "بەردەستبوونی خزمەتگوزاری VPN",
+      "unavailable": "بەردەست نییە",
+      "usage": "بەکارهێنان"
+    }
   },
   "DeleteAccount": {
     "contact": {

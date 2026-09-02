@@ -8,8 +8,6 @@ const MATCH_ANY_API_ORIGIN = {
   webhookLog: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/webhook-log(?:\?.*)?$/,
   adminInvites: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/invites$/,
   adminInviteByToken: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/invites\/[^/]+$/,
-  settings: /https?:\/\/localhost(?::\d+)?\/api\/v1\/settings\/$/,
-  settingById: /https?:\/\/localhost(?::\d+)?\/api\/v1\/settings\/\d+$/,
   policies: /https?:\/\/localhost(?::\d+)?\/api\/v1\/policies\/(?:\?.*)?$/,
   policyApprove: /https?:\/\/localhost(?::\d+)?\/api\/v1\/policies\/[^/]+\/approve$/,
   legalDocuments: /https?:\/\/localhost(?::\d+)?\/api\/v1\/legal-documents\/(?:\?.*)?$/,
@@ -155,89 +153,17 @@ describe('governanceApi admin invite operations', () => {
   });
 });
 
-describe('governanceApi policy settings operations', () => {
-  it('loads visible settings from the settings endpoint', async () => {
-    server.use(
-      http.get(MATCH_ANY_API_ORIGIN.settings, () =>
-        HttpResponse.json([
-          {
-            id: 7,
-            key: 'registration_mode',
-            value: { enabled: true },
-            description: 'Registration gate',
-            isPublic: false,
-          },
-        ]),
-      ),
-    );
-
-    const response = await governanceApi.getSettings();
-
-    expect(response.status).toBe(200);
-    expect(response.data[0]?.key).toBe('registration_mode');
-    expect(response.data[0]?.isPublic).toBe(false);
+describe('governanceApi partner settings boundary', () => {
+  it('does not expose Remnawave global settings reads to partner code', () => {
+    expect(governanceApi).not.toHaveProperty('getSettings');
   });
 
-  it('creates a setting with JSON payload', async () => {
-    let capturedBody: Record<string, unknown> | null = null;
-
-    server.use(
-      http.post(MATCH_ANY_API_ORIGIN.settings, async ({ request }) => {
-        capturedBody = (await request.json()) as Record<string, unknown>;
-
-        return HttpResponse.json({
-          id: 8,
-          key: 'invite_policy',
-          value: { ttl_hours: 24 },
-          description: 'Invite ttl policy',
-          isPublic: false,
-        });
-      }),
-    );
-
-    const response = await governanceApi.createSetting({
-      key: 'invite_policy',
-      value: { ttl_hours: 24 },
-      description: 'Invite ttl policy',
-      is_public: false,
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.data.key).toBe('invite_policy');
-    expect(capturedBody).toMatchObject({
-      key: 'invite_policy',
-      description: 'Invite ttl policy',
-      is_public: false,
-    });
+  it('does not expose Remnawave global settings creation to partner code', () => {
+    expect(governanceApi).not.toHaveProperty('createSetting');
   });
 
-  it('updates a setting by numeric id', async () => {
-    let updatedId = '';
-
-    server.use(
-      http.put(MATCH_ANY_API_ORIGIN.settingById, async ({ request }) => {
-        updatedId = new URL(request.url).pathname.split('/').at(-1) ?? '';
-        const body = (await request.json()) as Record<string, unknown>;
-
-        return HttpResponse.json({
-          id: Number(updatedId),
-          key: 'registration_mode',
-          value: body.value ?? { enabled: false },
-          description: body.description ?? 'Updated policy',
-          isPublic: body.is_public ?? true,
-        });
-      }),
-    );
-
-    const response = await governanceApi.updateSetting(7, {
-      value: { enabled: false },
-      description: 'Updated policy',
-      is_public: true,
-    });
-
-    expect(response.status).toBe(200);
-    expect(updatedId).toBe('7');
-    expect(response.data.isPublic).toBe(true);
+  it('does not expose Remnawave global settings updates to partner code', () => {
+    expect(governanceApi).not.toHaveProperty('updateSetting');
   });
 });
 

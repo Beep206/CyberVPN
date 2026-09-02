@@ -52,6 +52,7 @@ class Stage1ExpiryGraceAccessRecord:
     access_kind: Stage1ExpiryAccessKind
     access_expires_at: datetime
     remnawave_uuid: str | None
+    remnawave_user_id: int | None = None
     current_user_status: UserStatus = UserStatus.ACTIVE
     provider_name: str = "remnawave"
 
@@ -67,15 +68,17 @@ class Stage1ExpiryGraceDisableResult:
     """Safe upstream disable acknowledgement."""
 
     customer_account_id: UUID
-    remnawave_uuid: str
+    remnawave_uuid: str | None
     status: UserStatus
     disabled_at: datetime
     provider_name: str = "remnawave"
+    remnawave_user_id: int | None = None
 
-    def to_safe_dict(self) -> dict[str, str]:
+    def to_safe_dict(self) -> dict[str, str | int | None]:
         return {
             "customer_account_id": str(self.customer_account_id),
             "remnawave_uuid": self.remnawave_uuid,
+            "remnawave_user_id": self.remnawave_user_id,
             "status": self.status.value,
             "disabled_at": self.disabled_at.isoformat(),
             "provider_name": self.provider_name,
@@ -167,6 +170,11 @@ def evaluate_stage1_expiry_grace(
     grace_started_at = access_expires_at
     grace_ends_at = access_expires_at + record.grace_period
     remnawave_uuid_present = bool(record.remnawave_uuid)
+    numeric_identity_present = (
+        not isinstance(record.remnawave_user_id, bool)
+        and isinstance(record.remnawave_user_id, int)
+        and record.remnawave_user_id > 0
+    )
 
     if record.current_user_status in {UserStatus.DISABLED, UserStatus.EXPIRED}:
         return _decision(
@@ -214,7 +222,7 @@ def evaluate_stage1_expiry_grace(
             remnawave_uuid_present=remnawave_uuid_present,
         )
 
-    if not remnawave_uuid_present:
+    if not numeric_identity_present:
         return _decision(
             record,
             state=Stage1ExpiryGraceDecisionState.RECONCILIATION_REQUIRED,
@@ -225,7 +233,9 @@ def evaluate_stage1_expiry_grace(
             access_expires_at=access_expires_at,
             grace_started_at=grace_started_at,
             grace_ends_at=grace_ends_at,
-            remnawave_uuid_present=False,
+            remnawave_uuid_present=remnawave_uuid_present,
+            # Kept stable for Stage 1 API consumers even though target 3.4
+            # now gates this state on the canonical numeric identity.
             error_code="missing_remnawave_uuid",
         )
 
@@ -240,7 +250,7 @@ def evaluate_stage1_expiry_grace(
         grace_started_at=grace_started_at,
         grace_ends_at=grace_ends_at,
         disable_required=True,
-        remnawave_uuid_present=True,
+        remnawave_uuid_present=remnawave_uuid_present,
     )
 
 

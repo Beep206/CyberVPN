@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN सेवा उपलब्धता",
+    "connections": "कनेक्शन",
+    "usage": "उपयोग",
+    "devices": "डिवाइस",
+    "available": "उपलब्ध",
+    "unavailable": "अनुपलब्ध",
+    "loading": "VPN सेवा स्थिति लोड हो रही है",
+    "degraded": "आंशिक रूप से बाधित"
   }
 }

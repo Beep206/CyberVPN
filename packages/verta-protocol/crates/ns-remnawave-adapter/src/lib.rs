@@ -10,7 +10,10 @@ use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use time::{Duration, OffsetDateTime};
 
-pub use http::{HttpRemnawaveAdapter, HttpRemnawaveAdapterConfig};
+pub use http::{
+    HttpRemnawaveAdapter, HttpRemnawaveAdapterConfig, REMNAWAVE_LEGACY_SOURCE_VERSION,
+    REMNAWAVE_TARGET_SOURCE_VERSION, RemnawaveApiProfile,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum BootstrapSubject {
@@ -378,7 +381,7 @@ mod tests {
 
     fn active_snapshot() -> AccountSnapshot {
         AccountSnapshot {
-            account_id: "acct-1".to_owned(),
+            account_id: "42".to_owned(),
             bootstrap_subjects: vec![BootstrapSubject::ShortUuid("sub-1".to_owned())],
             lifecycle: AccountLifecycle::Active,
             verta_access: VertaAccess {
@@ -393,7 +396,7 @@ mod tests {
             },
             metadata: None,
             observed_at_unix: 1_700_000_000,
-            source_version: Some("2.7.4".to_owned()),
+            source_version: Some(REMNAWAVE_TARGET_SOURCE_VERSION.to_owned()),
         }
     }
 
@@ -409,7 +412,7 @@ mod tests {
             .await
             .expect("known bootstrap subject should resolve");
 
-        assert_eq!(snapshot.account_id, "acct-1");
+        assert_eq!(snapshot.account_id, "42");
         assert_eq!(adapter.calls().len(), 1);
     }
 

@@ -4,11 +4,12 @@ Uses Pydantic Settings for type-safe configuration loading from environment vari
 Settings are cached as a singleton using lru_cache for performance.
 """
 
+import hmac
 from functools import lru_cache
 from typing import Annotated, ClassVar, Literal
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
-from pydantic import SecretStr, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 
 try:
     from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -83,6 +84,21 @@ class Settings(BaseSettings):
     stage1_provisioning_retry_batch_limit: int = 25
     payment_completed_partner_earnings_enabled: bool = True
     payment_completed_partner_earnings_batch_limit: int = 25
+    remnawave_stream_consumer_enabled: bool = False
+    remnawave_stream_redis_url: SecretStr | None = None
+    remnawave_stream_ip_hmac_secret: SecretStr | None = None
+    remnawave_stream_consumer_group: str = "cybervpn-remnawave-v1"
+    remnawave_stream_read_count: int = Field(default=50, ge=1, le=500)
+    remnawave_stream_block_ms: int = Field(default=5_000, ge=1, le=30_000)
+    remnawave_stream_reclaim_count: int = Field(default=50, ge=1, le=500)
+    remnawave_stream_reclaim_min_idle_ms: int = Field(default=30_000, ge=1_000, le=3_600_000)
+    remnawave_stream_max_delivery_attempts: int = Field(default=5, ge=1, le=100)
+    remnawave_stream_dlq_maxlen: int = Field(default=3_000, ge=100, le=100_000)
+    remnawave_stream_receipt_retention_days: int = Field(default=14, ge=1, le=365)
+    remnawave_stream_checkpoint_observe_interval_seconds: float = Field(default=30.0, ge=5.0, le=300.0)
+    remnawave_stream_retention_enabled: bool = False
+    remnawave_stream_retention_batch_limit: int = Field(default=1_000, ge=1, le=5_000)
+    remnawave_stream_retention_max_batches: int = Field(default=20, ge=1, le=100)
     vpn_tester_enabled: bool = False
     vpn_tester_runtime_enabled: bool = False
     vpn_tester_synthetic_users_enabled: bool = False
@@ -354,6 +370,64 @@ class Settings(BaseSettings):
                 raise ValueError(msg)
         if has_backend_url != has_backend_secret:
             msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET must be configured together"
+            raise ValueError(msg)
+        if self.remnawave_stream_consumer_enabled:
+            if not has_backend_url:
+                msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET are required for Remnawave stream ingestion"
+                raise ValueError(msg)
+            stream_redis_url = self._secret_value(self.remnawave_stream_redis_url)
+            if not stream_redis_url:
+                msg = "REMNAWAVE_STREAM_REDIS_URL is required when the Remnawave stream consumer is enabled"
+                raise ValueError(msg)
+            parsed_stream_redis_url = urlparse(stream_redis_url)
+            if parsed_stream_redis_url.scheme not in {"redis", "rediss"} or not parsed_stream_redis_url.hostname:
+                msg = "REMNAWAVE_STREAM_REDIS_URL must be a valid redis:// or rediss:// URL"
+                raise ValueError(msg)
+            if self.remnawave_stream_consumer_group != "cybervpn-remnawave-v1":
+                msg = "REMNAWAVE_STREAM_CONSUMER_GROUP must be exactly cybervpn-remnawave-v1"
+                raise ValueError(msg)
+            stream_hmac_secret = self._secret_value(self.remnawave_stream_ip_hmac_secret)
+            if len(stream_hmac_secret.encode("utf-8")) < 32:
+                msg = "REMNAWAVE_STREAM_IP_HMAC_SECRET must contain at least 32 bytes"
+                raise ValueError(msg)
+            for label, other_secret in (
+                ("REMNAWAVE_API_TOKEN", self._secret_value(self.remnawave_api_token)),
+                ("BACKEND_INTERNAL_SECRET", self._secret_value(self.backend_internal_secret)),
+                ("TELEGRAM_BOT_INTERNAL_SECRET", self._secret_value(self.telegram_bot_internal_secret)),
+                (
+                    "PAYMENT_SETTLEMENT_WORKER_SECRET",
+                    self._secret_value(self.payment_settlement_worker_secret),
+                ),
+                ("HELIX_ADAPTER_TOKEN", self._secret_value(self.helix_adapter_token)),
+                ("TELEGRAM_BOT_TOKEN", self._secret_value(self.telegram_bot_token)),
+                ("CRYPTOBOT_TOKEN", self._secret_value(self.cryptobot_token)),
+                ("METRICS_BASIC_AUTH_PASSWORD", self._secret_value(self.metrics_basic_auth_password)),
+                ("RESEND_API_KEY", self._secret_value(self.resend_api_key)),
+                ("BREVO_API_KEY", self._secret_value(self.brevo_api_key)),
+                ("SMTP_AUTH_PASSWORD", self._secret_value(self.smtp_auth_password)),
+                (
+                    "DATABASE_URL password",
+                    unquote(urlparse(self.database_url).password or ""),
+                ),
+                (
+                    "REDIS_URL password",
+                    unquote(urlparse(self.redis_url).password or ""),
+                ),
+                (
+                    "REMNAWAVE_STREAM_REDIS_URL password",
+                    unquote(parsed_stream_redis_url.password or ""),
+                ),
+            ):
+                if other_secret and hmac.compare_digest(stream_hmac_secret, other_secret):
+                    msg = f"REMNAWAVE_STREAM_IP_HMAC_SECRET must differ from {label}"
+                    raise ValueError(msg)
+            if self.environment.lower() == "production":
+                self._reject_placeholder_provider_secret(
+                    field_name="REMNAWAVE_STREAM_IP_HMAC_SECRET",
+                    secret=stream_hmac_secret,
+                )
+        if self.remnawave_stream_retention_enabled and not has_backend_url:
+            msg = "BACKEND_API_URL and BACKEND_INTERNAL_SECRET are required for Remnawave stream retention"
             raise ValueError(msg)
         if self.environment.lower() == "production" and has_backend_url:
             backend_internal_secret = self.backend_internal_secret

@@ -520,3 +520,75 @@ MESSAGING_DELIVERY_ADAPTER_TOTAL = Counter(
     "Future external delivery-channel adapter outcomes.",
     ["channel", "status"],
 )
+
+# Remnawave 3.4 Redis Streams consumer metrics. Labels are bounded to the
+# three canonical stream names and stable outcome/reason enums.
+REMNAWAVE_STREAM_MESSAGES_TOTAL = Counter(
+    "cybervpn_remnawave_stream_messages_total",
+    "Remnawave Redis Stream messages by terminal or retry outcome.",
+    ["stream", "outcome"],
+)
+
+REMNAWAVE_STREAM_RETRIES_TOTAL = Counter(
+    "cybervpn_remnawave_stream_retries_total",
+    "Remnawave Redis Stream messages left pending for bounded retry.",
+    ["stream"],
+)
+
+REMNAWAVE_STREAM_DEAD_LETTERS_TOTAL = Counter(
+    "cybervpn_remnawave_stream_dead_letters_total",
+    "Remnawave Redis Stream messages moved to a redacted dead-letter stream.",
+    ["stream", "reason"],
+)
+
+REMNAWAVE_STREAM_RECLAIMED_TOTAL = Counter(
+    "cybervpn_remnawave_stream_reclaimed_total",
+    "Idle Remnawave Redis Stream pending entries reclaimed by this worker.",
+    ["stream", "outcome"],
+)
+
+REMNAWAVE_STREAM_PROCESS_DURATION = Histogram(
+    "cybervpn_remnawave_stream_process_duration_seconds",
+    "Duration of Remnawave Redis Stream message processing.",
+    ["stream", "outcome"],
+    buckets=[0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10],
+)
+
+REMNAWAVE_STREAM_PENDING_CURRENT = Gauge(
+    "cybervpn_remnawave_stream_pending_current",
+    "Current pending entry count for the Remnawave consumer group.",
+    ["stream"],
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)
+
+REMNAWAVE_STREAM_MESSAGE_LAG = Histogram(
+    "cybervpn_remnawave_stream_message_lag_seconds",
+    "Age of a Remnawave stream event when it reaches the durable sink.",
+    ["stream"],
+    buckets=[0.1, 0.5, 1, 2, 5, 10, 30, 60, 120, 300, 900, 3600],
+)
+
+REMNAWAVE_STREAM_RETENTION_PURGED_TOTAL = Counter(
+    "cybervpn_remnawave_stream_retention_purged_total",
+    "Expired Remnawave telemetry metadata removed by bounded store cleanup.",
+    ["stream", "store"],
+)
+
+REMNAWAVE_STREAM_PARSE_FAILURES_TOTAL = Counter(
+    "cybervpn_remnawave_stream_parse_failures_total",
+    "Remnawave stream entries rejected by schema or payload validation.",
+    ["stream", "reason"],
+)
+
+REMNAWAVE_STREAM_RETENTION_BACKLOG = Gauge(
+    "cybervpn_remnawave_stream_retention_backlog",
+    "Whether expired PostgreSQL Remnawave telemetry remains after the bounded cleanup run.",
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)
+
+REMNAWAVE_STREAM_LAST_CONSUMED_UNIXTIME = Gauge(
+    "cybervpn_remnawave_stream_last_consumed_unixtime",
+    "Unix timestamp of the latest terminally handled Remnawave stream entry.",
+    ["stream"],
+    multiprocess_mode="livemax" if MULTIPROC_ENABLED else "all",
+)

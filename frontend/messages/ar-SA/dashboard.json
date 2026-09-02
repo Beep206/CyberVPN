@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "توفر خدمة VPN",
+    "connections": "الاتصالات",
+    "usage": "الاستخدام",
+    "devices": "الأجهزة",
+    "available": "متاح",
+    "unavailable": "غير متاح",
+    "loading": "جارٍ تحميل حالة خدمة VPN",
+    "degraded": "متدهور جزئيًا"
   }
 }

@@ -27,9 +27,10 @@ mod support;
 
 use support::helix_db::IsolatedTestPool;
 
-fn inventory_item(id: String, name: &str, hostname: &str) -> NodeInventoryItem {
+fn inventory_item(uuid: String, name: &str, hostname: &str) -> NodeInventoryItem {
     NodeInventoryItem {
-        id,
+        id: 17,
+        uuid: Uuid::parse_str(&uuid).unwrap_or_else(|_| Uuid::new_v4()),
         name: name.to_string(),
         hostname: Some(hostname.to_string()),
         enabled: Some(true),
@@ -41,6 +42,8 @@ fn inventory_item(id: String, name: &str, hostname: &str) -> NodeInventoryItem {
         node_version: None,
         xray_version: None,
         versions: None,
+        ips: Vec::new(),
+        integration_uuids: Vec::new(),
     }
 }
 
@@ -74,12 +77,12 @@ async fn upsert_edge_profile(
 
 #[test]
 fn node_registry_inventory_helper_accepts_current_remnawave_fixture() {
-    let payload = include_str!("fixtures/remnawave/node_inventory_item_2_7_4.json");
+    let payload = include_str!("fixtures/remnawave/node_inventory_item_3_4_1.json");
     let item: NodeInventoryItem = serde_json::from_str(payload).expect("current remnawave fixture");
 
     let upsert = NodeRegistryService::inventory_to_upsert(&item);
 
-    assert_eq!(upsert.remnawave_node_id, item.id);
+    assert_eq!(upsert.remnawave_node_id, item.uuid.to_string());
     assert_eq!(upsert.node_name, item.name);
     assert_eq!(upsert.hostname.as_deref(), item.hostname.as_deref());
     assert_eq!(upsert.adapter_node_label, "fra-01-example-com");
@@ -111,7 +114,7 @@ async fn node_registry_persists_rollout_assignments() {
             batch_id: format!("batch-{}", Uuid::new_v4().simple()),
             channel: RolloutChannel::Lab,
             manifest_version: "manifest-v1".to_string(),
-            target_node_ids: vec![inventory_item.id.clone()],
+            target_node_ids: vec![inventory_item.uuid.to_string()],
             pause_on_rollback_spike: true,
             revoke_on_manifest_error: true,
         })
@@ -124,7 +127,7 @@ async fn node_registry_persists_rollout_assignments() {
     let nodes = repository.list_nodes().await.expect("list nodes");
     let node = nodes
         .into_iter()
-        .find(|record| record.remnawave_node_id == inventory_item.id)
+        .find(|record| record.remnawave_node_id == inventory_item.uuid.to_string())
         .expect("persisted node");
 
     assert!(node.transport_enabled);
@@ -158,7 +161,7 @@ async fn node_registry_records_heartbeat_snapshots() {
             batch_id: format!("batch-{}", Uuid::new_v4().simple()),
             channel: RolloutChannel::Canary,
             manifest_version: "manifest-v2".to_string(),
-            target_node_ids: vec![inventory_item.id.clone()],
+            target_node_ids: vec![inventory_item.uuid.to_string()],
             pause_on_rollback_spike: true,
             revoke_on_manifest_error: true,
         })
@@ -169,7 +172,7 @@ async fn node_registry_records_heartbeat_snapshots() {
         .record_heartbeat(&NodeHeartbeatRequest {
             schema_version: "1.0".to_string(),
             heartbeat_id: Uuid::new_v4(),
-            node_id: inventory_item.id.clone(),
+            node_id: inventory_item.uuid.to_string(),
             rollout_id: rollout_id.clone(),
             observed_at: chrono::Utc::now(),
             transport_profile: NodeHeartbeatTransportProfile {
@@ -212,7 +215,7 @@ async fn node_registry_records_heartbeat_snapshots() {
     let nodes = repository.list_nodes().await.expect("list nodes");
     let node = nodes
         .into_iter()
-        .find(|record| record.remnawave_node_id == inventory_item.id)
+        .find(|record| record.remnawave_node_id == inventory_item.uuid.to_string())
         .expect("persisted node");
 
     assert!(node.last_heartbeat_at.is_some());
@@ -249,7 +252,7 @@ async fn node_registry_list_nodes_returns_cached_registry_when_remnawave_sync_fa
     let nodes = service.list_nodes(true).await.expect("cached list nodes");
     let node = nodes
         .into_iter()
-        .find(|record| record.remnawave_node_id == inventory_item.id)
+        .find(|record| record.remnawave_node_id == inventory_item.uuid.to_string())
         .expect("cached node");
 
     assert_eq!(node.node_name, inventory_item.name);
@@ -283,7 +286,7 @@ async fn node_registry_updates_rollout_desktop_rates_from_runtime_events() {
             batch_id: format!("batch-{}", Uuid::new_v4().simple()),
             channel: RolloutChannel::Stable,
             manifest_version: "manifest-v3".to_string(),
-            target_node_ids: vec![inventory_item.id.clone()],
+            target_node_ids: vec![inventory_item.uuid.to_string()],
             pause_on_rollback_spike: true,
             revoke_on_manifest_error: true,
         })
@@ -524,7 +527,7 @@ async fn node_registry_counts_cross_route_ready_recovery_as_continuity_success()
             batch_id: format!("batch-{}", Uuid::new_v4().simple()),
             channel: RolloutChannel::Lab,
             manifest_version: "manifest-v-cross-route".to_string(),
-            target_node_ids: vec![inventory_item.id.clone()],
+            target_node_ids: vec![inventory_item.uuid.to_string()],
             pause_on_rollback_spike: true,
             revoke_on_manifest_error: true,
         })
@@ -610,7 +613,7 @@ async fn node_registry_rollout_canary_evidence_reports_watch_when_throughput_evi
             batch_id: format!("batch-{}", Uuid::new_v4().simple()),
             channel: RolloutChannel::Canary,
             manifest_version: "manifest-v-canary-watch".to_string(),
-            target_node_ids: vec![inventory_item.id.clone()],
+            target_node_ids: vec![inventory_item.uuid.to_string()],
             pause_on_rollback_spike: true,
             revoke_on_manifest_error: true,
         })
@@ -700,7 +703,7 @@ async fn node_registry_rollout_canary_evidence_reports_no_go_for_poor_relative_t
             batch_id: format!("batch-{}", Uuid::new_v4().simple()),
             channel: RolloutChannel::Canary,
             manifest_version: "manifest-v-canary-nogo".to_string(),
-            target_node_ids: vec![inventory_item.id.clone()],
+            target_node_ids: vec![inventory_item.uuid.to_string()],
             pause_on_rollback_spike: true,
             revoke_on_manifest_error: true,
         })
@@ -799,7 +802,7 @@ async fn node_registry_rollout_state_recommends_pause_for_avoid_new_sessions_pro
             batch_id: format!("batch-{}", Uuid::new_v4().simple()),
             channel: RolloutChannel::Stable,
             manifest_version: "manifest-v9".to_string(),
-            target_node_ids: vec![inventory_item.id.clone()],
+            target_node_ids: vec![inventory_item.uuid.to_string()],
             pause_on_rollback_spike: true,
             revoke_on_manifest_error: true,
         })

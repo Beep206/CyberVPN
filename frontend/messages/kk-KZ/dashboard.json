@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN қызметінің қолжетімділігі",
+    "connections": "Қосылымдар",
+    "usage": "Пайдалану",
+    "devices": "Құрылғылар",
+    "available": "Қолжетімді",
+    "unavailable": "Қолжетімсіз",
+    "loading": "VPN қызметінің күйі жүктелуде",
+    "degraded": "Ішінара шектеулі"
   }
 }

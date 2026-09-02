@@ -460,7 +460,17 @@
     "serverStatus": "СЕРВЕР КҮЙІ",
     "statusLabel": "ЖҮЙЕ КҮЙІ:",
     "statusValue": "ОҢТАЙЛЫ",
-    "title": "VPN БАСҚАРУ ОРТАЛЫҒЫ"
+    "title": "VPN БАСҚАРУ ОРТАЛЫҒЫ",
+    "vpnServiceStatus": {
+      "available": "Қолжетімді",
+      "connections": "Қосылымдар",
+      "degraded": "Ішінара шектеулі",
+      "devices": "Құрылғылар",
+      "loading": "VPN қызметінің күйі жүктелуде",
+      "title": "VPN қызметінің қолжетімділігі",
+      "unavailable": "Қолжетімсіз",
+      "usage": "Пайдалану"
+    }
   },
   "DeleteAccount": {
     "contact": {

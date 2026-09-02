@@ -30,9 +30,7 @@ Widget buildTestableCancelSheet({
   required MockSubscriptionRepository mockRepo,
 }) {
   return ProviderScope(
-    overrides: [
-      subscriptionRepositoryProvider.overrideWithValue(mockRepo),
-    ],
+    overrides: [subscriptionRepositoryProvider.overrideWithValue(mockRepo)],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -72,10 +70,7 @@ void main() {
       ignoreOverflowErrors();
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       // Open the sheet
@@ -90,10 +85,7 @@ void main() {
       ignoreOverflowErrors();
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
@@ -106,10 +98,7 @@ void main() {
       ignoreOverflowErrors();
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());
@@ -125,14 +114,12 @@ void main() {
       ignoreOverflowErrors();
 
       // Arrange: Mock successful cancellation
-      when(() => mockRepo.cancelSubscription(any()))
-          .thenAnswer((_) async => const Success(null));
+      when(
+        () => mockRepo.cancelSubscription(any()),
+      ).thenAnswer((_) async => const Success(null));
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       // Open sheet
@@ -147,19 +134,16 @@ void main() {
       verify(() => mockRepo.cancelSubscription('sub-123')).called(1);
     });
 
-    testWidgets('test_success_shows_snackbar_and_closes_sheet',
-        (tester) async {
+    testWidgets('test_success_shows_snackbar_and_closes_sheet', (tester) async {
       ignoreOverflowErrors();
 
       // Arrange: Mock successful cancellation
-      when(() => mockRepo.cancelSubscription(any()))
-          .thenAnswer((_) async => const Success(null));
+      when(
+        () => mockRepo.cancelSubscription(any()),
+      ).thenAnswer((_) async => const Success(null));
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       // Open sheet
@@ -172,27 +156,26 @@ void main() {
 
       // Assert: Success snackbar shown
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Subscription cancelled'), findsOneWidget);
+      expect(find.text('Subscription cancelled successfully.'), findsOneWidget);
 
       // Sheet is closed
       expect(find.byType(CancelSubscriptionSheet), findsNothing);
     });
 
-    testWidgets('test_error_shows_snackbar_and_keeps_sheet_open',
-        (tester) async {
+    testWidgets('test_error_shows_snackbar_and_keeps_sheet_open', (
+      tester,
+    ) async {
       ignoreOverflowErrors();
 
       // Arrange: Mock failed cancellation
       when(() => mockRepo.cancelSubscription(any())).thenAnswer(
         (_) async => const Failure(
-            failures.ServerFailure(message: 'Failed to cancel subscription')),
+          failures.ServerFailure(message: 'Failed to cancel subscription'),
+        ),
       );
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       // Open sheet
@@ -215,18 +198,13 @@ void main() {
       ignoreOverflowErrors();
 
       // Arrange: Mock slow cancellation to test loading state
-      when(() => mockRepo.cancelSubscription(any())).thenAnswer(
-        (_) async {
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-          return const Success(null);
-        },
-      );
+      when(() => mockRepo.cancelSubscription(any())).thenAnswer((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+        return const Success(null);
+      });
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       // Open sheet
@@ -246,15 +224,13 @@ void main() {
   });
 
   group('CancelSubscriptionSheet - Keep Subscription', () {
-    testWidgets('test_keep_button_closes_sheet_without_api_call',
-        (tester) async {
+    testWidgets('test_keep_button_closes_sheet_without_api_call', (
+      tester,
+    ) async {
       ignoreOverflowErrors();
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       // Open sheet
@@ -274,23 +250,19 @@ void main() {
   });
 
   group('CancelSubscriptionSheet - Edge Cases', () {
-    testWidgets('test_multiple_taps_on_cancel_button_only_one_api_call',
-        (tester) async {
+    testWidgets('test_multiple_taps_on_cancel_button_only_one_api_call', (
+      tester,
+    ) async {
       ignoreOverflowErrors();
 
       // Arrange: Mock slow cancellation
-      when(() => mockRepo.cancelSubscription(any())).thenAnswer(
-        (_) async {
-          await Future<void>.delayed(const Duration(milliseconds: 300));
-          return const Success(null);
-        },
-      );
+      when(() => mockRepo.cancelSubscription(any())).thenAnswer((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        return const Success(null);
+      });
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-123',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-123', mockRepo: mockRepo),
       );
 
       // Open sheet
@@ -315,14 +287,12 @@ void main() {
       ignoreOverflowErrors();
 
       // Test with different subscription ID
-      when(() => mockRepo.cancelSubscription(any()))
-          .thenAnswer((_) async => const Success(null));
+      when(
+        () => mockRepo.cancelSubscription(any()),
+      ).thenAnswer((_) async => const Success(null));
 
       await tester.pumpWidget(
-        buildTestableCancelSheet(
-          subscriptionId: 'sub-456',
-          mockRepo: mockRepo,
-        ),
+        buildTestableCancelSheet(subscriptionId: 'sub-456', mockRepo: mockRepo),
       );
 
       await tester.tap(findOpenSheetButton());

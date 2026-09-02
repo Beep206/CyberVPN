@@ -2,6 +2,7 @@ import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/wallet/domain/entities/wallet.dart';
 import 'package:cybervpn_mobile/features/wallet/presentation/providers/wallet_provider.dart';
 import 'package:cybervpn_mobile/features/wallet/presentation/screens/wallet_screen.dart';
+import 'package:cybervpn_mobile/features/wallet/presentation/widgets/withdraw_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -183,7 +184,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Wallet is not available for this account'),
+        find.text(
+          'The wallet feature is not available yet. Please check back later.',
+        ),
         findsOneWidget,
       );
     });
@@ -210,8 +213,9 @@ void main() {
       expect(find.text('0.00 USD'), findsOneWidget);
     });
 
-    testWidgets('test_displays_pending_balance_when_greater_than_zero',
-        (tester) async {
+    testWidgets('test_displays_pending_balance_when_greater_than_zero', (
+      tester,
+    ) async {
       const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 25.50,
@@ -231,8 +235,9 @@ void main() {
       expect(find.textContaining('Pending: 25.50 USD'), findsOneWidget);
     });
 
-    testWidgets('test_loading_balance_shows_progress_indicator',
-        (tester) async {
+    testWidgets('test_loading_balance_shows_progress_indicator', (
+      tester,
+    ) async {
       const transactions = WalletTransactionList(transactions: [], total: 0);
 
       await tester.pumpWidget(
@@ -251,14 +256,16 @@ void main() {
 
       await tester.pumpWidget(
         buildTestableWalletScreen(
-          balanceOverride:
-              AsyncValue.error(Exception('Failed'), StackTrace.current),
+          balanceOverride: AsyncValue.error(
+            Exception('Failed'),
+            StackTrace.current,
+          ),
           transactionsOverride: const AsyncValue.data(transactions),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Failed to load balance'), findsOneWidget);
+      expect(find.text('Error loading balance'), findsOneWidget);
     });
   });
 
@@ -327,8 +334,9 @@ void main() {
       expect(find.text('No transactions yet'), findsOneWidget);
     });
 
-    testWidgets('test_transaction_list_loading_shows_progress_indicator',
-        (tester) async {
+    testWidgets('test_transaction_list_loading_shows_progress_indicator', (
+      tester,
+    ) async {
       const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
@@ -346,8 +354,9 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsWidgets);
     });
 
-    testWidgets('test_transaction_list_error_shows_error_message',
-        (tester) async {
+    testWidgets('test_transaction_list_error_shows_error_message', (
+      tester,
+    ) async {
       const balance = WalletBalance(
         balance: 100.0,
         pendingBalance: 0.0,
@@ -357,13 +366,15 @@ void main() {
       await tester.pumpWidget(
         buildTestableWalletScreen(
           balanceOverride: const AsyncValue.data(balance),
-          transactionsOverride:
-              AsyncValue.error(Exception('Failed'), StackTrace.current),
+          transactionsOverride: AsyncValue.error(
+            Exception('Failed'),
+            StackTrace.current,
+          ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Failed to load transactions'), findsOneWidget);
+      expect(find.text('Error loading transactions'), findsOneWidget);
     });
   });
 
@@ -388,8 +399,9 @@ void main() {
       await tester.tap(findWithdrawButton());
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('Withdraw not implemented'), findsOneWidget);
+      expect(find.byType(WithdrawBottomSheet), findsOneWidget);
+      expect(find.text('Available Balance: \$100.00'), findsOneWidget);
+      expect(find.byKey(const Key('btn_confirm_withdraw')), findsOneWidget);
     });
 
     testWidgets('test_withdraw_dialog_can_be_closed', (tester) async {
@@ -412,10 +424,10 @@ void main() {
       await tester.tap(findWithdrawButton());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Close'));
+      await tester.tap(find.byKey(const Key('btn_cancel_withdraw')));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(WithdrawBottomSheet), findsNothing);
     });
   });
 }

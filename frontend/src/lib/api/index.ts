@@ -47,6 +47,8 @@ export { serversApi } from './servers';
 export { monitoringApi } from './monitoring';
 export { miniappApi } from './miniapp';
 export { publicNetworkApi } from './public-network';
+export { remnawaveStatusApi } from './remnawave-status';
+export type { CustomerVpnServiceStatus } from './remnawave-status';
 
 // Security
 export { twofaApi } from './twofa';

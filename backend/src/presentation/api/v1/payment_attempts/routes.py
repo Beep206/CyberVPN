@@ -1,4 +1,5 @@
 import hashlib
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
@@ -24,13 +25,23 @@ router = APIRouter(prefix="/payment-attempts", tags=["payment-attempts"])
 def _build_invoice(provider_snapshot: dict, fallback_currency: str, fallback_status: str) -> InvoiceResponse | None:
     if not provider_snapshot.get("invoice_id"):
         return None
+    raw_expires_at = provider_snapshot.get("expires_at")
+    if isinstance(raw_expires_at, datetime):
+        expires_at = raw_expires_at
+    elif isinstance(raw_expires_at, str):
+        try:
+            expires_at = datetime.fromisoformat(raw_expires_at.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("Payment attempt invoice expiration is invalid") from exc
+    else:
+        raise ValueError("Payment attempt invoice expiration is missing")
     return InvoiceResponse(
         invoice_id=provider_snapshot["invoice_id"],
         payment_url=provider_snapshot.get("payment_url", ""),
         amount=float(provider_snapshot.get("amount", 0)),
         currency=provider_snapshot.get("currency", fallback_currency),
         status=provider_snapshot.get("status", fallback_status),
-        expires_at=provider_snapshot.get("expires_at"),
+        expires_at=expires_at,
     )
 
 

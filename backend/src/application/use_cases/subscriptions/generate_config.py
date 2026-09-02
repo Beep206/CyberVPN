@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from httpx import HTTPStatusError
 
 from src.config.settings import settings
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.monitoring.metrics import (
     remnawave_xhttp_canary_enabled_total,
     remnawave_xhttp_rollback_total,
@@ -106,14 +107,30 @@ class GenerateConfigUseCase:
 
     async def execute(
         self,
-        user_uuid: UUID | str,
+        user_ref: RemnawaveUserRef | int,
         *,
         plan_code: str | None = None,
         user_segments: Sequence[str] | None = None,
     ) -> dict:
+        numeric_user_id = user_ref.require_numeric_id() if isinstance(user_ref, RemnawaveUserRef) else user_ref
+        if isinstance(numeric_user_id, bool) or not isinstance(numeric_user_id, int) or numeric_user_id <= 0:
+            raise ValueError("Remnawave 3.x config reads require a reconciled numeric user id")
+        return await self._execute_subscription_path(
+            f"/subscriptions/by-id/{numeric_user_id}",
+            plan_code=plan_code,
+            user_segments=user_segments,
+        )
+
+    async def _execute_subscription_path(
+        self,
+        subscription_path: str,
+        *,
+        plan_code: str | None,
+        user_segments: Sequence[str] | None,
+    ) -> dict:
         try:
             data = await self._client.get_validated(
-                f"/subscriptions/by-uuid/{user_uuid}",
+                subscription_path,
                 RemnawaveSubscriptionDetailsResponse,
             )
         except HTTPStatusError as exc:
@@ -190,3 +207,25 @@ class GenerateConfigUseCase:
             "xhttp_enabled": bool(candidate_xhttp_links and xhttp_allowed),
             "xhttp_links": candidate_xhttp_links if xhttp_allowed else [],
         }
+
+
+class GenerateConfigLegacyRollbackUseCase:
+    """Explicit Remnawave 2.x UUID reader, isolated from normal 3.x paths."""
+
+    def __init__(self, client: RemnawaveClient) -> None:
+        self._delegate = GenerateConfigUseCase(client)
+
+    async def execute(
+        self,
+        legacy_uuid: UUID,
+        *,
+        plan_code: str | None = None,
+        user_segments: Sequence[str] | None = None,
+    ) -> dict:
+        if not isinstance(legacy_uuid, UUID):
+            raise ValueError("Legacy rollback config reads require a UUID")
+        return await self._delegate._execute_subscription_path(
+            f"/subscriptions/by-uuid/{legacy_uuid}",
+            plan_code=plan_code,
+            user_segments=user_segments,
+        )

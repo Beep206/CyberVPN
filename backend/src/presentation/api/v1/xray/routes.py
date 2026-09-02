@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 
 from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
@@ -25,7 +25,11 @@ async def get_xray_config(
     )
 
 
-@router.post("/update-config", response_model=RemnawaveXrayConfigResponse)
+@router.post(
+    "/update-config",
+    response_model=RemnawaveXrayConfigResponse,
+    responses={202: {"description": "Configuration update accepted by Remnawave without a response body"}},
+)
 async def update_xray_config(
     config_data: UpdateXrayConfigRequest,
     current_user=Depends(require_role(AdminRole.ADMIN)),
@@ -38,4 +42,6 @@ async def update_xray_config(
         json=config_data.model_dump(exclude_none=True),
     )
     route_operations_total.labels(route="xray", action="update_config", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return result

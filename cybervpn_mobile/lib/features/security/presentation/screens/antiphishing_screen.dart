@@ -22,8 +22,7 @@ class AntiphishingScreen extends ConsumerStatefulWidget {
   const AntiphishingScreen({super.key});
 
   @override
-  ConsumerState<AntiphishingScreen> createState() =>
-      _AntiphishingScreenState();
+  ConsumerState<AntiphishingScreen> createState() => _AntiphishingScreenState();
 }
 
 enum _ScreenMode { view, edit }
@@ -70,8 +69,11 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
           _codeController.clear();
         },
         failure: (AppFailure failure) {
-          AppLogger.error('Failed to save antiphishing code',
-              error: failure, category: 'security');
+          AppLogger.error(
+            'Failed to save antiphishing code',
+            error: failure,
+            category: 'security',
+          );
           setState(() {
             _isLoading = false;
             _errorMessage = failure.message;
@@ -79,8 +81,11 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
         },
       );
     } catch (e) {
-      AppLogger.error('Unexpected error saving antiphishing code',
-          error: e, category: 'security');
+      AppLogger.error(
+        'Unexpected error saving antiphishing code',
+        error: e,
+        category: 'security',
+      );
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -135,8 +140,11 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
           });
         },
         failure: (AppFailure failure) {
-          AppLogger.error('Failed to delete antiphishing code',
-              error: failure, category: 'security');
+          AppLogger.error(
+            'Failed to delete antiphishing code',
+            error: failure,
+            category: 'security',
+          );
           setState(() {
             _isLoading = false;
             _errorMessage = failure.message;
@@ -144,8 +152,11 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
         },
       );
     } catch (e) {
-      AppLogger.error('Unexpected error deleting antiphishing code',
-          error: e, category: 'security');
+      AppLogger.error(
+        'Unexpected error deleting antiphishing code',
+        error: e,
+        category: 'security',
+      );
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -179,9 +190,7 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
     final codeAsync = ref.watch(antiphishingCodeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.antiphishingTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.antiphishingTitle)),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(Spacing.lg),
@@ -218,10 +227,7 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
-          Icons.security_outlined,
-          size: 64,
-        ),
+        const Icon(Icons.security_outlined, size: 64),
         const SizedBox(height: Spacing.lg),
         Text(
           l10n.antiphishingNotSetTitle,
@@ -315,6 +321,36 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
         ),
         const SizedBox(height: Spacing.xl),
 
+        if (_errorMessage != null) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(Spacing.md),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: theme.colorScheme.error,
+                  size: 20,
+                ),
+                const SizedBox(width: Spacing.sm),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Spacing.md),
+        ],
+
         // Action buttons
         SizedBox(
           width: double.infinity,
@@ -329,10 +365,7 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: _isLoading ? null : _deleteCode,
-            icon: Icon(
-              Icons.delete_outline,
-              color: theme.colorScheme.error,
-            ),
+            icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
             style: OutlinedButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
               side: BorderSide(color: theme.colorScheme.error),
@@ -355,10 +388,7 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.edit_outlined,
-            size: 64,
-          ),
+          const Icon(Icons.edit_outlined, size: 64),
           const SizedBox(height: Spacing.lg),
           Text(
             code.isSet ? l10n.antiphishingEditCode : l10n.antiphishingSetCode,
@@ -435,9 +465,7 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : Text(l10n.save),
             ),
@@ -463,11 +491,7 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.error_outline,
-          size: 64,
-          color: theme.colorScheme.error,
-        ),
+        Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
         const SizedBox(height: Spacing.lg),
         Text(
           l10n.errorOccurred,
@@ -493,10 +517,7 @@ class _AntiphishingScreenState extends ConsumerState<AntiphishingScreen> {
           label: Text(l10n.retry),
         ),
         const SizedBox(height: Spacing.md),
-        TextButton(
-          onPressed: () => context.pop(),
-          child: Text(l10n.close),
-        ),
+        TextButton(onPressed: () => context.pop(), child: Text(l10n.close)),
       ],
     );
   }

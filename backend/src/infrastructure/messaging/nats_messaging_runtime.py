@@ -139,10 +139,13 @@ class NatsMessagingRuntime:
         self._jetstream = self._connection.jetstream()
 
     async def _ensure_stream(self) -> None:
+        jetstream = self._jetstream
+        if jetstream is None:
+            raise RuntimeError("NATS JetStream connection is not initialized")
         try:
-            await self._jetstream.stream_info(settings.nats_messaging_stream_name)
+            await jetstream.stream_info(settings.nats_messaging_stream_name)
         except Exception:
-            await self._jetstream.add_stream(
+            await jetstream.add_stream(
                 name=settings.nats_messaging_stream_name,
                 subjects=[f"{settings.nats_messaging_subject_prefix}.>"],
             )
@@ -219,10 +222,13 @@ class NatsMessagingRuntime:
                 logger.exception("Messaging outbox publication failed", extra={"consumer_key": consumer_key})
 
     async def _publish_envelope(self, envelope: MessagingOutboxEnvelope) -> dict[str, Any]:
+        jetstream = self._jetstream
+        if jetstream is None:
+            raise RuntimeError("NATS JetStream connection is not initialized")
         payload = json.dumps(envelope.as_payload(), separators=(",", ":"), default=str).encode("utf-8")
         idempotency_key = f"{envelope.consumer_key}:{envelope.event_key}"
         published_at = datetime.now(UTC)
-        ack = await self._jetstream.publish(
+        ack = await jetstream.publish(
             envelope.subject,
             payload,
             stream=settings.nats_messaging_stream_name,
@@ -244,8 +250,11 @@ class NatsMessagingRuntime:
 
     async def _consume_loop(self, consumer_key: str) -> None:
         await self._ensure_connection()
+        jetstream = self._jetstream
+        if jetstream is None:
+            raise RuntimeError("NATS JetStream connection is not initialized")
         subject = f"{settings.nats_messaging_subject_prefix}.{consumer_key}.>"
-        subscription = await self._jetstream.pull_subscribe(
+        subscription = await jetstream.pull_subscribe(
             subject,
             durable=f"{consumer_key}-durable",
             stream=settings.nats_messaging_stream_name,

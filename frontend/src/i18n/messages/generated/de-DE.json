@@ -460,7 +460,17 @@
     "serverStatus": "SERVERSTATUS",
     "statusLabel": "SYSTEMSTATUS:",
     "statusValue": "OPTIMAL",
-    "title": "VPN KOMMANDOZENTRALE"
+    "title": "VPN KOMMANDOZENTRALE",
+    "vpnServiceStatus": {
+      "available": "Verfügbar",
+      "connections": "Verbindungen",
+      "degraded": "Teilweise eingeschränkt",
+      "devices": "Geräte",
+      "loading": "VPN-Dienststatus wird geladen",
+      "title": "Verfügbarkeit des VPN-Dienstes",
+      "unavailable": "Nicht verfügbar",
+      "usage": "Nutzung"
+    }
   },
   "DeleteAccount": {
     "contact": {

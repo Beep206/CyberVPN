@@ -100,6 +100,7 @@ async def test_s1_prod_005_trial_has_no_paid_grace() -> None:
         access_kind=Stage1ExpiryAccessKind.TRIAL,
         access_expires_at=expires_at,
         remnawave_uuid=str(uuid4()),
+        remnawave_user_id=73,
     )
     gateway = RecordingExpiryGateway()
 
@@ -111,11 +112,11 @@ async def test_s1_prod_005_trial_has_no_paid_grace() -> None:
     assert gateway.disabled == [(record, expires_at)]
 
 
-def test_s1_prod_005_missing_remnawave_uuid_after_grace_escalates_to_support_review() -> None:
+def test_s1_prod_005_missing_remnawave_numeric_id_after_grace_escalates_to_support_review() -> None:
     expires_at = datetime(2026, 5, 1, 9, 30, tzinfo=UTC)
     now = expires_at + timedelta(hours=73)
     decision = evaluate_stage1_expiry_grace(
-        _paid_record(access_expires_at=expires_at, remnawave_uuid=None),
+        _paid_record(access_expires_at=expires_at, remnawave_user_id=None),
         now=now,
     )
 
@@ -147,12 +148,14 @@ def _paid_record(
     *,
     access_expires_at: datetime,
     remnawave_uuid: str | None = "33333333-3333-4333-8333-333333333333",
+    remnawave_user_id: int | None = 73,
 ) -> Stage1ExpiryGraceAccessRecord:
     return Stage1ExpiryGraceAccessRecord(
         customer_account_id=uuid4(),
         access_kind=Stage1ExpiryAccessKind.PAID_SUBSCRIPTION,
         access_expires_at=access_expires_at,
         remnawave_uuid=remnawave_uuid,
+        remnawave_user_id=remnawave_user_id,
     )
 
 

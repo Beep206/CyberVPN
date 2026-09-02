@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from ipaddress import ip_address, ip_network
 from typing import Literal
 
-from starlette.requests import Request
+from starlette.requests import HTTPConnection
 
 from src.config.settings import settings
 
@@ -24,7 +24,7 @@ class ClientIpResult:
 
 
 def resolve_client_ip(
-    request: Request,
+    request: HTTPConnection,
     *,
     trust_proxy_headers: bool | None = None,
     trusted_proxy_ips: Iterable[str] | None = None,
@@ -58,7 +58,7 @@ def resolve_client_ip(
     return _store_result(request, ClientIpResult(ip=direct_ip, ip_source="direct", proxy_peer=direct_ip))
 
 
-def _store_result(request: Request, result: ClientIpResult) -> ClientIpResult:
+def _store_result(request: HTTPConnection, result: ClientIpResult) -> ClientIpResult:
     request.state.client_ip_result = result
     request.state.client_ip = result.ip
     request.state.client_ip_source = result.ip_source

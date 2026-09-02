@@ -70,10 +70,9 @@ pub fn ensure_wintun(app: &tauri::AppHandle) -> Result<(), AppError> {
         }
         let dll_path = bin_dir.join("wintun.dll");
 
-        let needs_copy = fs::metadata(&dll_path)
+        let needs_copy = !fs::metadata(&dll_path)
             .map(|metadata| metadata.is_file() && metadata.len() > 0)
-            .unwrap_or(false)
-            == false;
+            .unwrap_or(false);
 
         if needs_copy {
             let resource_path = app

@@ -615,7 +615,7 @@ class ExportGrowthReportingOverviewUseCase:
             start_date=overview.window_start,
             end_date=overview.window_end,
         )
-        raw_rows = [
+        raw_rows: list[dict[str, object]] = [
             {
                 "report_date": row.report_date.isoformat(),
                 "report_family": row.report_family,

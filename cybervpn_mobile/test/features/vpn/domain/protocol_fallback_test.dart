@@ -10,7 +10,10 @@ void main() {
 
   setUp(() {
     fakeStorage = FakeSecureStorage();
-    fallback = ProtocolFallback(storage: fakeStorage);
+    fallback = ProtocolFallback(
+      storage: fakeStorage,
+      probe: (_, _) async => false,
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -23,10 +26,7 @@ void main() {
     });
 
     test('handshakeTimeout is 5 seconds', () {
-      expect(
-        ProtocolFallback.handshakeTimeout,
-        const Duration(seconds: 5),
-      );
+      expect(ProtocolFallback.handshakeTimeout, const Duration(seconds: 5));
     });
   });
 
@@ -197,19 +197,16 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('ProtocolFallback - execute result structure', () {
-    // Note: execute() performs real TCP socket connections, so we cannot
-    // deterministically control success/failure in a pure unit test.
-    // We verify the structure of the result regardless of outcome.
-
     test('execute returns a ProtocolFallbackResult', () async {
       final result = await fallback.execute(
         serverAddress: '127.0.0.1',
-        port: 1, // unlikely to have a listener
+        port: 1,
       );
 
       expect(result, isA<ProtocolFallbackResult>());
-      expect(result.attemptLog, isNotEmpty);
-    }, timeout: const Timeout(Duration(minutes: 2)));
+      expect(result, isA<ProtocolFallbackFailure>());
+      expect(result.attemptLog, hasLength(9));
+    });
 
     test('manual override limits attempts to one protocol', () async {
       final result = await fallback.execute(
@@ -224,9 +221,8 @@ void main() {
         isTrue,
       );
 
-      // Max attempts for one protocol is maxRetries (3).
-      expect(result.attemptLog.length, lessThanOrEqualTo(3));
-    }, timeout: const Timeout(Duration(minutes: 1)));
+      expect(result.attemptLog, hasLength(ProtocolFallback.maxRetries));
+    });
 
     test('attempt log entries have valid fields', () async {
       final result = await fallback.execute(
@@ -240,30 +236,23 @@ void main() {
         expect(log.timestamp, isA<DateTime>());
         expect(VpnProtocol.values, contains(log.protocol));
       }
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    });
 
     test('success result preserves the working protocol', () async {
-      // Connect to a port that is likely listening (flutter test server).
-      // This is best-effort; if it fails, we test the failure path.
-      final result = await fallback.execute(
+      final successfulFallback = ProtocolFallback(
+        storage: fakeStorage,
+        probe: (_, _) async => true,
+      );
+      final result = await successfulFallback.execute(
         serverAddress: '127.0.0.1',
         port: 1,
       );
 
-      if (result.isSuccess) {
-        final success = result as ProtocolFallbackSuccess;
-        expect(VpnProtocol.values, contains(success.protocol));
-        expect(success.attemptLog, isNotEmpty);
-        expect(success.attemptLog.last.success, isTrue);
-      } else {
-        final failure = result as ProtocolFallbackFailure;
-        expect(failure.message, isNotEmpty);
-        expect(
-          failure.attemptLog.every((log) => !log.success),
-          isTrue,
-        );
-      }
-    }, timeout: const Timeout(Duration(minutes: 2)));
+      final success = result as ProtocolFallbackSuccess;
+      expect(success.protocol, VpnProtocol.vless);
+      expect(success.attemptLog, hasLength(1));
+      expect(success.attemptLog.single.success, isTrue);
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -281,20 +270,22 @@ void main() {
 
       // The first attempt should always be the preferred protocol.
       expect(result.attemptLog.first.protocol, VpnProtocol.trojan);
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    });
 
-    test('without preferred protocol, first attempt is vless (default chain)',
-        () async {
-      // Ensure no preferred protocol is set.
-      await fallback.setPreferredProtocol(null);
+    test(
+      'without preferred protocol, first attempt is vless (default chain)',
+      () async {
+        // Ensure no preferred protocol is set.
+        await fallback.setPreferredProtocol(null);
 
-      final result = await fallback.execute(
-        serverAddress: '127.0.0.1',
-        port: 1,
-      );
+        final result = await fallback.execute(
+          serverAddress: '127.0.0.1',
+          port: 1,
+        );
 
-      // Default chain starts with vless.
-      expect(result.attemptLog.first.protocol, VpnProtocol.vless);
-    }, timeout: const Timeout(Duration(minutes: 2)));
+        // Default chain starts with vless.
+        expect(result.attemptLog.first.protocol, VpnProtocol.vless);
+      },
+    );
   });
 }

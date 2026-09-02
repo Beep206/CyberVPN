@@ -66,7 +66,7 @@
     "routesTitle": "Маршруты безопасности",
     "routesDescription": "Переходите сразу в нужный контур защиты, не покидая admin shell.",
     "routes": {
-      "reviewQueue": "Работа с очередью risk review, evidence attachments и governance actions из одного внутреннего workflow rail.",
+      "reviewQueue": "Работа с очередью risk review, evidence attachments и управление actions из одного внутреннего workflow rail.",
       "sessions": "Просмотр активных устройств и отзыв устаревших или подозрительных сессий.",
       "twoFactor": "Настройка TOTP, проверка статуса и отключение 2FA с повторной авторизацией.",
       "passkeys": "Управление входом по ключу доступа, личными учётными данными и профилем соответствия админов.",
@@ -122,7 +122,7 @@
     "metaTitle": "Очередь проверок - Ozoxy Admin",
     "eyebrow": "RISK WORKFLOW",
     "title": "Очередь проверок",
-    "description": "Обрабатывайте канонические risk review, прикладывайте evidence, фиксируйте governance actions и резолвите решения из одной внутренней очереди.",
+    "description": "Обрабатывайте канонические risk review, прикладывайте evidence, фиксируйте управление actions и резолвите решения из одной внутренней очереди.",
     "metrics": {
       "openReviews": "Очередь",
       "openReviewsHint": "активные review items",
@@ -131,7 +131,7 @@
       "attachments": "Evidence",
       "attachmentsHint": "артефакты, привязанные к review",
       "governanceActions": "Actions",
-      "governanceActionsHint": "governance records, связанные с очередью"
+      "governanceActionsHint": "управление records, связанные с очередью"
     },
     "queue": {
       "title": "Состав очереди",
@@ -142,20 +142,20 @@
       "subject": "Principal subject",
       "updatedAt": "Обновлено",
       "attachments": "attachments: {count}",
-      "governanceActions": "governance actions: {count}"
+      "governanceActions": "управление actions: {count}"
     },
     "detail": {
       "title": "Детали проверки",
-      "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные governance actions.",
+      "description": "Проверьте выбранный review, posture субъекта, приложенные evidence и связанные управление actions.",
       "loadError": "Не удалось загрузить выбранный review.",
       "empty": "Выберите review из очереди для просмотра деталей.",
       "review": "Review",
       "subject": "Subject",
       "updatedAt": "Обновлено",
       "attachmentsTitle": "Attachments",
-      "governanceTitle": "Governance actions",
+      "governanceTitle": "Управленческие действия",
       "noAttachments": "К этому review ещё не привязаны attachments.",
-      "noGovernanceActions": "К этому review ещё не привязаны governance actions."
+      "noGovernanceActions": "К этой проверке ещё не привязаны управленческие действия."
     },
     "attachments": {
       "title": "Прикрепить evidence",
@@ -171,13 +171,13 @@
       }
     },
     "governance": {
-      "title": "Governance action",
+      "title": "Управленческое действие",
       "description": "Зафиксируйте operational action, которая сопровождает выбранный review, и сохраните audit trail каноническим.",
       "submit": "Записать action",
       "fields": {
         "actionType": "Тип action",
         "reason": "Причина",
-        "reasonPlaceholder": "Опишите, почему эта governance action нужна.",
+        "reasonPlaceholder": "Опишите, почему эта управление action нужна.",
         "targetType": "Target type",
         "targetTypePlaceholder": "partner_payout_account",
         "targetRef": "Target reference",
@@ -201,10 +201,10 @@
     "feedback": {
       "selectReview": "Сначала выберите review из очереди.",
       "invalidAttachmentMetadata": "Attachment metadata должна быть валидным JSON object.",
-      "invalidGovernancePayload": "Governance payload должен быть валидным JSON object.",
+      "invalidGovernancePayload": "Данные управленческого действия должны быть корректным JSON-объектом.",
       "invalidResolutionEvidence": "Resolution evidence должна быть валидным JSON object.",
       "attachmentCreated": "Evidence прикреплена к review.",
-      "governanceActionCreated": "Governance action записана.",
+      "governanceActionCreated": "Управленческое действие записано.",
       "reviewResolved": "Review успешно завершён."
     }
   },

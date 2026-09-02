@@ -1,0 +1,34 @@
+{
+  "response": {
+    "id": 42,
+    "shortUuid": "RWax9y-7fMyDprVZ",
+    "username": "verta_contract_user",
+    "status": "ACTIVE",
+    "trafficLimitBytes": 107374182400,
+    "trafficLimitStrategy": "MONTH",
+    "expireAt": "2030-01-01T00:00:00.000Z",
+    "telegramId": null,
+    "email": null,
+    "description": "Verta Remnawave 3.4.1 contract fixture",
+    "tag": "verta-contract",
+    "hwidDeviceLimit": 3,
+    "externalSquadUuid": null,
+    "trojanPassword": "fixture-trojan-password",
+    "vlessUuid": "18ac8f37-6088-47fb-af32-6393f681c8aa",
+    "ssPassword": "fixture-ss-password",
+    "lastTriggeredThreshold": 0,
+    "subRevokedAt": null,
+    "lastTrafficResetAt": null,
+    "createdAt": "2026-08-30T00:00:00.000Z",
+    "updatedAt": "2026-08-30T00:00:00.000Z",
+    "subscriptionUrl": "https://subscription.invalid/RWax9y-7fMyDprVZ",
+    "activeInternalSquads": [],
+    "userTraffic": {
+      "usedTrafficBytes": 1024,
+      "lifetimeUsedTrafficBytes": 2048,
+      "onlineAt": null,
+      "firstConnectedAt": null,
+      "lastConnectedNodeUuid": null
+    }
+  }
+}

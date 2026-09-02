@@ -268,7 +268,9 @@ class MagicLinkService:
 
         email = payload.get("email")
         if isinstance(email, str) and email:
-            return {"email_fingerprint": fingerprint_pii(email, namespace="magic_link_email")}
+            email_fingerprint = fingerprint_pii(email, namespace="magic_link_email")
+            if email_fingerprint is not None:
+                return {"email_fingerprint": email_fingerprint}
 
         return {}
 

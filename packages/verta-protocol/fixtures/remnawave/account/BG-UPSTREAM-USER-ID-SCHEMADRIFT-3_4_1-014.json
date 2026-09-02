@@ -1,0 +1,10 @@
+{
+  "response": {
+    "id": "42",
+    "shortUuid": "RWax9y-7fMyDprVZ",
+    "username": "verta_contract_user",
+    "status": "ACTIVE",
+    "hwidDeviceLimit": 3,
+    "subRevokedAt": null
+  }
+}

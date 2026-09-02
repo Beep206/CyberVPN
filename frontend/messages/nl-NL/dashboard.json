@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Beschikbaarheid van de VPN-dienst",
+    "connections": "Verbindingen",
+    "usage": "Gebruik",
+    "devices": "Apparaten",
+    "available": "Beschikbaar",
+    "unavailable": "Niet beschikbaar",
+    "loading": "VPN-dienststatus laden",
+    "degraded": "Gedeeltelijk beperkt"
   }
 }

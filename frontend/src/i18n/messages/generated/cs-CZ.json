@@ -460,7 +460,17 @@
     "serverStatus": "STAV SERVERU",
     "statusLabel": "STAV SYSTÉMU:",
     "statusValue": "OPTIMÁLNÍ",
-    "title": "VPN VELITELSKÉ CENTRUM"
+    "title": "VPN VELITELSKÉ CENTRUM",
+    "vpnServiceStatus": {
+      "available": "Dostupné",
+      "connections": "Připojení",
+      "degraded": "Částečně omezené",
+      "devices": "Zařízení",
+      "loading": "Načítání stavu služby VPN",
+      "title": "Dostupnost služby VPN",
+      "unavailable": "Nedostupné",
+      "usage": "Využití"
+    }
   },
   "DeleteAccount": {
     "contact": {

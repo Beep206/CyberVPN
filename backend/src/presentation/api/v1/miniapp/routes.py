@@ -13,6 +13,10 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import ConfigService, MiniAppRuntimeConfig
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.services.stage1_plan_policy import (
     filter_stage1_public_addons,
     filter_stage1_public_paid_plans,
@@ -23,6 +27,7 @@ from src.application.use_cases.customer_subscriptions import (
     CustomerSubscriptionServiceAccessUseCase,
     GetCustomerSubscriptionEntitlementsUseCase,
     ListCustomerSubscriptionsUseCase,
+    SelectedCustomerSubscriptionServiceState,
     SelectedSubscriptionCheckoutUseCase,
 )
 from src.application.use_cases.payments.checkout import CheckoutAddonInput
@@ -31,7 +36,12 @@ from src.application.use_cases.payments.commit_checkout import (
     CommitCheckoutUseCase,
 )
 from src.application.use_cases.referrals.get_referral_code import GetReferralCodeUseCase
-from src.application.use_cases.service_access import GetCurrentEntitlementStateUseCase, GetCurrentServiceStateUseCase
+from src.application.use_cases.service_access import (
+    CurrentServiceIdentityConflict,
+    GetCurrentEntitlementStateUseCase,
+    GetCurrentServiceStateResult,
+    GetCurrentServiceStateUseCase,
+)
 from src.application.use_cases.subscriptions import (
     GenerateConfigUseCase,
     GetCurrentEntitlementsUseCase,
@@ -49,6 +59,7 @@ from src.config.settings import settings
 from src.domain.entities.user import User
 from src.domain.enums import CatalogVisibility, PaymentProvider, PaymentStatus
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.repositories.mobile_user_repo import MobileDeviceRepository, MobileUserRepository
@@ -135,6 +146,7 @@ router = APIRouter(prefix="/miniapp", tags=["miniapp"])
 logger = logging.getLogger(__name__)
 
 _RTL_LOCALE_PREFIXES = ("ar", "fa", "he", "ur")
+_REMNAWAVE_IDENTITY_CONFLICT_DETAIL = "Customer VPN identity is not exactly reconciled"
 
 
 class _MiniAppRuntimeDecision:
@@ -265,7 +277,7 @@ def _assert_miniapp_runtime_enabled(
             "Mini App is in limited canary rollout. Please try again later or use the primary bot flow."
         ),
     }.get(
-        decision.gate_reason_code,
+        decision.gate_reason_code or "",
         "Mini App feature is temporarily unavailable. Please try again later.",
     )
     raise HTTPException(
@@ -306,6 +318,22 @@ def _build_primary_cta(
         return MiniAppBootstrapPrimaryCtaResponse(kind="start_trial", label="Start trial")
 
     return MiniAppBootstrapPrimaryCtaResponse(kind="buy_plan", label="View plans")
+
+
+def _has_canonical_service_config(
+    *,
+    legacy_subscription_url: str | None,
+    selected_service_state: SelectedCustomerSubscriptionServiceState | None,
+    current_service_state: GetCurrentServiceStateResult | None,
+) -> bool:
+    """Report readiness from current service access, never from the rollback cache."""
+    del legacy_subscription_url
+    return bool(
+        (selected_service_state and selected_service_state.service_identity is not None)
+        or (selected_service_state and selected_service_state.access_delivery_channel is not None)
+        or (current_service_state and current_service_state.service_identity is not None)
+        or (current_service_state and current_service_state.access_delivery_channel is not None)
+    )
 
 
 def _build_usage_snapshot(
@@ -358,49 +386,50 @@ def _build_usage_snapshot(
     )
 
 
-async def _get_remnawave_user(
+async def _resolve_exact_mapped_remnawave_ref(
+    *,
+    db: AsyncSession,
+    subject_type: Literal["mobile_user", "service_identity"],
+    subject_id: UUID,
+    numeric_user_id: object,
+    legacy_uuid_raw: object,
+) -> RemnawaveUserRef | None:
+    try:
+        return await resolve_exact_mapped_remnawave_ref(
+            db,
+            subject_type=subject_type,
+            subject_id=subject_id,
+            numeric_user_id=numeric_user_id,
+            legacy_uuid_raw=legacy_uuid_raw,
+        )
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=_REMNAWAVE_IDENTITY_CONFLICT_DETAIL,
+        ) from exc
+
+
+async def _get_exact_remnawave_user(
     *,
     client: RemnawaveClient,
-    telegram_id: int | None,
+    user_ref: RemnawaveUserRef,
 ) -> User | None:
-    if telegram_id is None:
+    canonical_id = user_ref.require_numeric_id()
+    user = await RemnawaveUserGateway(client).get_by_id(canonical_id)
+    if user is None:
         return None
-    gateway = RemnawaveUserGateway(client)
-    return await gateway.get_by_telegram_id(telegram_id)
+    if (
+        isinstance(user.remnawave_id, bool)
+        or not isinstance(user.remnawave_id, int)
+        or user.remnawave_id != canonical_id
+        or (user_ref.legacy_uuid is not None and user.uuid is not None and user.uuid != user_ref.legacy_uuid)
+    ):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=_REMNAWAVE_IDENTITY_CONFLICT_DETAIL)
+    return user
 
 
-async def _get_remnawave_user_for_mobile_user(
-    *,
-    client: RemnawaveClient,
-    mobile_user,
-) -> User | None:
-    gateway = RemnawaveUserGateway(client)
-    if getattr(mobile_user, "remnawave_uuid", None):
-        return await gateway.get_by_uuid(UUID(str(mobile_user.remnawave_uuid)))
-    telegram_id = getattr(mobile_user, "telegram_id", None)
-    if telegram_id is None:
-        return None
-    return await gateway.get_by_telegram_id(int(telegram_id))
-
-
-async def _get_remnawave_user_for_provider_subject(
-    *,
-    client: RemnawaveClient,
-    provider_subject_ref: str | None,
-) -> User | None:
-    if not provider_subject_ref:
-        return None
-    return await RemnawaveUserGateway(client).get_by_uuid(UUID(str(provider_subject_ref)))
-
-
-def _build_config_response_from_remnawave_result(
-    result: dict,
-    *,
-    subscription_url_fallback: str | None = None,
-) -> MiniAppConfigResponse:
-    subscription_url = normalize_public_subscription_url(result.get("subscription_url")) or (
-        normalize_public_subscription_url(subscription_url_fallback) if subscription_url_fallback else None
-    )
+def _build_config_response_from_remnawave_result(result: dict) -> MiniAppConfigResponse:
+    subscription_url = normalize_public_subscription_url(result.get("subscription_url"))
     config_string = subscription_url or result.get("config_string", "")
     return MiniAppConfigResponse(
         config=str(config_string),
@@ -470,23 +499,6 @@ def _serialize_addon(addon) -> AddonResponse:
         requires_location=addon.requires_location,
         sale_channels=addon.sale_channels or [],
         is_active=addon.is_active,
-    )
-
-
-def _build_legacy_config_response(subscription_url: str) -> MiniAppConfigResponse:
-    normalized_subscription_url = normalize_public_subscription_url(subscription_url) or subscription_url
-    return MiniAppConfigResponse(
-        config=normalized_subscription_url,
-        configString=normalized_subscription_url,
-        clientType="subscription",
-        isFound=True,
-        links=[normalized_subscription_url],
-        ssConfLinks={},
-        xhttpEnabled=False,
-        xhttpLinks=[],
-        source="legacy_subscription_url",
-        subscriptionUrl=normalized_subscription_url,
-        generatedAt=datetime.now(UTC),
     )
 
 
@@ -682,16 +694,22 @@ async def get_miniapp_bootstrap(
                         },
                     )
             if selected_service_state is None:
-                current_service_state = await GetCurrentServiceStateUseCase(db).execute(
-                    customer_account_id=user_id,
-                    current_realm=current_realm,
-                    provider_name="remnawave",
-                    channel_type="telegram_bot",
-                    channel_subject_ref=None,
-                    provisioning_profile_key=None,
-                    credential_type="telegram_bot",
-                    credential_subject_key=f"telegram-miniapp:{mobile_user.telegram_id}",
-                )
+                try:
+                    current_service_state = await GetCurrentServiceStateUseCase(db).execute(
+                        customer_account_id=user_id,
+                        current_realm=current_realm,
+                        provider_name="remnawave",
+                        channel_type="telegram_bot",
+                        channel_subject_ref=None,
+                        provisioning_profile_key=None,
+                        credential_type="telegram_bot",
+                        credential_subject_key=f"telegram-miniapp:{mobile_user.telegram_id}",
+                    )
+                except CurrentServiceIdentityConflict as exc:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Current Remnawave identity is not exactly reconciled",
+                    ) from exc
 
         remnawave_user = None
         usage_unavailable_reason: Literal[
@@ -699,22 +717,42 @@ async def get_miniapp_bootstrap(
             "upstream_unavailable",
         ] = "upstream_user_not_found"
         try:
-            selected_provider_subject_ref = (
-                selected_service_state.service_identity.provider_subject_ref
-                if selected_service_state and selected_service_state.service_identity is not None
-                else None
+            selected_service_identity = (
+                selected_service_state.service_identity if selected_service_state is not None else None
             )
-            remnawave_user = (
-                await _get_remnawave_user_for_provider_subject(
-                    client=remnawave_client,
-                    provider_subject_ref=selected_provider_subject_ref,
+            if selected_service_identity is not None:
+                if (
+                    selected_service_identity.customer_account_id != user_id
+                    or selected_service_identity.auth_realm_id != current_realm.auth_realm.id
+                    or selected_service_identity.provider_name != "remnawave"
+                    or selected_service_identity.identity_status != "active"
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=_REMNAWAVE_IDENTITY_CONFLICT_DETAIL,
+                    )
+                user_ref = await _resolve_exact_mapped_remnawave_ref(
+                    db=db,
+                    subject_type="service_identity",
+                    subject_id=selected_service_identity.id,
+                    numeric_user_id=selected_service_identity.provider_numeric_subject_id,
+                    legacy_uuid_raw=selected_service_identity.provider_subject_ref,
                 )
-                if selected_provider_subject_ref
-                else await _get_remnawave_user_for_mobile_user(
-                    client=remnawave_client,
-                    mobile_user=mobile_user,
+            else:
+                user_ref = await _resolve_exact_mapped_remnawave_ref(
+                    db=db,
+                    subject_type="mobile_user",
+                    subject_id=mobile_user.id,
+                    numeric_user_id=mobile_user.remnawave_user_id,
+                    legacy_uuid_raw=mobile_user.remnawave_uuid,
                 )
-            )
+            if user_ref is not None:
+                remnawave_user = await _get_exact_remnawave_user(
+                    client=remnawave_client,
+                    user_ref=user_ref,
+                )
+        except HTTPException:
+            raise
         except Exception as exc:
             usage_unavailable_reason = "upstream_unavailable"
             logger.warning(
@@ -734,12 +772,10 @@ async def get_miniapp_bootstrap(
         subscription_status = str(entitlement_snapshot.get("status") or "none")
         effective_entitlements = dict(entitlement_snapshot.get("effective_entitlements") or {})
         device_limit = int(effective_entitlements.get("device_limit") or 0)
-        has_config = bool(
-            mobile_user.subscription_url
-            or (selected_service_state and selected_service_state.service_identity is not None)
-            or (selected_service_state and selected_service_state.access_delivery_channel is not None)
-            or (current_service_state and current_service_state.service_identity is not None)
-            or (current_service_state and current_service_state.access_delivery_channel is not None)
+        has_config = _has_canonical_service_config(
+            legacy_subscription_url=mobile_user.subscription_url,
+            selected_service_state=selected_service_state,
+            current_service_state=current_service_state,
         )
 
         return MiniAppBootstrapResponse(
@@ -1348,37 +1384,18 @@ async def get_miniapp_config(
                 result,
             )
 
-        if mobile_user.remnawave_uuid:
-            try:
-                result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
-            except HTTPException as exc:
-                if exc.status_code != status.HTTP_404_NOT_FOUND:
-                    raise
-            else:
-                config_source = "remnawave_generated"
-                track_miniapp_config_delivery(source=config_source, status="success")
-                return _build_config_response_from_remnawave_result(
-                    result,
-                    subscription_url_fallback=mobile_user.subscription_url,
-                )
-
-        remnawave_user = await _get_remnawave_user(
-            client=remnawave_client,
-            telegram_id=mobile_user.telegram_id,
+        user_ref = await _resolve_exact_mapped_remnawave_ref(
+            db=db,
+            subject_type="mobile_user",
+            subject_id=mobile_user.id,
+            numeric_user_id=mobile_user.remnawave_user_id,
+            legacy_uuid_raw=mobile_user.remnawave_uuid,
         )
-        if remnawave_user is not None:
-            result = await GenerateConfigUseCase(remnawave_client).execute(remnawave_user.uuid)
+        if user_ref is not None:
+            result = await GenerateConfigUseCase(remnawave_client).execute(user_ref)
             config_source = "remnawave_generated"
             track_miniapp_config_delivery(source=config_source, status="success")
-            return _build_config_response_from_remnawave_result(
-                result,
-                subscription_url_fallback=mobile_user.subscription_url,
-            )
-
-        if mobile_user.subscription_url:
-            config_source = "legacy_subscription_url"
-            track_miniapp_config_delivery(source=config_source, status="success")
-            return _build_legacy_config_response(str(mobile_user.subscription_url))
+            return _build_config_response_from_remnawave_result(result)
 
         raise HTTPException(status_code=404, detail="Subscription config not found")
     except Exception as exc:

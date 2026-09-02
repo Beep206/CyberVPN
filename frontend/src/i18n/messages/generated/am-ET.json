@@ -460,7 +460,17 @@
     "serverStatus": "የአገልጋይ ሁኔታ",
     "statusLabel": "የሲስተም ሁኔታ:",
     "statusValue": "ምርጥ",
-    "title": "VPN ትዕዛዝ ማዕከል"
+    "title": "VPN ትዕዛዝ ማዕከል",
+    "vpnServiceStatus": {
+      "available": "ይገኛል",
+      "connections": "ግንኙነቶች",
+      "degraded": "በከፊል የተገደበ",
+      "devices": "መሣሪያዎች",
+      "loading": "የVPN አገልግሎት ሁኔታ በመጫን ላይ",
+      "title": "የVPN አገልግሎት ተገኝነት",
+      "unavailable": "አይገኝም",
+      "usage": "አጠቃቀም"
+    }
   },
   "DeleteAccount": {
     "contact": {

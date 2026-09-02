@@ -44,6 +44,7 @@ class Stage1ManualSubscriptionRequest:
     device_limit: int
     profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID
     existing_remnawave_uuid: str | None = None
+    existing_remnawave_user_id: int | None = None
     current_access_expires_at: datetime | None = None
     previous_subscription_url: str | None = None
     traffic_limit_strategy: str = STAGE1_MANUAL_SUBSCRIPTION_TRAFFIC_LIMIT_STRATEGY
@@ -60,7 +61,7 @@ class Stage1ManualSubscriptionResult:
     """Safe result of a manual S1 subscription grant/extension."""
 
     customer_account_id: UUID
-    remnawave_uuid: str
+    remnawave_uuid: str | None
     profile_id: str
     status: str
     operation: Literal["grant", "extend"]
@@ -71,6 +72,7 @@ class Stage1ManualSubscriptionResult:
     subscription_url_changed: bool = False
     created: bool = False
     provider_name: str = "remnawave"
+    remnawave_user_id: int | None = None
 
     def to_safe_dict(self) -> dict[str, str | int | bool | None]:
         """Serialize metadata without leaking config links or provider secrets."""
@@ -78,6 +80,7 @@ class Stage1ManualSubscriptionResult:
         return {
             "customer_account_id": str(self.customer_account_id),
             "remnawave_uuid": self.remnawave_uuid,
+            "remnawave_user_id": self.remnawave_user_id,
             "profile_id": self.profile_id,
             "status": self.status,
             "operation": self.operation,
@@ -131,6 +134,7 @@ def build_stage1_manual_subscription_request(
     traffic_limit_bytes: int | None = None,
     device_limit: int = 1,
     existing_remnawave_uuid: str | None = None,
+    existing_remnawave_user_id: int | None = None,
     previous_subscription_url: str | None = None,
     profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID,
 ) -> Stage1ManualSubscriptionRequest:
@@ -180,6 +184,7 @@ def build_stage1_manual_subscription_request(
         device_limit=device_limit,
         profile_id=profile.profile_id,
         existing_remnawave_uuid=existing_remnawave_uuid,
+        existing_remnawave_user_id=existing_remnawave_user_id,
         current_access_expires_at=current_expires_at,
         previous_subscription_url=previous_subscription_url,
     )
@@ -205,8 +210,21 @@ class Stage1ManualSubscriptionService:
         expires_delta_seconds = abs((result.expires_at - request.access_expires_at).total_seconds())
         if expires_delta_seconds > 1:
             raise Stage1ManualSubscriptionError("Manual subscription gateway returned an unexpected expiry")
-        if not result.remnawave_uuid:
-            raise Stage1ManualSubscriptionError("Manual subscription gateway returned no Remnawave user UUID")
+        if (
+            isinstance(result.remnawave_user_id, bool)
+            or not isinstance(result.remnawave_user_id, int)
+            or result.remnawave_user_id <= 0
+        ):
+            raise Stage1ManualSubscriptionError(
+                "Manual subscription gateway returned an incomplete Remnawave 3.x identity"
+            )
+        if result.remnawave_uuid is not None:
+            try:
+                UUID(result.remnawave_uuid)
+            except ValueError as exc:
+                raise Stage1ManualSubscriptionError(
+                    "Manual subscription gateway returned an invalid Remnawave rollback reference"
+                ) from exc
         return result
 
 

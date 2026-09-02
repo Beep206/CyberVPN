@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 
 from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
@@ -45,12 +45,16 @@ async def list_external_squads(
     return [_map_squad(squad, "external") for squad in result]
 
 
-@router.post("/", response_model=RemnawaveSquadResponse)
+@router.post(
+    "/",
+    response_model=RemnawaveSquadResponse,
+    responses={202: {"description": "Creation accepted by Remnawave without a response body"}},
+)
 async def create_squad(
     squad_data: CreateSquadRequest,
     current_user=Depends(require_role(AdminRole.ADMIN)),
     client: RemnawaveClient = Depends(get_remnawave_client),
-):
+) -> RemnawaveSquadResponse | Response:
     """Create a new squad (admin only)"""
     if squad_data.squad_type == "internal":
         result = await client.post_validated(
@@ -65,4 +69,6 @@ async def create_squad(
             json={"name": squad_data.name},
         )
     route_operations_total.labels(route="squads", action="create", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return _map_squad(result, squad_data.squad_type)

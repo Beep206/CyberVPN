@@ -162,7 +162,9 @@ class ListCustomerSubscriptionsUseCase:
             status == "active"
             and service_identity is not None
             and service_identity.identity_status == "active"
-            and bool(service_identity.provider_subject_ref)
+            and not isinstance(service_identity.provider_numeric_subject_id, bool)
+            and isinstance(service_identity.provider_numeric_subject_id, int)
+            and service_identity.provider_numeric_subject_id > 0
         )
         return CustomerSubscriptionSummary(
             subscription_key=f"grant:{grant.id}",

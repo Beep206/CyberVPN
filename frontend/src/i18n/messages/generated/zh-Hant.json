@@ -460,7 +460,17 @@
     "serverStatus": "服务器状态",
     "statusLabel": "系统状态：",
     "statusValue": "最佳",
-    "title": "VPN 指挥中心"
+    "title": "VPN 指挥中心",
+    "vpnServiceStatus": {
+      "available": "可用",
+      "connections": "連線",
+      "degraded": "部分降級",
+      "devices": "裝置",
+      "loading": "正在載入 VPN 服務狀態",
+      "title": "VPN 服務可用性",
+      "unavailable": "不可用",
+      "usage": "用量"
+    }
   },
   "DeleteAccount": {
     "contact": {

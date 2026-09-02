@@ -8,6 +8,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.use_cases.customer_subscriptions import (
     CustomerSubscriptionServiceAccessUseCase,
     GetCustomerSubscriptionEntitlementsUseCase,
@@ -21,6 +25,7 @@ from src.application.use_cases.payments.commit_checkout import (
 )
 from src.application.use_cases.usage.get_user_usage import GetUserUsageUseCase
 from src.domain.exceptions import InsufficientWalletBalanceError, WalletNotFoundError
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 from src.infrastructure.database.repositories.service_access_repo import ServiceAccessRepository
 from src.infrastructure.payments.cryptobot.client import CryptoBotClient
@@ -224,21 +229,54 @@ async def get_customer_subscription_usage(
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
 
-    provider_subject_ref: str | None = None
+    remnawave_ref: RemnawaveUserRef | None = None
     if item.kind == "trial":
         mobile_user = await MobileUserRepository(db).get_by_id(customer_account_id)
-        provider_subject_ref = mobile_user.remnawave_uuid if mobile_user is not None else None
+        if mobile_user is not None:
+            try:
+                remnawave_ref = await resolve_exact_mapped_remnawave_ref(
+                    db,
+                    subject_type="mobile_user",
+                    subject_id=mobile_user.id,
+                    numeric_user_id=mobile_user.remnawave_user_id,
+                    legacy_uuid_raw=mobile_user.remnawave_uuid,
+                )
+            except RemnawaveIdentityAccessConflict as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Subscription Remnawave identity is not exactly reconciled",
+                ) from exc
     elif item.service_identity_id is not None:
         service_identity = await ServiceAccessRepository(db).get_service_identity_by_id(item.service_identity_id)
         if service_identity is not None and service_identity.identity_status == "active":
-            provider_subject_ref = service_identity.provider_subject_ref
+            if (
+                service_identity.customer_account_id != customer_account_id
+                or service_identity.auth_realm_id != current_realm.auth_realm.id
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Subscription Remnawave identity is not exactly reconciled",
+                )
+            try:
+                remnawave_ref = await resolve_exact_mapped_remnawave_ref(
+                    db,
+                    subject_type="service_identity",
+                    subject_id=service_identity.id,
+                    numeric_user_id=service_identity.provider_numeric_subject_id,
+                    legacy_uuid_raw=service_identity.provider_subject_ref,
+                )
+            except RemnawaveIdentityAccessConflict as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Subscription Remnawave identity is not exactly reconciled",
+                ) from exc
 
-    if not provider_subject_ref:
+    if remnawave_ref is None:
         return _unavailable_usage("upstream_user_not_found")
 
     try:
         usage_data = await GetUserUsageUseCase(RemnawaveUserGateway(remnawave_client)).execute(
-            UUID(provider_subject_ref),
+            remnawave_ref,
         )
     except Exception as exc:
         unavailable_reason: UsageUnavailableReason = (

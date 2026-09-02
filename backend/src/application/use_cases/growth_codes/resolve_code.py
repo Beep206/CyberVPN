@@ -526,7 +526,7 @@ class ResolveGrowthCodeUseCase:
         *,
         promo,
         action_context: GrowthCodeActionContext,
-        user_id: UUID,
+        user_id: UUID | None,
         plan_id: UUID | None,
         amount: Decimal | None,
         storefront_id: UUID | None,
@@ -615,7 +615,7 @@ class ResolveGrowthCodeUseCase:
                 promo_code_id=promo.id,
             )
 
-        if promo.is_single_use and await self._promos.has_user_used(promo.id, user_id):
+        if promo.is_single_use and user_id is not None and await self._promos.has_user_used(promo.id, user_id):
             return GrowthCodeResolutionOutcome(
                 accepted=False,
                 code_type=GrowthCodeType.PROMO,

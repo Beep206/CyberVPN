@@ -8,11 +8,11 @@ Fetches real data from Remnawave VPN backend.
 
 import logging
 from datetime import UTC, datetime
-from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.remnawave_identity_access import resolve_exact_mapped_mobile_user_ref
 from src.application.use_cases.usage.get_user_usage import GetUserUsageUseCase
 from src.infrastructure.cache.response_cache import response_cache
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
@@ -63,11 +63,11 @@ async def get_usage(
 
         try:
             mobile_user = await MobileUserRepository(db).get_by_id(current_user.id)
-            remnawave_user_id = current_user.id
-            if mobile_user is not None and mobile_user.remnawave_uuid:
-                remnawave_user_id = UUID(mobile_user.remnawave_uuid)
+            user_ref = await resolve_exact_mapped_mobile_user_ref(db, mobile_user) if mobile_user is not None else None
+            if user_ref is None:
+                raise ValueError("User has no reconciled VPN identity")
 
-            usage_data = await use_case.execute(remnawave_user_id)
+            usage_data = await use_case.execute(user_ref)
             now = datetime.now(UTC)
 
             route_operations_total.labels(route="usage", action="get_usage", status="success").inc()

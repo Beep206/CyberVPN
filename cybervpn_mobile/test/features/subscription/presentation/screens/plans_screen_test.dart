@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:cybervpn_mobile/core/di/providers.dart'
+    show subscriptionRepositoryProvider;
 import 'package:cybervpn_mobile/features/subscription/domain/entities/plan_entity.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
@@ -7,7 +9,12 @@ import 'package:cybervpn_mobile/features/subscription/presentation/screens/plans
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
+import 'package:cybervpn_mobile/core/types/result.dart';
+
+import '../../../../helpers/mock_repositories.dart';
 // ---------------------------------------------------------------------------
 // Test data
 // ---------------------------------------------------------------------------
@@ -67,14 +74,29 @@ final _allPlans = [_monthlyBasic, _monthlyPro, _yearlyBasic, _lifetimePlan];
 // Helpers
 // ---------------------------------------------------------------------------
 
-Widget _buildTestWidget({
-  required AsyncValue<SubscriptionState> asyncState,
-}) {
+Widget _buildTestWidget({required AsyncValue<SubscriptionState> asyncState}) {
+  final repository = MockSubscriptionRepository();
+  when(repository.getTrialStatus).thenAnswer(
+    (_) async => const Success<Map<String, dynamic>>({
+      'is_eligible': false,
+      'days_remaining': null,
+      'trial_used': true,
+    }),
+  );
+
   return ProviderScope(
     overrides: [
-      subscriptionProvider.overrideWith(() => _FakeSubscriptionNotifier(asyncState)),
+      subscriptionProvider.overrideWith(
+        () => _FakeSubscriptionNotifier(asyncState),
+      ),
+      subscriptionRepositoryProvider.overrideWithValue(repository),
     ],
-    child: const MaterialApp(home: PlansScreen()),
+    child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
+      home: PlansScreen(),
+    ),
   );
 }
 
@@ -101,9 +123,9 @@ class _FakeSubscriptionNotifier extends AsyncNotifier<SubscriptionState>
 void main() {
   group('PlansScreen - loading state', () {
     testWidgets('renders CircularProgressIndicator', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: const AsyncValue.loading(),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(asyncState: const AsyncValue.loading()),
+      );
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -112,27 +134,33 @@ void main() {
 
   group('PlansScreen - error state', () {
     testWidgets('renders error message', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: const AsyncValue.error('Network error', StackTrace.empty),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: const AsyncValue.error('Network error', StackTrace.empty),
+        ),
+      );
       await tester.pump();
 
       expect(find.textContaining('Network error'), findsOneWidget);
     });
 
     testWidgets('renders retry button', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: const AsyncValue.error('Server down', StackTrace.empty),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: const AsyncValue.error('Server down', StackTrace.empty),
+        ),
+      );
       await tester.pump();
 
       expect(find.text('Retry'), findsOneWidget);
     });
 
     testWidgets('renders error icon', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: const AsyncValue.error('Oops', StackTrace.empty),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: const AsyncValue.error('Oops', StackTrace.empty),
+        ),
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.error_outline), findsOneWidget);
@@ -141,18 +169,26 @@ void main() {
 
   group('PlansScreen - data state', () {
     testWidgets('renders app bar title', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: _allPlans)),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: AsyncValue.data(
+            SubscriptionState(availablePlans: _allPlans),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Choose Your Plan'), findsOneWidget);
     });
 
     testWidgets('renders duration filter chips', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: _allPlans)),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: AsyncValue.data(
+            SubscriptionState(availablePlans: _allPlans),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('1 Month'), findsOneWidget);
@@ -162,9 +198,13 @@ void main() {
     });
 
     testWidgets('shows monthly plans by default', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: _allPlans)),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: AsyncValue.data(
+            SubscriptionState(availablePlans: _allPlans),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Monthly plans visible
@@ -176,18 +216,28 @@ void main() {
     });
 
     testWidgets('renders Compare Plans button', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: _allPlans)),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: AsyncValue.data(
+            SubscriptionState(availablePlans: _allPlans),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Compare Plans'), findsOneWidget);
     });
 
-    testWidgets('switching duration filter shows correct plans', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: _allPlans)),
-      ));
+    testWidgets('switching duration filter shows correct plans', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: AsyncValue.data(
+            SubscriptionState(availablePlans: _allPlans),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Tap "1 Year" chip
@@ -201,22 +251,35 @@ void main() {
 
     testWidgets('empty duration shows empty message', (tester) async {
       // Only monthly plans — quarterly filter should be empty
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: const AsyncValue.data(SubscriptionState(availablePlans: [_monthlyBasic])),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: const AsyncValue.data(
+            SubscriptionState(availablePlans: [_monthlyBasic]),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Tap "3 Months" chip
       await tester.tap(find.text('3 Months'));
       await tester.pumpAndSettle();
 
-      expect(find.text('No plans available for this duration.'), findsOneWidget);
+      expect(
+        find.text('No plans available for this duration.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('tapping Compare Plans toggles to comparison table', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: _allPlans)),
-      ));
+    testWidgets('tapping Compare Plans toggles to comparison table', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: AsyncValue.data(
+            SubscriptionState(availablePlans: _allPlans),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Compare Plans'));
@@ -232,9 +295,13 @@ void main() {
     });
 
     testWidgets('comparison table shows plan data', (tester) async {
-      await tester.pumpWidget(_buildTestWidget(
-        asyncState: AsyncValue.data(SubscriptionState(availablePlans: _allPlans)),
-      ));
+      await tester.pumpWidget(
+        _buildTestWidget(
+          asyncState: AsyncValue.data(
+            SubscriptionState(availablePlans: _allPlans),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Compare Plans'));

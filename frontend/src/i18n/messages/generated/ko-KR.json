@@ -460,7 +460,17 @@
     "serverStatus": "서버 상태",
     "statusLabel": "시스템 상태:",
     "statusValue": "최적",
-    "title": "VPN 지휘 센터"
+    "title": "VPN 지휘 센터",
+    "vpnServiceStatus": {
+      "available": "사용 가능",
+      "connections": "연결",
+      "degraded": "일부 성능 저하",
+      "devices": "기기",
+      "loading": "VPN 서비스 상태 불러오는 중",
+      "title": "VPN 서비스 가용성",
+      "unavailable": "사용 불가",
+      "usage": "사용량"
+    }
   },
   "DeleteAccount": {
     "contact": {

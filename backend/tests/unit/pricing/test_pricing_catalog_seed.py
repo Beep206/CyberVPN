@@ -90,8 +90,7 @@ def test_plan_seed_matches_public_and_hidden_examples() -> None:
     assert specs["premium_smart_ru_30"].features["remnawave_external_squad"] == "CYBERVPN_PREMIUM_SMART_RU"
     assert specs["premium_smart_ru_30"].features["remnawave_subscription_template"] == "CyberVPN Premium Smart RU"
     assert (
-        specs["premium_smart_ru_30"].features["remnawave_subscription_template_scope"]
-        == "product_scoped_multi_client"
+        specs["premium_smart_ru_30"].features["remnawave_subscription_template_scope"] == "product_scoped_multi_client"
     )
     assert specs["premium_smart_ru_30"].features["torrent_policy"] == "blocked"
     assert specs["premium_smart_ru_30"].features["tor_policy"] == "blocked"
@@ -114,9 +113,7 @@ def test_plan_seed_matches_public_and_hidden_examples() -> None:
     assert specs["premium_spb_de_exceptions_30"].features["fail_closed_for_matched_exceptions"] is True
     assert specs["premium_spb_de_exceptions_30"].features["remnawave_external_squad"] == ("CYBERVPN_SPB_DE_EXCEPTIONS")
     assert specs["premium_spb_de_exceptions_30"].features["remnawave_internal_squad"] == ("CYBERVPN_SPB_DE_NODES")
-    assert specs["premium_spb_de_exceptions_30"].features["remnawave_config_profile"] == (
-        "S1 SPB DE Exceptions"
-    )
+    assert specs["premium_spb_de_exceptions_30"].features["remnawave_config_profile"] == ("S1 SPB DE Exceptions")
     assert specs["premium_spb_de_exceptions_30"].features["remnawave_policy_version"] == (
         "premium_spb_de_exceptions.v1"
     )

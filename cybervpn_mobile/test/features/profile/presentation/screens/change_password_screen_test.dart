@@ -48,9 +48,7 @@ Widget buildTestableChangePasswordScreen({
   required MockApiClient mockApiClient,
 }) {
   return ProviderScope(
-    overrides: [
-      apiClientProvider.overrideWithValue(mockApiClient),
-    ],
+    overrides: [apiClientProvider.overrideWithValue(mockApiClient)],
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -60,19 +58,14 @@ Widget buildTestableChangePasswordScreen({
 }
 
 // Finders
-Finder findCurrentPasswordField() => find.widgetWithText(
-      TextFormField,
-      'Current Password',
-    );
-Finder findNewPasswordField() => find.widgetWithText(
-      TextFormField,
-      'New Password',
-    );
-Finder findConfirmPasswordField() => find.widgetWithText(
-      TextFormField,
-      'Confirm New Password',
-    );
-Finder findSubmitButton() => find.widgetWithText(FilledButton, 'Change Password');
+Finder findCurrentPasswordField() =>
+    find.widgetWithText(TextFormField, 'Current Password');
+Finder findNewPasswordField() =>
+    find.widgetWithText(TextFormField, 'New Password');
+Finder findConfirmPasswordField() =>
+    find.widgetWithText(TextFormField, 'Confirm New Password');
+Finder findSubmitButton() =>
+    find.widgetWithText(FilledButton, 'Change Password');
 Finder findSuccessIcon() => find.byIcon(Icons.check_circle_outline);
 Finder findErrorIcon() => find.byIcon(Icons.error_outline);
 Finder findRateLimitIcon() => find.byIcon(Icons.hourglass_top);
@@ -110,8 +103,7 @@ void main() {
       expect(find.byIcon(Icons.lock_reset), findsOneWidget);
     });
 
-    testWidgets('test_password_fields_obscure_text_by_default',
-        (tester) async {
+    testWidgets('test_password_fields_obscure_text_by_default', (tester) async {
       await tester.pumpWidget(
         buildTestableChangePasswordScreen(mockApiClient: mockApiClient),
       );
@@ -136,7 +128,7 @@ void main() {
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('This field is required'), findsWidgets);
+      expect(find.text('This field is required.'), findsWidgets);
     });
 
     testWidgets('test_validates_new_password_minimum_length', (tester) async {
@@ -145,12 +137,17 @@ void main() {
       );
 
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'current_password');
+        find.byType(TextFormField).at(0),
+        'current_password',
+      );
       await tester.enterText(find.byType(TextFormField).at(1), 'short');
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('Password must be at least 12 characters'), findsOneWidget);
+      expect(
+        find.text('Password must be at least 12 characters long.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('test_validates_password_mismatch', (tester) async {
@@ -159,15 +156,24 @@ void main() {
       );
 
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'current_password');
+        find.byType(TextFormField).at(0),
+        'current_password',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'NewPassword123!');
+        find.byType(TextFormField).at(1),
+        'NewPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(2), 'DifferentPassword123!');
+        find.byType(TextFormField).at(2),
+        'DifferentPassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('Passwords do not match'), findsOneWidget);
+      expect(
+        find.text('Passwords do not match. Please try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('test_validates_new_password_same_as_old', (tester) async {
@@ -176,13 +182,20 @@ void main() {
       );
 
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'SamePassword123!');
+        find.byType(TextFormField).at(0),
+        'SamePassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'SamePassword123!');
+        find.byType(TextFormField).at(1),
+        'SamePassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('New password must be different from current password'), findsOneWidget);
+      expect(
+        find.text('New password must be different from your current password.'),
+        findsOneWidget,
+      );
     });
   });
 
@@ -193,7 +206,9 @@ void main() {
       );
 
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'WeakPassword123!');
+        find.byType(TextFormField).at(1),
+        'WeakPassword123!',
+      );
       await tester.pumpAndSettle();
 
       // Should show strength indicator bars
@@ -211,7 +226,9 @@ void main() {
 
       // Type stronger password
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'StrongPassword123!@#');
+        find.byType(TextFormField).at(1),
+        'StrongPassword123!@#',
+      );
       await tester.pumpAndSettle();
 
       // Strength indicator should be visible
@@ -220,12 +237,15 @@ void main() {
   });
 
   group('ChangePasswordScreen - Successful Password Change', () {
-    testWidgets('test_successful_password_change_shows_success_state',
-        (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.changePassword,
-            data: any<dynamic>(named: 'data'),
-          )).thenAnswer(
+    testWidgets('test_successful_password_change_shows_success_state', (
+      tester,
+    ) async {
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.changePassword,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           data: {'message': 'Password changed'},
           statusCode: 200,
@@ -238,11 +258,17 @@ void main() {
       );
 
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'OldPassword123!');
+        find.byType(TextFormField).at(0),
+        'OldPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'NewPassword123!');
+        find.byType(TextFormField).at(1),
+        'NewPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(2), 'NewPassword123!');
+        find.byType(TextFormField).at(2),
+        'NewPassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
@@ -251,10 +277,12 @@ void main() {
     });
 
     testWidgets('test_successful_change_sends_correct_data', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.changePassword,
-            data: any<dynamic>(named: 'data'),
-          )).thenAnswer(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.changePassword,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           data: {'message': 'Success'},
           statusCode: 200,
@@ -267,55 +295,76 @@ void main() {
       );
 
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'OldPass123!');
+        find.byType(TextFormField).at(0),
+        'OldPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'NewPass123!');
+        find.byType(TextFormField).at(1),
+        'NewPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(2), 'NewPass123!');
+        find.byType(TextFormField).at(2),
+        'NewPassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
-      verify(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.changePassword,
-            data: {
-              'current_password': 'OldPass123!',
-              'new_password': 'NewPass123!',
-            },
-          )).called(1);
+      verify(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.changePassword,
+          data: {
+            'current_password': 'OldPassword123!',
+            'new_password': 'NewPassword123!',
+          },
+        ),
+      ).called(1);
     });
   });
 
   group('ChangePasswordScreen - Error Handling', () {
     testWidgets('test_invalid_current_password_shows_error', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.changePassword,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
-        const ServerException(message: 'Current password is incorrect', code: 401),
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.changePassword,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
+        const ServerException(
+          message: 'Current password is incorrect',
+          code: 401,
+        ),
       );
 
       await tester.pumpWidget(
         buildTestableChangePasswordScreen(mockApiClient: mockApiClient),
       );
 
+      await tester.enterText(find.byType(TextFormField).at(0), 'WrongPassword');
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'WrongPassword');
+        find.byType(TextFormField).at(1),
+        'NewPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'NewPassword123!');
-      await tester.enterText(
-          find.byType(TextFormField).at(2), 'NewPassword123!');
+        find.byType(TextFormField).at(2),
+        'NewPassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
       expect(findErrorIcon(), findsOneWidget);
-      expect(find.text('Current password is incorrect'), findsOneWidget);
+      expect(
+        find.text('The current password is incorrect. Please try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('test_oauth_user_shows_oauth_only_error', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.changePassword,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.changePassword,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
         const ServerException(
           message: 'OAuth users cannot change password',
           code: 403,
@@ -326,40 +375,49 @@ void main() {
         buildTestableChangePasswordScreen(mockApiClient: mockApiClient),
       );
 
+      await tester.enterText(find.byType(TextFormField).at(0), 'Password123!');
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'Password123!');
+        find.byType(TextFormField).at(1),
+        'NewPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'NewPassword123!');
-      await tester.enterText(
-          find.byType(TextFormField).at(2), 'NewPassword123!');
+        find.byType(TextFormField).at(2),
+        'NewPassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
       expect(findErrorIcon(), findsOneWidget);
       expect(
-        find.text('Password change is not available for OAuth accounts'),
+        find.text(
+          'Your account uses OAuth authentication (Google, GitHub, etc.). '
+          'You cannot set a password for OAuth-only accounts.',
+        ),
         findsOneWidget,
       );
     });
 
     testWidgets('test_network_error_shows_message', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.changePassword,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
-        const NetworkException(message: 'No internet connection'),
-      );
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.changePassword,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(const NetworkException(message: 'No internet connection'));
 
       await tester.pumpWidget(
         buildTestableChangePasswordScreen(mockApiClient: mockApiClient),
       );
 
+      await tester.enterText(find.byType(TextFormField).at(0), 'Password123!');
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'Password123!');
+        find.byType(TextFormField).at(1),
+        'NewPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'NewPassword123!');
-      await tester.enterText(
-          find.byType(TextFormField).at(2), 'NewPassword123!');
+        find.byType(TextFormField).at(2),
+        'NewPassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
@@ -370,10 +428,12 @@ void main() {
 
   group('ChangePasswordScreen - Rate Limiting', () {
     testWidgets('test_rate_limit_429_shows_countdown', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.changePassword,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.changePassword,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
         const ServerException(message: 'Too many requests', code: 429),
       );
 
@@ -381,18 +441,21 @@ void main() {
         buildTestableChangePasswordScreen(mockApiClient: mockApiClient),
       );
 
+      await tester.enterText(find.byType(TextFormField).at(0), 'Password123!');
       await tester.enterText(
-          find.byType(TextFormField).at(0), 'Password123!');
+        find.byType(TextFormField).at(1),
+        'NewPassword123!',
+      );
       await tester.enterText(
-          find.byType(TextFormField).at(1), 'NewPassword123!');
-      await tester.enterText(
-          find.byType(TextFormField).at(2), 'NewPassword123!');
+        find.byType(TextFormField).at(2),
+        'NewPassword123!',
+      );
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
       expect(findRateLimitIcon(), findsOneWidget);
-      expect(find.text('Rate Limit Exceeded'), findsOneWidget);
-      expect(find.textContaining('Try again in'), findsOneWidget);
+      expect(find.text('Too Many Requests'), findsOneWidget);
+      expect(find.textContaining('try again in'), findsOneWidget);
     });
   });
 
@@ -406,8 +469,9 @@ void main() {
       await tester.tap(visibilityButton);
       await tester.pumpAndSettle();
 
-      final currentField =
-          tester.widget<TextField>(find.byType(TextField).at(0));
+      final currentField = tester.widget<TextField>(
+        find.byType(TextField).at(0),
+      );
       expect(currentField.obscureText, isFalse);
     });
 
@@ -420,8 +484,7 @@ void main() {
       await tester.tap(visibilityButtons.at(1));
       await tester.pumpAndSettle();
 
-      final newField =
-          tester.widget<TextField>(find.byType(TextField).at(1));
+      final newField = tester.widget<TextField>(find.byType(TextField).at(1));
       expect(newField.obscureText, isFalse);
     });
   });

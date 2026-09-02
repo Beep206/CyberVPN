@@ -215,7 +215,9 @@ class ResolveRenewalOrderUseCase:
                 else:
                     if not code.is_active:
                         reason_codes.append("partner_code_inactive")
-                    partner_user = await self._users.get_by_id(code.partner_user_id)
+                    partner_user = (
+                        await self._users.get_by_id(code.partner_user_id) if code.partner_user_id is not None else None
+                    )
                     if partner_user is None or not partner_user.is_active or partner_user.status != "active":
                         reason_codes.append("partner_user_inactive")
                     if code.partner_account_id is not None:

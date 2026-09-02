@@ -48,6 +48,43 @@ class ServiceAccessRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_service_identity_by_customer_realm_provider_numeric_subject(
+        self,
+        *,
+        customer_account_id: UUID,
+        auth_realm_id: UUID,
+        provider_name: str,
+        provider_numeric_subject_id: int,
+    ) -> ServiceIdentityModel | None:
+        """Resolve the one local identity for a customer's canonical provider user.
+
+        Scope is deliberately enforced in SQL so a numeric provider id can
+        never select or mutate another customer or realm's delivery state.
+        The Remnawave reconciliation ledger remains responsible for proving
+        that a returned row is exactly mapped before it is used.
+        """
+
+        if (
+            isinstance(provider_numeric_subject_id, bool)
+            or not isinstance(provider_numeric_subject_id, int)
+            or provider_numeric_subject_id <= 0
+        ):
+            raise ValueError("Provider numeric subject id must be a positive integer")
+        result = await self._session.execute(
+            select(ServiceIdentityModel)
+            .where(
+                ServiceIdentityModel.customer_account_id == customer_account_id,
+                ServiceIdentityModel.auth_realm_id == auth_realm_id,
+                ServiceIdentityModel.provider_name == provider_name,
+                ServiceIdentityModel.provider_numeric_subject_id == provider_numeric_subject_id,
+            )
+            .limit(2)
+        )
+        candidates = list(result.scalars().all())
+        if len(candidates) > 1:
+            raise ValueError("Provider numeric subject maps to multiple local service identities")
+        return candidates[0] if candidates else None
+
     async def get_service_identity_by_subscription_key(
         self,
         *,
@@ -80,6 +117,33 @@ class ServiceAccessRepository:
             .where(
                 ServiceIdentityModel.provider_name == provider_name,
                 ServiceIdentityModel.provider_subject_ref == provider_subject_ref,
+                ServiceIdentityModel.identity_scope == "subscription",
+                ServiceIdentityModel.identity_status == "active",
+            )
+            .order_by(ServiceIdentityModel.created_at.desc())
+        )
+        result = await self._session.execute(query)
+        return list(result.scalars().all())
+
+    async def list_active_subscription_identities_by_provider_numeric_subject(
+        self,
+        *,
+        provider_name: str,
+        provider_numeric_subject_id: int,
+    ) -> list[ServiceIdentityModel]:
+        """Return active subscription identities for one canonical provider numeric id."""
+
+        if (
+            isinstance(provider_numeric_subject_id, bool)
+            or not isinstance(provider_numeric_subject_id, int)
+            or provider_numeric_subject_id <= 0
+        ):
+            raise ValueError("Provider numeric subject id must be a positive integer")
+        query = (
+            select(ServiceIdentityModel)
+            .where(
+                ServiceIdentityModel.provider_name == provider_name,
+                ServiceIdentityModel.provider_numeric_subject_id == provider_numeric_subject_id,
                 ServiceIdentityModel.identity_scope == "subscription",
                 ServiceIdentityModel.identity_status == "active",
             )
@@ -245,6 +309,34 @@ class ServiceAccessRepository:
         )
         return result.scalar_one_or_none()
 
+    async def list_active_access_delivery_channels_for_update(
+        self,
+        *,
+        service_identity_id: UUID,
+        channel_type: str,
+        limit: int,
+    ) -> list[AccessDeliveryChannelModel]:
+        """Lock one bounded, stable snapshot before refreshing delivery metadata."""
+
+        if limit <= 0 or limit > 1_001:
+            raise ValueError("Delivery channel lock limit must be between 1 and 1001")
+        query = (
+            select(AccessDeliveryChannelModel)
+            .where(
+                AccessDeliveryChannelModel.service_identity_id == service_identity_id,
+                AccessDeliveryChannelModel.channel_type == channel_type,
+                AccessDeliveryChannelModel.channel_status == "active",
+            )
+            .order_by(
+                AccessDeliveryChannelModel.created_at.desc(),
+                AccessDeliveryChannelModel.id.desc(),
+            )
+            .limit(limit)
+            .with_for_update()
+        )
+        result = await self._session.execute(query)
+        return list(result.scalars().all())
+
     async def list_access_delivery_channels(
         self,
         *,
@@ -270,7 +362,14 @@ class ServiceAccessRepository:
             query = query.where(AccessDeliveryChannelModel.channel_type == channel_type)
         if channel_status is not None:
             query = query.where(AccessDeliveryChannelModel.channel_status == channel_status)
-        query = query.order_by(AccessDeliveryChannelModel.created_at.desc()).offset(offset).limit(limit)
+        query = (
+            query.order_by(
+                AccessDeliveryChannelModel.created_at.desc(),
+                AccessDeliveryChannelModel.id.desc(),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
         result = await self._session.execute(query)
         return list(result.scalars().all())
 

@@ -5,10 +5,13 @@ registry:
   password: ""
 
 remnawave:
-  jwt_auth_secret: replace-with-remnawave-jwt-auth-secret
-  jwt_api_tokens_secret: replace-with-remnawave-jwt-api-tokens-secret
+  # Preserve the exact 2.x JWT_AUTH_SECRET value during the 3.x migration.
+  app_secret: replace-with-remnawave-app-secret
   metrics_user: metrics
   metrics_pass: replace-with-remnawave-metrics-password
+  # Required only when control_plane_node_ssh_enabled=true. Generate 64 random
+  # bytes and encode as exactly 128 lowercase hex characters.
+  node_ssh_broker_secret: ""
 
 shared:
   helix_internal_auth_token: replace-with-shared-helix-internal-token
@@ -17,11 +20,24 @@ shared:
 backend:
   remnawave_token: replace-with-backend-remnawave-token
   jwt_secret: replace-with-backend-jwt-secret
+  # Dedicated random value of at least 32 characters. Never reuse an auth,
+  # provider, database, stream, or Remnawave APP_SECRET credential.
+  webhook_log_fingerprint_secret: replace-with-dedicated-webhook-log-fingerprint-secret
   cryptobot_token: ""
   telegram_bot_token: ""
   telegram_bot_username: ""
   telegram_bot_internal_secret: ""
   internal_secret: ""
+  # Dedicated random value, at least 32 characters. Do not reuse internal_secret.
+  remnawave_stream_ip_hmac_secret: ""
+  # Stable backend-only random value, at least 32 characters. Do not rotate
+  # until every outcome_unknown connection-drop receipt is reconciled.
+  remnawave_connection_drop_hmac_secret: ""
+  # Explicit UUID allowlists; never use role wildcards for browser SSH.
+  remnawave_node_ssh_trusted_admin_ids: ""
+  remnawave_node_ssh_allowed_node_ids: ""
+  passkey_enabled: "false"
+  passkey_admin_enabled: "false"
   totp_encryption_key: replace-with-backend-totp-encryption-key
   oauth_token_encryption_key: replace-with-backend-oauth-token-encryption-key
 
@@ -31,6 +47,10 @@ worker:
   cryptobot_token: ""
   admin_telegram_ids: ""
 
+subscription_page:
+  # Dedicated read token; do not reuse backend/worker/Helix/operator tokens.
+  remnawave_api_token: replace-with-dedicated-subscription-page-token
+
 helix_adapter:
   remnawave_token: replace-with-helix-adapter-remnawave-token
   manifest_signing_key: replace-with-helix-manifest-signing-key
@@ -39,4 +59,5 @@ extras:
   remnawave: {}
   backend: {}
   worker: {}
+  subscription_page: {}
   helix_adapter: {}

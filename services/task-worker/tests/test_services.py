@@ -1,6 +1,6 @@
 """Tests for service client modules."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import httpx
 import pytest
@@ -42,8 +42,8 @@ async def test_remnawave_client_get_users():
 
 @pytest.mark.asyncio
 async def test_remnawave_client_get_users_normalizes_aliases():
-    """Test RemnawaveClient get_users normalizes 2.7.x payloads."""
-    user_payload = load_remnawave_fixture("user_2_7_4.json")
+    """Test RemnawaveClient get_users normalizes 3.4.3 payloads."""
+    user_payload = load_remnawave_fixture("user_3_4_1.json")
 
     with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
@@ -69,7 +69,7 @@ async def test_remnawave_client_get_users_normalizes_aliases():
 @pytest.mark.asyncio
 async def test_remnawave_client_get_nodes_normalizes_aliases():
     """Test RemnawaveClient get_nodes normalizes node metadata and traffic aliases."""
-    node_payload = load_remnawave_fixture("node_2_7_4.json")
+    node_payload = load_remnawave_fixture("node_3_4_1.json")
 
     with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
@@ -87,9 +87,12 @@ async def test_remnawave_client_get_nodes_normalizes_aliases():
 
             assert nodes[0]["is_connected"] is True
             assert nodes[0]["isConnected"] is True
-            assert nodes[0]["node_version"] == "2.7.4"
-            assert nodes[0]["xrayVersion"] == "1.8.24"
+            assert nodes[0]["node_id"] == 17
+            assert nodes[0]["node_version"] == "3.4.1"
+            assert nodes[0]["xrayVersion"] == "26.7.31"
             assert nodes[0]["active_plugin_uuid"] == node_payload["activePluginUuid"]
+            assert nodes[0]["integrationUuids"] == node_payload["integrationUuids"]
+            assert nodes[0]["ips"] == node_payload["ips"]
 
 
 @pytest.mark.asyncio
@@ -141,14 +144,14 @@ async def test_remnawave_client_get_hosts_returns_host_list():
 @pytest.mark.asyncio
 async def test_remnawave_client_get_user_normalizes_single_payload():
     """Test RemnawaveClient get_user normalizes a single user payload."""
-    user_payload = load_remnawave_fixture("user_2_7_4.json")
+    user_payload = load_remnawave_fixture("user_3_4_1.json")
 
     with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.is_success = True
         mock_response.status_code = 200
-        user_payload["uuid"] = "550e8400-e29b-41d4-a716-446655440003"
+        user_payload["id"] = 43
         user_payload["trafficLimitBytes"] = 2048
         user_payload["userTraffic"]["usedTrafficBytes"] = 512
         mock_response.json.return_value = user_payload
@@ -158,36 +161,158 @@ async def test_remnawave_client_get_user_normalizes_single_payload():
         from src.services.remnawave_client import RemnawaveClient
 
         async with RemnawaveClient() as client:
-            user = await client.get_user("550e8400-e29b-41d4-a716-446655440003")
+            user = await client.get_user(43)
 
+            assert user["user_id"] == 43
             assert user["status"] == "active"
             assert user["dataLimit"] == 2048
             assert user["dataUsed"] == 512
 
 
 @pytest.mark.asyncio
-async def test_remnawave_client_disable_user():
-    """Test RemnawaveClient disable_user sends PATCH request."""
+async def test_remnawave_client_get_user_rejects_mismatched_numeric_identity():
+    user_payload = load_remnawave_fixture("user_3_4_1.json")
+    user_payload["id"] = 44
+
     with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.is_success = True
         mock_response.status_code = 200
-        mock_response.json.return_value = {"status": "disabled"}
+        mock_response.json.return_value = user_payload
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveAPIError, RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            with pytest.raises(RemnawaveAPIError, match="user_identity_mismatch") as exc_info:
+                await client.get_user(43)
+
+        assert exc_info.value.status_code == 502
+        mock_client.request.assert_called_once_with("GET", "/api/users/43", params=None)
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_disables_implicit_transport_retries():
+    with (
+        patch("src.services.remnawave_client.httpx.AsyncHTTPTransport") as transport_factory,
+        patch("src.services.remnawave_client.httpx.AsyncClient") as client_factory,
+    ):
+        from src.services.remnawave_client import RemnawaveClient
+
+        client_factory.return_value.aclose = AsyncMock()
+        async with RemnawaveClient():
+            pass
+
+    transport_factory.assert_called_once_with(retries=0)
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_disable_user():
+    """Test RemnawaveClient disable_user uses the numeric 3.x route."""
+    response_payload = load_remnawave_fixture("user_3_4_1.json")
+    response_payload["id"] = 123
+    response_payload["status"] = "DISABLED"
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 200
+        mock_response.json.return_value = response_payload
         mock_client.request.return_value = mock_response
         mock_client_cls.return_value = mock_client
 
         from src.services.remnawave_client import RemnawaveClient
 
         async with RemnawaveClient() as client:
-            result = await client.disable_user("user-123")
+            result = await client.disable_user(123)
 
             assert result["status"] == "disabled"
             mock_client.request.assert_called_with(
                 "POST",
-                "/api/users/user-123/actions/disable",
+                "/api/users/123/actions/disable",
                 json=None,
             )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("method_name", "action", "expected_status"),
+    [
+        ("disable_user", "disable", "disabled"),
+        ("enable_user", "enable", "active"),
+    ],
+)
+async def test_remnawave_client_reconciles_no_body_user_status(method_name, action, expected_status):
+    user_payload = load_remnawave_fixture("user_3_4_1.json")
+    user_payload["id"] = 123
+    user_payload["status"] = expected_status.upper()
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        accepted = MagicMock(is_success=True, status_code=204, content=b"")
+        readback = MagicMock(is_success=True, status_code=200, content=b"json")
+        readback.json.return_value = user_payload
+        mock_client.request.side_effect = [accepted, readback]
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            result = await getattr(client, method_name)(123)
+
+        assert result["status"] == expected_status
+        assert mock_client.request.call_args_list == [
+            call("POST", f"/api/users/123/actions/{action}", json=None),
+            call("GET", "/api/users/123", params=None),
+        ]
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_reconciles_ambiguous_disable_timeout_without_replay():
+    user_payload = load_remnawave_fixture("user_3_4_1.json")
+    user_payload["id"] = 123
+    user_payload["status"] = "DISABLED"
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        request = httpx.Request("POST", "https://remnawave.test/api/users/123/actions/disable")
+        readback = MagicMock(is_success=True, status_code=200, content=b"json")
+        readback.json.return_value = user_payload
+        mock_client.request.side_effect = [httpx.ReadTimeout("ambiguous", request=request), readback]
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            result = await client.disable_user(123)
+
+        assert result["status"] == "disabled"
+        assert mock_client.request.call_args_list == [
+            call("POST", "/api/users/123/actions/disable", json=None),
+            call("GET", "/api/users/123", params=None),
+        ]
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_rejects_no_body_disable_with_stale_readback():
+    user_payload = load_remnawave_fixture("user_3_4_1.json")
+    user_payload["id"] = 123
+    user_payload["status"] = "ACTIVE"
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        accepted = MagicMock(is_success=True, status_code=202, content=b"")
+        readback = MagicMock(is_success=True, status_code=200, content=b"json")
+        readback.json.return_value = user_payload
+        mock_client.request.side_effect = [accepted, readback]
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveAPIError, RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            with pytest.raises(RemnawaveAPIError, match="user_status_postcondition_mismatch"):
+                await client.disable_user(123)
+
+        assert mock_client.request.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -208,9 +333,118 @@ async def test_remnawave_client_api_error():
 
         with pytest.raises(RemnawaveAPIError) as exc_info:
             async with RemnawaveClient() as client:
-                await client.get_user("nonexistent")
+                await client.get_user(999)
 
         assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_accepts_successful_no_body_bulk_response():
+    """A 204 with no body is success, not a JSON parsing failure."""
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 204
+        mock_response.content = b""
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            result = await client.bulk_extend_expiration_date([41, 42], 30)
+
+        assert result is None
+        mock_client.request.assert_called_once_with(
+            "POST",
+            "/api/users/bulk/extend-expiration-date",
+            json={"userIds": [41, 42], "extendDays": 30},
+        )
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_rejects_successful_empty_collection_response():
+    """No-body is valid for mutations, never as an empty GET collection."""
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.is_success = True
+        mock_response.status_code = 200
+        mock_response.content = b""
+        mock_client.request.return_value = mock_response
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveAPIError, RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            with pytest.raises(RemnawaveAPIError, match="invalid_users_stream_response"):
+                await client.get_users()
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_consumes_every_user_cursor_page() -> None:
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        first = MagicMock(is_success=True, status_code=200, content=b"json")
+        first.json.return_value = {
+            "users": [{"id": 41, "username": "first"}],
+            "nextCursor": "41",
+            "hasNextPage": True,
+        }
+        second = MagicMock(is_success=True, status_code=200, content=b"json")
+        second.json.return_value = {
+            "users": [{"id": 42, "username": "second"}],
+            "hasNextPage": False,
+        }
+        mock_client = AsyncMock()
+        mock_client.request.side_effect = [first, second]
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            users = await client.get_users()
+
+    assert [user["id"] for user in users] == [41, 42]
+    assert mock_client.request.await_args_list[0].kwargs["params"] == {"size": 1000}
+    assert mock_client.request.await_args_list[1].kwargs["params"] == {"size": 1000, "cursor": "41"}
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_rejects_repeated_user_cursor_before_partial_processing() -> None:
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:
+        first = MagicMock(is_success=True, status_code=200, content=b"json")
+        first.json.return_value = {
+            "users": [{"id": 41, "username": "first"}],
+            "nextCursor": "41",
+            "hasNextPage": True,
+        }
+        repeated = MagicMock(is_success=True, status_code=200, content=b"json")
+        repeated.json.return_value = {
+            "users": [{"id": 42, "username": "second"}],
+            "nextCursor": "41",
+            "hasNextPage": True,
+        }
+        mock_client = AsyncMock()
+        mock_client.request.side_effect = [first, repeated]
+        mock_client_cls.return_value = mock_client
+
+        from src.services.remnawave_client import RemnawaveAPIError, RemnawaveClient
+
+        async with RemnawaveClient() as client:
+            with pytest.raises(RemnawaveAPIError, match="repeated_users_stream_cursor"):
+                await client.get_users()
+
+
+@pytest.mark.asyncio
+async def test_remnawave_client_rejects_legacy_uuid_user_identity():
+    with patch("src.services.remnawave_client.httpx.AsyncClient") as client_cls:
+        from src.services.remnawave_client import RemnawaveClient
+
+        client_cls.return_value.aclose = AsyncMock()
+        async with RemnawaveClient() as client:
+            with pytest.raises(ValueError, match="positive integer"):
+                await client.get_user("legacy-uuid")
 
 
 @pytest.mark.asyncio

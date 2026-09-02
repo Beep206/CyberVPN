@@ -1,13 +1,15 @@
-"""Bulk user operations use case."""
-
-import logging
-from uuid import UUID
+"""Fail-closed boundary for unsafe at-least-once bulk user mutations."""
 
 from src.domain.entities.user import User
-from src.domain.enums import UserStatus
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
-logger = logging.getLogger(__name__)
+
+class BulkUserMutationsSafetyDisabledError(RuntimeError):
+    """Bulk mutation requires durable per-user receipts before it can run."""
+
+    def __init__(self) -> None:
+        super().__init__("Bulk Remnawave user mutations are safety-disabled for this release")
 
 
 class BulkUserOperationsUseCase:
@@ -21,38 +23,14 @@ class BulkUserOperationsUseCase:
         """
         self.gateway = gateway
 
-    async def disable_users(self, uuids: list[UUID]) -> list[User]:
-        """Disable multiple users.
+    async def disable_users(self, user_refs: list[RemnawaveUserRef]) -> list[User]:
+        """Reject the operation before provider I/O until receipts exist."""
+        for user_ref in user_refs:
+            user_ref.require_numeric_id()
+        raise BulkUserMutationsSafetyDisabledError
 
-        Args:
-            uuids: List of user UUIDs to disable
-
-        Returns:
-            The users successfully disabled
-        """
-        updated_users: list[User] = []
-        for uuid in uuids:
-            try:
-                updated_users.append(await self.gateway.update(uuid, status=UserStatus.DISABLED))
-            except Exception as e:
-                logger.warning("Failed to disable user %s: %s", uuid, e)
-                continue
-        return updated_users
-
-    async def enable_users(self, uuids: list[UUID]) -> list[User]:
-        """Enable multiple users.
-
-        Args:
-            uuids: List of user UUIDs to enable
-
-        Returns:
-            The users successfully enabled
-        """
-        updated_users: list[User] = []
-        for uuid in uuids:
-            try:
-                updated_users.append(await self.gateway.update(uuid, status=UserStatus.ACTIVE))
-            except Exception as e:
-                logger.warning("Failed to enable user %s: %s", uuid, e)
-                continue
-        return updated_users
+    async def enable_users(self, user_refs: list[RemnawaveUserRef]) -> list[User]:
+        """Reject the operation before provider I/O until receipts exist."""
+        for user_ref in user_refs:
+            user_ref.require_numeric_id()
+        raise BulkUserMutationsSafetyDisabledError

@@ -274,12 +274,12 @@ def build_phase8_settlement_shadow_pack(snapshot: dict[str, Any]) -> dict[str, A
     partner_export_views: list[dict[str, Any]] = []
     for export_key in sorted(export_observations_by_key):
         observation = export_observations_by_key[export_key]
-        partner_account_id = _string_or_none(observation.get("partner_account_id"))
-        canonical_row = partner_reporting_rows_by_partner_id.get(partner_account_id or "")
+        export_partner_account_id = _string_or_none(observation.get("partner_account_id"))
+        export_canonical_row = partner_reporting_rows_by_partner_id.get(export_partner_account_id or "")
         view, view_mismatches = _build_partner_export_view(
             export_key=export_key,
             observation=observation,
-            canonical_row=canonical_row,
+            canonical_row=export_canonical_row,
             tolerance_map=tolerance_map,
             approved_divergences=approved_divergences,
         )
@@ -879,12 +879,12 @@ def _build_amount_tolerance_map(
                 tolerance_map[(comparison_family, metric_key)] = default_tolerance
 
     for row in amount_tolerances:
-        comparison_family = _string_or_none(row.get("comparison_family"))
-        metric_key = _string_or_none(row.get("metric_key"))
+        tolerance_family = _string_or_none(row.get("comparison_family"))
+        tolerance_metric_key = _string_or_none(row.get("metric_key"))
         max_delta_amount = _decimal_or_none(row.get("max_delta_amount"))
-        if comparison_family is None or metric_key is None or max_delta_amount is None:
+        if tolerance_family is None or tolerance_metric_key is None or max_delta_amount is None:
             continue
-        tolerance_map[(comparison_family, metric_key)] = max_delta_amount
+        tolerance_map[(tolerance_family, tolerance_metric_key)] = max_delta_amount
     return tolerance_map
 
 

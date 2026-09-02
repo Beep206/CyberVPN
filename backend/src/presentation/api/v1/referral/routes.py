@@ -120,9 +120,19 @@ def _serialize_referral_reward(model) -> ReferralRewardResponse:
     )
 
 
+def _required_reward_uuid(value: object, *, field: str) -> UUID:
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Referral reward {field} is missing or invalid") from exc
+
+
 def _serialize_referral_reward_compat(model) -> ReferralCommissionResponse:
     reward_payload = dict(model.reward_payload or {})
-    referred_user_id = reward_payload.get("referred_user_id")
+    referred_user_id = _required_reward_uuid(
+        reward_payload.get("referred_user_id"),
+        field="referred_user_id",
+    )
     commission_rate = float(
         reward_payload.get("legacy_commission_rate") or reward_payload.get("friend_discount_value") or 0
     )

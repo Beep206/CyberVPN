@@ -2196,6 +2196,11 @@ mod tests {
             .await
             .expect("bind shared listener");
         let addr = listener.local_addr().expect("listener addr");
+        let accept_task = tokio::spawn(async move {
+            for _ in 0..2 {
+                let (_stream, _peer) = listener.accept().await.expect("accept route probe");
+            }
+        });
 
         let mut config = sample_sidecar_config(addr);
         config.routes = vec![
@@ -2221,6 +2226,7 @@ mod tests {
         let selection = select_client_route(&config, &route_quality)
             .await
             .expect("route selection");
+        accept_task.await.expect("route probe accept task");
 
         assert_eq!(selection.route.endpoint_ref, "node-primary");
     }
@@ -2429,6 +2435,11 @@ mod tests {
             .await
             .expect("bind shared listener");
         let addr = listener.local_addr().expect("listener addr");
+        let accept_task = tokio::spawn(async move {
+            for _ in 0..2 {
+                let (_stream, _peer) = listener.accept().await.expect("accept route probe");
+            }
+        });
 
         let mut config = sample_sidecar_config(addr);
         config.routes = vec![
@@ -2445,7 +2456,7 @@ mod tests {
                 dial_host: addr.ip().to_string(),
                 dial_port: addr.port(),
                 server_name: Some("node-secondary.local".to_string()),
-                preference: 10,
+                preference: 30,
                 policy_tag: "fallback".to_string(),
             },
         ];
@@ -2485,6 +2496,7 @@ mod tests {
         let selection = select_client_route(&config, &route_quality)
             .await
             .expect("route selection");
+        accept_task.await.expect("route probe accept task");
 
         assert_eq!(selection.route.endpoint_ref, "node-primary");
     }

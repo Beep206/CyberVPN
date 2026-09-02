@@ -17,6 +17,8 @@ select
         as settings_flow_is_xtls_rprx_vision,
     cpi.raw_inbound #>> '{streamSettings,network}' as stream_network,
     cpi.raw_inbound #>> '{streamSettings,security}' as stream_security,
+    (cpi.raw_inbound #>> '{streamSettings,realitySettings,minClientVer}') = '26.3.27'
+        as reality_min_client_ver_is_26_3_27,
 
     case
         when jsonb_typeof(
@@ -73,6 +75,10 @@ select
 from config_profile_inbounds cpi
 where cpi.tag in (
     'VLESS_REALITY_443',
-    'VLESS_XHTTP_REALITY_8443'
+    'VLESS_XHTTP_REALITY_8443',
+    'DE_SMART_REALITY_443',
+    'DE_SMART_XHTTP_REALITY_8443',
+    'MSK_SMART_REALITY_443',
+    'MSK_SMART_XHTTP_REALITY_8443'
 )
 order by cpi.tag;

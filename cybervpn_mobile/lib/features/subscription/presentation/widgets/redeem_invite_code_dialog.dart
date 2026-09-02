@@ -27,7 +27,6 @@ class _RedeemInviteCodeDialogState
     extends ConsumerState<RedeemInviteCodeDialog> {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -48,21 +47,25 @@ class _RedeemInviteCodeDialogState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final isLoading =
+        ref.watch(subscriptionProvider).value?.purchaseState ==
+        PurchaseState.loading;
 
     // Listen to purchase state changes to show success/error.
-    ref.listen<AsyncValue<SubscriptionState>>(subscriptionProvider,
-        (previous, next) {
+    ref.listen<AsyncValue<SubscriptionState>>(subscriptionProvider, (
+      previous,
+      next,
+    ) {
       final subState = next.value;
       if (subState == null) return;
-
-      setState(() => _isLoading = subState.purchaseState == PurchaseState.loading);
 
       switch (subState.purchaseState) {
         case PurchaseState.success:
           // Close dialog and show success snackbar.
           if (mounted) {
+            final messenger = ScaffoldMessenger.of(context);
             Navigator.of(context).pop(true);
-            ScaffoldMessenger.of(context).showSnackBar(
+            messenger.showSnackBar(
               SnackBar(
                 content: Text(l10n.subscriptionInviteCodeRedeemed),
                 backgroundColor: CyberColors.matrixGreen,
@@ -112,7 +115,7 @@ class _RedeemInviteCodeDialogState
               ),
               textCapitalization: TextCapitalization.characters,
               autocorrect: false,
-              enabled: !_isLoading,
+              enabled: !isLoading,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return l10n.commonFieldRequired;
@@ -122,19 +125,19 @@ class _RedeemInviteCodeDialogState
                 }
                 return null;
               },
-              onFieldSubmitted: _isLoading ? null : (_) => _handleRedeem(),
+              onFieldSubmitted: isLoading ? null : (_) => _handleRedeem(),
             ),
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+          onPressed: isLoading ? null : () => Navigator.of(context).pop(false),
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          onPressed: _isLoading ? null : _handleRedeem,
-          child: _isLoading
+          onPressed: isLoading ? null : _handleRedeem,
+          child: isLoading
               ? const SizedBox(
                   width: 16,
                   height: 16,

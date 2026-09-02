@@ -300,6 +300,46 @@ describe('admin API proxy route', () => {
     expect(response.status).toBe(204);
   });
 
+  it('forwards one-time fresh-auth grants to trusted backend mutations', async () => {
+    vi.stubEnv('API_URL', 'http://backend.internal/');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ticket: 'local-ticket' }), {
+        status: 201,
+        headers: { 'content-type': 'application/json' },
+      }),
+    ));
+
+    const request = new NextRequest(
+      'https://admin.cyber-vpn.net/api/v1/admin/remnawave/node-ssh/nodes/00000000-0000-4000-8000-000000000001/tickets',
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          origin: 'https://admin.cyber-vpn.net',
+          'x-fresh-auth-grant-id': '00000000-0000-4000-8000-000000000002',
+        },
+        body: JSON.stringify({ reason: 'incident response' }),
+      },
+    );
+
+    const response = await POST(
+      request,
+      createContext([
+        'admin',
+        'remnawave',
+        'node-ssh',
+        'nodes',
+        '00000000-0000-4000-8000-000000000001',
+        'tickets',
+      ]),
+    );
+    const headers = getFetchInit().headers as Headers;
+
+    expect(headers.get('x-fresh-auth-grant-id')).toBe('00000000-0000-4000-8000-000000000002');
+    expect(headers.get('origin')).toBe('https://admin.cyber-vpn.net');
+    expect(response.status).toBe(201);
+  });
+
   it('rejects oversized mutating requests from content-length before forwarding upstream', async () => {
     vi.stubEnv('API_URL', 'http://backend.internal/');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(

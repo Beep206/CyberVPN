@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
 import structlog
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 
 from src.broker import broker
 from src.config import get_settings
@@ -31,10 +31,16 @@ async def cleanup_webhook_logs() -> dict:
 
     async with factory() as session:
         while True:
-            # Delete in batches
+            batch_ids = (
+                select(WebhookLogModel.id)
+                .where(WebhookLogModel.created_at < cutoff)
+                .order_by(WebhookLogModel.created_at, WebhookLogModel.id)
+                .limit(batch_size)
+                .cte("expired_webhook_log_batch")
+            )
             stmt = (
                 delete(WebhookLogModel)
-                .where(WebhookLogModel.created_at < cutoff)
+                .where(WebhookLogModel.id.in_(select(batch_ids.c.id)))
                 .execution_options(synchronize_session=False)
             )
 

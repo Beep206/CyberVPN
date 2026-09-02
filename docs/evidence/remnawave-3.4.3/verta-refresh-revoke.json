@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-09-01T10:17:50.2264692+00:00",
+  "scope": "Local deterministic Verta refresh/revoke fixtures only; no live service, staging, production, or network connection claim is made.",
+  "results": [
+    {
+      "name": "bridge-refresh-and-unknown-field-fixtures",
+      "command": "cargo test --manifest-path <repo>\\packages\\verta-protocol\\Cargo.toml -p ns-bridge-api --test bridge_fixtures",
+      "workingDirectory": "<repo>",
+      "exitCode": 0,
+      "passed": true,
+      "output": "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.50s\r\n     Running tests\\bridge_fixtures.rs (packages\\verta-protocol\\target\\debug\\deps\\bridge_fixtures-ecc61dc25a6ce6d7.exe)\r\n\r\nrunning 7 tests\r\ntest parses_valid_device_register_fixture ... ok\r\ntest parses_valid_token_exchange_fixture ... ok\r\ntest parses_bootstrap_manifest_request_fixture ... ok\r\ntest rejects_conflicting_manifest_request_fixture ... ok\r\ntest parses_refresh_manifest_request_fixture ... ok\r\ntest rejects_unknown_field_in_device_register_fixture ... ok\r\ntest rejects_missing_refresh_credential_in_token_exchange_fixture ... ok\r\n\r\ntest result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s"
+    },
+    {
+      "name": "revoked-token-subject-fixture",
+      "command": "cargo test --manifest-path <repo>\\packages\\verta-protocol\\Cargo.toml -p ns-auth --test token_fixtures rejects_revoked_subject_fixture",
+      "workingDirectory": "<repo>",
+      "exitCode": 0,
+      "passed": true,
+      "output": "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s\r\n     Running tests\\token_fixtures.rs (packages\\verta-protocol\\target\\debug\\deps\\token_fixtures-6429bfc188b44c26.exe)\r\n\r\nrunning 1 test\r\ntest rejects_revoked_subject_fixture ... ok\r\n\r\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.02s"
+    },
+    {
+      "name": "revoked-device-after-durable-reopen",
+      "command": "cargo test --manifest-path <repo>\\packages\\verta-protocol\\Cargo.toml -p ns-bridge-domain --test shared_store_replay_and_policy revoked_device_blocks_token_exchange_after_reopen",
+      "workingDirectory": "<repo>",
+      "exitCode": 0,
+      "passed": true,
+      "output": "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.19s\r\n     Running tests\\shared_store_replay_and_policy.rs (packages\\verta-protocol\\target\\debug\\deps\\shared_store_replay_and_policy-46ab7597e59d681c.exe)\r\n\r\nrunning 1 test\r\ntest revoked_device_blocks_token_exchange_after_reopen ... ok\r\n\r\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.09s"
+    },
+    {
+      "name": "refresh-manifest-binding-after-durable-reopen",
+      "command": "cargo test --manifest-path <repo>\\packages\\verta-protocol\\Cargo.toml -p ns-bridge-domain --test shared_store_replay_and_policy refresh_credential_manifest_binding_survives_reopen",
+      "workingDirectory": "<repo>",
+      "exitCode": 0,
+      "passed": true,
+      "output": "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s\r\n     Running tests\\shared_store_replay_and_policy.rs (packages\\verta-protocol\\target\\debug\\deps\\shared_store_replay_and_policy-46ab7597e59d681c.exe)\r\n\r\nrunning 1 test\r\ntest refresh_credential_manifest_binding_survives_reopen ... ok\r\n\r\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.06s"
+    },
+    {
+      "name": "revoked-refresh-credential-token-exchange",
+      "command": "cargo test --manifest-path <repo>\\packages\\verta-protocol\\Cargo.toml -p ns-bridge-domain rejects_revoked_refresh_credential_during_token_exchange",
+      "workingDirectory": "<repo>",
+      "exitCode": 0,
+      "passed": true,
+      "output": "Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s\r\n     Running unittests src\\lib.rs (packages\\verta-protocol\\target\\debug\\deps\\ns_bridge_domain-ca9c87ce2efadb6d.exe)\r\n\r\nrunning 1 test\r\ntest tests::rejects_revoked_refresh_credential_during_token_exchange ... ok\r\n\r\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.02s\r\n\r\n     Running tests\\shared_store_replay_and_policy.rs (packages\\verta-protocol\\target\\debug\\deps\\shared_store_replay_and_policy-46ab7597e59d681c.exe)\r\n\r\nrunning 0 tests\r\n\r\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s"
+    }
+  ]
+}

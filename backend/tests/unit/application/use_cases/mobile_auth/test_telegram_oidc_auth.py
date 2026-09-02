@@ -99,6 +99,7 @@ class TestMobileTelegramOIDCAuthUseCase:
             user.created_at = datetime.now(UTC)
             user.last_login_at = None
             user.auth_realm_id = None
+            user.remnawave_user_id = None
             user.remnawave_uuid = None
             user.totp_enabled = False
             user.totp_secret = None

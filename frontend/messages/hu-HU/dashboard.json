@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "A VPN-szolgáltatás elérhetősége",
+    "connections": "Kapcsolatok",
+    "usage": "Használat",
+    "devices": "Eszközök",
+    "available": "Elérhető",
+    "unavailable": "Nem érhető el",
+    "loading": "A VPN-szolgáltatás állapotának betöltése",
+    "degraded": "Részlegesen korlátozott"
   }
 }

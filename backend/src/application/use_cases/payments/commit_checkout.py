@@ -31,6 +31,7 @@ class CommitCheckoutResult:
     payment: PaymentModel
     status: str
     invoice: InvoiceResponseDTO | None = None
+    reused: bool = False
 
 
 class CommitCheckoutUseCase:
@@ -59,6 +60,7 @@ class CommitCheckoutUseCase:
         metadata_extra: dict | None = None,
         idempotency_key: str | None = None,
         publish_completed_payment_event: bool = True,
+        reconcile_provider_by_payload: bool = False,
     ) -> CommitCheckoutResult:
         normalized_idempotency_key = _normalize_idempotency_key(idempotency_key)
         if normalized_idempotency_key is not None:
@@ -107,6 +109,7 @@ class CommitCheckoutUseCase:
                     payment=existing,
                     status=str(existing.status),
                     invoice=_invoice_from_metadata(existing_metadata),
+                    reused=True,
                 )
 
         reservation_id = getattr(quote_result, "reservation_id", None)
@@ -149,12 +152,18 @@ class CommitCheckoutUseCase:
             await self._wallet.freeze(user_id, quote_result.wallet_amount)
             metadata["wallet_frozen"] = True
 
-        invoice_data = await self._crypto_client.create_invoice(
-            amount=str(quote_result.gateway_amount),
-            currency=currency,
-            description=description,
-            payload=payload,
-        )
+        invoice_data: dict = {}
+        reconciled_provider_invoice = False
+        if reconcile_provider_by_payload:
+            invoice_data = await self._crypto_client.find_invoice_by_payload(payload)
+            reconciled_provider_invoice = bool(invoice_data)
+        if not invoice_data:
+            invoice_data = await self._crypto_client.create_invoice(
+                amount=str(quote_result.gateway_amount),
+                currency=currency,
+                description=description,
+                payload=payload,
+            )
 
         invoice = InvoiceResponseDTO(
             invoice_id=str(invoice_data.get("invoice_id", "")),
@@ -201,7 +210,12 @@ class CommitCheckoutUseCase:
                 "checkout_mode": checkout_mode,
             },
         )
-        return CommitCheckoutResult(payment=payment, status="pending", invoice=invoice)
+        return CommitCheckoutResult(
+            payment=payment,
+            status="pending",
+            invoice=invoice,
+            reused=reconciled_provider_invoice,
+        )
 
     async def _acquire_idempotency_lock(self, *, user_id: UUID, idempotency_key: str) -> None:
         if self._session_dialect_name() != "postgresql":

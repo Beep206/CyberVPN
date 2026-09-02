@@ -994,6 +994,33 @@ pub(crate) async fn connect_profile_internal(
         }
 
         let (launched_core, launched_proxy_url) = loop {
+            if matches!(
+                effective_core,
+                crate::engine::helix::config::EngineCore::SingBox
+            ) && crate::engine::config::profile_requires_xray(&profile)?
+            {
+                if store_data.custom_config.is_some() {
+                    return Err(AppError::Actionable {
+                        error: "The selected XHTTP profile requires Xray, but a custom core configuration is active"
+                            .to_string(),
+                        resolution: "Disable the custom configuration before connecting this XHTTP profile"
+                            .to_string(),
+                    });
+                }
+                effective_core = crate::engine::helix::config::EngineCore::Xray;
+                let _ = crate::engine::diagnostics::record_event(
+                    &app,
+                    crate::engine::diagnostics::DiagnosticLevel::Info,
+                    "vpn.connect",
+                    "Routing XHTTP profile to the compatible Xray core",
+                    serde_json::json!({
+                        "profile_id": profile.id,
+                        "requested_core": requested_core.as_str(),
+                        "effective_core": effective_core.as_str(),
+                    }),
+                );
+            }
+
             let (bin_path, config_path, core_name, launch_tun_mode, runtime_monitor, proxy_url) = if matches!(
                 effective_core,
                 crate::engine::helix::config::EngineCore::Helix
@@ -1092,10 +1119,39 @@ pub(crate) async fn connect_profile_internal(
                 };
 
                 let config_json = if let Some(custom_json_str) = &store_data.custom_config {
-                    println!("Using Custom JSON Override for sing-box configuration.");
+                    println!("Using custom JSON override for the selected core.");
                     serde_json::from_str::<serde_json::Value>(custom_json_str).map_err(|e| {
                         AppError::System(format!("Custom JSON config parse error: {}", e))
                     })?
+                } else if matches!(
+                    effective_core,
+                    crate::engine::helix::config::EngineCore::Xray
+                ) {
+                    let incompatible = crate::engine::config::managed_xray_incompatible_features(
+                        &profile,
+                        &store_data.routing_rules,
+                        &store_data.split_tunneling_apps,
+                        store_data.stealth_mode_enabled,
+                        store_data.pqc_enforcement_mode,
+                        &effective_privacy_shield_level,
+                    );
+                    if !incompatible.is_empty() {
+                        return Err(AppError::Actionable {
+                            error: format!(
+                                "Managed Xray configuration cannot preserve: {}",
+                                incompatible.join(", ")
+                            ),
+                            resolution: "Disable those features or use an explicit reviewed Xray custom configuration"
+                                .to_string(),
+                        });
+                    }
+                    crate::engine::config::generate_xray_config(
+                        &profile,
+                        tun_mode,
+                        log_path_opt,
+                        store_data.local_socks_port,
+                        store_data.allow_lan,
+                    )?
                 } else {
                     crate::engine::config::generate_singbox_config(
                         &profile,
@@ -1111,7 +1167,7 @@ pub(crate) async fn connect_profile_internal(
                         store_data.pqc_enforcement_mode,
                         &effective_privacy_shield_level,
                         Some(app_dir.as_path()),
-                    )
+                    )?
                 };
 
                 let config_path = app_dir.join("run.json");
@@ -1711,62 +1767,76 @@ pub async fn clear_desktop_diagnostics_logs(app: AppHandle) -> Result<(), AppErr
 }
 
 #[tauri::command]
-pub async fn get_subscriptions(app: AppHandle) -> Result<Vec<models::Subscription>, AppError> {
+pub async fn get_subscriptions(
+    app: AppHandle,
+) -> Result<Vec<models::SubscriptionSummary>, AppError> {
     let store_data = store::load_store(&app)?;
-    Ok(store_data.subscriptions)
+    Ok(store_data
+        .subscriptions
+        .iter()
+        .map(models::SubscriptionSummary::from)
+        .collect())
 }
 
 #[tauri::command]
-pub async fn add_subscription(sub: models::Subscription, app: AppHandle) -> Result<(), AppError> {
+pub async fn add_subscription(
+    mut sub: models::CreateSubscription,
+    app: AppHandle,
+) -> Result<(), AppError> {
+    // Trigger any one-time plaintext-to-keyring migration before acquiring
+    // the async mutation guard (migration itself holds the OS file lock).
+    store::load_store(&app)?;
+    let _mutation_guard = store::acquire_subscription_mutation_guard(&app).await?;
     let mut store_data = store::load_store(&app)?;
-    store_data.subscriptions.push(sub);
-    store::save_store(&app, &store_data)?;
+    crate::engine::subscription::validate_new_subscription(&mut sub, &store_data.subscriptions)?;
+    let (metadata, url) = sub.into_metadata_and_url();
+    let subscription_id = metadata.id.clone();
+    crate::engine::subscription::store_subscription_url(&subscription_id, &url)?;
+    store_data.subscriptions.push(metadata);
+    if let Err(save_error) = store::save_store_atomic(&app, &store_data) {
+        if crate::engine::subscription::delete_subscription_url(&subscription_id).is_err() {
+            return Err(AppError::System(
+                "Subscription metadata could not be saved and secure credential cleanup failed"
+                    .to_string(),
+            ));
+        }
+        return Err(save_error);
+    }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn update_subscription(sub_id: String, app: AppHandle) -> Result<(), AppError> {
-    let mut store_data = store::load_store(&app)?;
+    let store_data = store::load_store(&app)?;
 
-    // Find the subscription URL
-    let url = {
-        let sub = store_data
-            .subscriptions
-            .iter()
-            .find(|s| s.id == sub_id)
-            .ok_or_else(|| AppError::System("Subscription not found".to_string()))?;
-        sub.url.clone()
-    };
-
-    // Fetch new nodes
-    let mut new_nodes = crate::engine::subscription::fetch_and_parse_subscription(&url).await?;
-
-    // Assign sub_id
-    for node in &mut new_nodes {
-        node.subscription_id = Some(sub_id.clone());
-    }
-
-    // Sweep old nodes
     store_data
-        .profiles
-        .retain(|p| p.subscription_id.as_deref() != Some(sub_id.as_str()));
+        .subscriptions
+        .iter()
+        .find(|subscription| subscription.id == sub_id)
+        .ok_or_else(|| AppError::System("Subscription not found".to_string()))?;
+    let url = crate::engine::subscription::load_subscription_url(&sub_id)?;
 
-    // Append new nodes
-    store_data.profiles.extend(new_nodes);
+    let new_nodes = crate::engine::subscription::fetch_and_parse_subscription(&url).await?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| {
+            AppError::System(format!(
+                "System clock is before UNIX_EPOCH while updating subscription timestamp: {error}"
+            ))
+        })?;
+    let _mutation_guard = store::acquire_subscription_mutation_guard(&app).await?;
+    let mut latest_store_data = store::load_store(&app)?;
+    let current_url = crate::engine::subscription::load_subscription_url(&sub_id)?;
+    crate::engine::subscription::apply_fetched_subscription_update(
+        &mut latest_store_data,
+        &sub_id,
+        &url,
+        &current_url,
+        new_nodes,
+        now.as_secs(),
+    )?;
 
-    // Update timestamp
-    if let Some(sub) = store_data.subscriptions.iter_mut().find(|s| s.id == sub_id) {
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_err(|error| {
-                AppError::System(format!(
-                    "System clock is before UNIX_EPOCH while updating subscription timestamp: {error}"
-                ))
-            })?;
-        sub.last_updated = Some(now.as_secs());
-    }
-
-    store::save_store(&app, &store_data)?;
+    store::save_store_atomic(&app, &latest_store_data)?;
     Ok(())
 }
 

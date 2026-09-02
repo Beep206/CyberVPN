@@ -8,9 +8,14 @@ from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
 from src.infrastructure.cache.redis_client import get_redis
+from src.infrastructure.database.models.access_delivery_channel_model import AccessDeliveryChannelModel
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
+from src.infrastructure.database.models.remnawave_upgrade_model import (
+    RemnawaveIdentityReconciliationModel,
+)
+from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.main import app
 from tests.helpers.realm_auth import (
@@ -82,8 +87,20 @@ async def test_resolve_current_access_delivery_channel_auto_bridges_customer_rea
                 )
                 customer_user = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
                 assert customer_user is not None
-                customer_user.remnawave_uuid = "remnawave-bridge-001"
+                customer_user.remnawave_user_id = 4201
+                customer_user.remnawave_uuid = None
                 customer_user.trial_expires_at = datetime.now(UTC) + timedelta(days=3)
+                db.add(
+                    RemnawaveIdentityReconciliationModel(
+                        subject_type="mobile_user",
+                        subject_id=customer_user.id,
+                        legacy_uuid=None,
+                        numeric_user_id=4201,
+                        reconciliation_state="mapped",
+                        evidence={"source": "numeric_only_access_delivery_test"},
+                        reconciled_at=datetime.now(UTC),
+                    )
+                )
                 db.add(admin_user)
                 db.commit()
                 admin_token = _make_admin_access_token(auth_service, user_id=admin_user.id, admin_realm=admin_realm)
@@ -124,6 +141,21 @@ async def test_resolve_current_access_delivery_channel_auto_bridges_customer_rea
             assert payload["access_delivery_channel"]["channel_status"] == "active"
             assert payload["access_delivery_channel"]["last_accessed_at"] is not None
             assert payload["access_delivery_channel"]["last_delivered_at"] is not None
+
+            with sessionmaker() as db:
+                service_identity = db.get(
+                    ServiceIdentityModel,
+                    uuid.UUID(payload["service_identity_id"]),
+                )
+                assert service_identity is not None
+                assert service_identity.provider_numeric_subject_id == 4201
+                assert service_identity.provider_subject_ref is None
+                delivery_channel = db.get(
+                    AccessDeliveryChannelModel,
+                    uuid.UUID(payload["access_delivery_channel"]["id"]),
+                )
+                assert delivery_channel is not None
+                assert "subscription_url" not in dict(delivery_channel.delivery_payload or {})
 
             repeated_resolve_response = await async_client.post(
                 "/api/v1/access-delivery-channels/resolve/current",
@@ -202,7 +234,19 @@ async def test_suspended_entitlement_blocks_current_access_delivery_resolution(
                 )
                 customer_user = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
                 assert customer_user is not None
-                customer_user.remnawave_uuid = "remnawave-bridge-002"
+                customer_user.remnawave_user_id = 4202
+                customer_user.remnawave_uuid = None
+                db.add(
+                    RemnawaveIdentityReconciliationModel(
+                        subject_type="mobile_user",
+                        subject_id=customer_user.id,
+                        legacy_uuid=None,
+                        numeric_user_id=4202,
+                        reconciliation_state="mapped",
+                        evidence={"source": "numeric_only_suspended_delivery_test"},
+                        reconciled_at=datetime.now(UTC),
+                    )
+                )
                 db.add(admin_user)
                 db.commit()
                 admin_token = _make_admin_access_token(auth_service, user_id=admin_user.id, admin_realm=admin_realm)
@@ -228,7 +272,6 @@ async def test_suspended_entitlement_blocks_current_access_delivery_resolution(
                     "customer_account_id": seeded["customer_user_id"],
                     "auth_realm_id": seeded["customer_realm_id"],
                     "provider_name": "remnawave",
-                    "provider_subject_ref": "remnawave-bridge-002",
                     "service_context": {"created_for": "suspend-test"},
                 },
             )

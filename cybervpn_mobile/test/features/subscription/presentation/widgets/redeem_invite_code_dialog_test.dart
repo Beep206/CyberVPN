@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_provider.dart';
 import 'package:cybervpn_mobile/features/subscription/presentation/providers/subscription_state.dart';
@@ -30,9 +32,7 @@ class _FakeSubscriptionNotifier extends SubscriptionNotifier {
 // Test Helpers
 // ---------------------------------------------------------------------------
 
-Widget buildTestableDialog({
-  required SubscriptionState subscriptionState,
-}) {
+Widget buildTestableDialog({required SubscriptionState subscriptionState}) {
   return ProviderScope(
     overrides: [
       subscriptionProvider.overrideWith(
@@ -42,11 +42,35 @@ Widget buildTestableDialog({
     child: const MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: RedeemInviteCodeDialog(),
-      ),
+      home: _DialogHost(),
     ),
   );
+}
+
+class _DialogHost extends StatefulWidget {
+  const _DialogHost();
+
+  @override
+  State<_DialogHost> createState() => _DialogHostState();
+}
+
+class _DialogHostState extends State<_DialogHost> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (context) => const RedeemInviteCodeDialog(),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold();
 }
 
 // ---------------------------------------------------------------------------
@@ -62,9 +86,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -78,9 +100,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -94,9 +114,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -110,9 +128,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -121,16 +137,14 @@ void main() {
   });
 
   group('RedeemInviteCodeDialog - Input Validation', () {
-    testWidgets('test_code_input_converts_to_uppercase', (tester) async {
+    testWidgets('test_code_input_accepts_text', (tester) async {
       const subscriptionState = SubscriptionState(
         availablePlans: <PlanEntity>[],
         purchaseState: PurchaseState.idle,
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -139,7 +153,7 @@ void main() {
       await tester.pump();
 
       final TextField widget = tester.widget(find.byType(TextField));
-      expect(widget.controller?.text, 'INVITE123');
+      expect(widget.controller?.text, 'invite123');
     });
 
     testWidgets('test_shows_error_for_empty_code', (tester) async {
@@ -149,9 +163,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -159,7 +171,7 @@ void main() {
       await tester.tap(redeemButton);
       await tester.pump();
 
-      expect(find.text('Please enter an invite code'), findsOneWidget);
+      expect(find.text('This field is required'), findsOneWidget);
     });
   });
 
@@ -171,10 +183,9 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
+      await tester.pump();
       await tester.pump();
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -187,14 +198,13 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pump();
+      await tester.pump();
 
-      final redeemButton = find.widgetWithText(ElevatedButton, 'Redeem');
-      final button = tester.widget<ElevatedButton>(redeemButton);
+      final redeemButton = find.byType(FilledButton);
+      final button = tester.widget<FilledButton>(redeemButton);
       expect(button.enabled, isFalse);
     });
 
@@ -205,9 +215,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -221,14 +229,12 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Invite code redeemed successfully'), findsOneWidget);
+      expect(find.text('Invite code redeemed successfully!'), findsOneWidget);
     });
 
     testWidgets('test_shows_error_snackbar_on_failure', (tester) async {
@@ -239,9 +245,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 
@@ -258,9 +262,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableDialog(
-          subscriptionState: subscriptionState,
-        ),
+        buildTestableDialog(subscriptionState: subscriptionState),
       );
       await tester.pumpAndSettle();
 

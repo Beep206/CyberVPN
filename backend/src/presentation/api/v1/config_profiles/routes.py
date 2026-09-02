@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 
 from src.domain.enums import AdminRole
 from src.infrastructure.monitoring.metrics import route_operations_total
@@ -29,7 +29,11 @@ async def list_config_profiles(
     )
 
 
-@router.post("/", response_model=RemnawaveConfigProfileResponse)
+@router.post(
+    "/",
+    response_model=RemnawaveConfigProfileResponse,
+    responses={202: {"description": "Creation accepted by Remnawave without a response body"}},
+)
 async def create_config_profile(
     profile_data: CreateConfigProfileRequest,
     current_user=Depends(require_role(AdminRole.ADMIN)),
@@ -42,4 +46,6 @@ async def create_config_profile(
         json=profile_data.model_dump(),
     )
     route_operations_total.labels(route="config_profiles", action="create", status="success").inc()
+    if result is None:
+        return Response(status_code=status.HTTP_202_ACCEPTED)
     return result

@@ -16,7 +16,7 @@ x-env: &env
 
 services:
   remnawave:
-    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:-cybervpn/remnawave-backend:2.8.0-raw-vision-flow.2}
+    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:-cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2}
     build:
       context: ./remnawave-backend-compat
     container_name: remnawave
@@ -453,7 +453,7 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - METRICS_PROTECT=false
-    command: ["taskiq", "scheduler", "src.broker:scheduler"]
+    command: ["taskiq", "scheduler", "src.scheduler:scheduler"]
     depends_on:
       cybervpn-worker:
         condition: service_healthy
@@ -507,22 +507,37 @@ services:
       start_period: 10s
 
   remnawave-subscription-page:
-    image: remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c
+    image: ${REMNAWAVE_SUBSCRIPTION_PAGE_IMAGE:-remnawave/subscription-page:8.0.0@sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac}
     container_name: remnawave-subscription-page
     hostname: remnawave-subscription-page
     profiles: ["subscription"]
     restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     env_file:
       - ./subscription/.env
+    environment:
+      APP_PORT: "3010"
+      REMNAWAVE_PANEL_URL: http://remnawave:3000
+      CUSTOM_SUB_PREFIX: api/sub
+      TRUST_PROXY: ${REMNAWAVE_SUBSCRIPTION_PAGE_TRUST_PROXY:-1}
+      PM2_HOME: /tmp/pm2
+      MARZBAN_LEGACY_LINK_ENABLED: "false"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m,mode=0700,uid=1000,gid=1000
     ports:
       - "127.0.0.1:3010:3010"
     networks:
-      - cybervpn-frontend
       - cybervpn-backend
     depends_on:
-      - remnawave
+      remnawave:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3010"]
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "--max-time", "2", "http://localhost:3010/internal/health"]
       interval: 30s
       timeout: 5s
       retries: 3

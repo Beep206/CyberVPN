@@ -206,7 +206,7 @@ class TestTelegramMiniAppUseCase:
         assert created_model.is_email_verified is True
 
     @pytest.mark.unit
-    async def test_remnawave_called_for_new_user(
+    async def test_remnawave_not_called_for_new_auth_user(
         self, mock_user_repo, mock_auth_service, mock_session, mock_telegram_provider, mock_replay_guard, make_user
     ):
         mock_user_repo.get_by_telegram_id.return_value = None
@@ -225,7 +225,7 @@ class TestTelegramMiniAppUseCase:
 
         await uc.execute("valid_init_data")
 
-        remnawave.create_user.assert_called_once()
+        remnawave.create_user.assert_not_called()
 
     @pytest.mark.unit
     async def test_remnawave_failure_non_fatal(
@@ -249,6 +249,7 @@ class TestTelegramMiniAppUseCase:
         # Should not raise
         result = await uc.execute("valid_init_data")
         assert result.is_new_user is True
+        remnawave.create_user.assert_not_called()
 
     @pytest.mark.unit
     async def test_remnawave_not_called_for_existing_user(

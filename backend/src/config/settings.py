@@ -3,7 +3,8 @@ import json
 import logging
 import re
 from typing import Annotated, ClassVar, Literal, Self
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
+from uuid import UUID
 
 from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode
@@ -66,6 +67,7 @@ class Settings(BaseSettings):
     remnawave_url: str = "http://localhost:3000"
     remnawave_token: SecretStr
     remnawave_webhook_secret: SecretStr = SecretStr("")
+    webhook_log_fingerprint_secret: SecretStr = SecretStr("")
     remnawave_webhook_max_age_seconds: int = 300
     remnawave_webhook_future_skew_seconds: int = 60
     remnawave_webhook_max_body_bytes: int = 65536
@@ -102,6 +104,28 @@ class Settings(BaseSettings):
     remnawave_spb_de_exceptions_readiness_revoked_attestation_ids: str = ""
     remnawave_request_retries: int = 1
     remnawave_retry_backoff_seconds: float = 0.25
+    remnawave_stream_ingestion_enabled: bool = False
+    remnawave_stream_ip_hmac_secret: SecretStr = SecretStr("")
+    remnawave_connection_drop_hmac_secret: SecretStr = SecretStr("")
+    remnawave_connection_drop_terminal_ttl_seconds: int = 86_400
+    remnawave_connection_drop_max_active_receipts: int = 250_000
+    remnawave_connection_drop_max_active_per_actor: int = 1_000
+    remnawave_connection_drop_max_pending_per_actor: int = 32
+    remnawave_connection_drop_cleanup_batch_size: int = 100
+    remnawave_stream_consumer_group: str = "cybervpn-remnawave-v1"
+    remnawave_stream_receipt_retention_days: int = 14
+    remnawave_stream_receipt_max_idle_seconds: int = 300
+    remnawave_user_usage_retention_days: int = 180
+    remnawave_subscription_request_retention_days: int = 30
+    remnawave_node_connections_retention_days: int = 30
+    remnawave_node_ssh_enabled: bool = False
+    remnawave_node_ssh_broker_url: str = ""
+    remnawave_node_ssh_broker_secret: SecretStr = SecretStr("")
+    remnawave_node_ssh_trusted_admin_ids: str = ""
+    remnawave_node_ssh_allowed_node_ids: str = ""
+    remnawave_node_ssh_ticket_ttl_seconds: int = 15
+    remnawave_node_ssh_session_max_seconds: int = 1800
+    remnawave_node_ssh_revocation_poll_seconds: float = 0.5
     remnawave_token_expires_at: str = ""
     remnawave_token_scope_label: str = ""
     remnawave_token_rotation_warning_days: int = 14
@@ -641,6 +665,12 @@ class Settings(BaseSettings):
         return f"{parsed.scheme}://{parsed.netloc}"
 
     @model_validator(mode="after")
+    def validate_gift_redemption_provisioning(self) -> Self:
+        if self.gift_codes_enabled and not self.stage1_paid_provisioning_enabled:
+            raise ValueError("STAGE1_PAID_PROVISIONING_ENABLED=true is required when GIFT_CODES_ENABLED=true.")
+        return self
+
+    @model_validator(mode="after")
     def validate_s2_oauth_login_provider_credentials(self) -> Self:
         """Fail fast if a production OAuth login provider is enabled without credentials."""
         enabled = {provider.strip().lower() for provider in self.oauth_enabled_login_providers if provider.strip()}
@@ -738,6 +768,266 @@ class Settings(BaseSettings):
         if worker_secret and hmac.compare_digest(backend_secret, worker_secret):
             raise ValueError("BACKEND_INTERNAL_SECRET must differ from PAYMENT_SETTLEMENT_WORKER_SECRET.")
 
+        return self
+
+    @model_validator(mode="after")
+    def validate_webhook_log_fingerprint_secret(self) -> Self:
+        fingerprint_secret = self.webhook_log_fingerprint_secret.get_secret_value().strip()
+        if not fingerprint_secret:
+            # Runtime redaction deliberately omits fingerprints when no
+            # dedicated key is available; it must never fall back to SHA-256
+            # or to a credential from another trust domain.
+            return self
+        if len(fingerprint_secret) < 32:
+            raise ValueError("WEBHOOK_LOG_FINGERPRINT_SECRET must be at least 32 characters when configured.")
+        if any(marker in fingerprint_secret.lower() for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+            raise ValueError("WEBHOOK_LOG_FINGERPRINT_SECRET must not be a placeholder/test value.")
+
+        def secret_value(value: SecretStr | None) -> str:
+            return value.get_secret_value().strip() if value is not None else ""
+
+        for label, other_secret in (
+            ("JWT_SECRET", secret_value(self.jwt_secret)),
+            ("REMNAWAVE_TOKEN", secret_value(self.remnawave_token)),
+            ("REMNAWAVE_WEBHOOK_SECRET", secret_value(self.remnawave_webhook_secret)),
+            (
+                "REMNAWAVE_STREAM_IP_HMAC_SECRET",
+                secret_value(self.remnawave_stream_ip_hmac_secret),
+            ),
+            (
+                "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET",
+                secret_value(self.remnawave_connection_drop_hmac_secret),
+            ),
+            (
+                "REMNAWAVE_NODE_SSH_BROKER_SECRET",
+                secret_value(self.remnawave_node_ssh_broker_secret),
+            ),
+            ("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", secret_value(self.vpn_tester_task2_xray_webhook_secret)),
+            ("VPN_TEST_AGENT_SECRET", secret_value(self.vpn_test_agent_secret)),
+            ("VPN_TEST_AGENT_MOSCOW_SECRET", secret_value(self.vpn_test_agent_moscow_secret)),
+            ("VPN_TEST_AGENT_SPB_SECRET", secret_value(self.vpn_test_agent_spb_secret)),
+            ("HELIX_ADAPTER_TOKEN", secret_value(self.helix_adapter_token)),
+            ("OAUTH_TOKEN_ENCRYPTION_KEY", secret_value(self.oauth_token_encryption_key)),
+            ("GITHUB_CLIENT_SECRET", secret_value(self.github_client_secret)),
+            ("TELEGRAM_BOT_TOKEN", secret_value(self.telegram_bot_token)),
+            ("TELEGRAM_OIDC_CLIENT_SECRET", secret_value(self.telegram_oidc_client_secret)),
+            ("TELEGRAM_BOT_INTERNAL_SECRET", secret_value(self.telegram_bot_internal_secret)),
+            ("BACKEND_INTERNAL_SECRET", secret_value(self.backend_internal_secret)),
+            (
+                "FRONTEND_OBSERVABILITY_INTERNAL_SECRET",
+                secret_value(self.frontend_observability_internal_secret),
+            ),
+            ("PAYMENT_SETTLEMENT_WORKER_SECRET", secret_value(self.payment_settlement_worker_secret)),
+            ("GOOGLE_CLIENT_SECRET", secret_value(self.google_client_secret)),
+            ("DISCORD_CLIENT_SECRET", secret_value(self.discord_client_secret)),
+            ("FACEBOOK_CLIENT_SECRET", secret_value(self.facebook_client_secret)),
+            ("APPLE_PRIVATE_KEY", secret_value(self.apple_private_key)),
+            ("MICROSOFT_CLIENT_SECRET", secret_value(self.microsoft_client_secret)),
+            ("TWITTER_CLIENT_SECRET", secret_value(self.twitter_client_secret)),
+            ("CRYPTOBOT_TOKEN", secret_value(self.cryptobot_token)),
+            ("GROWTH_CODE_HASH_SECRET", secret_value(self.growth_code_hash_secret)),
+            ("TOTP_ENCRYPTION_KEY", secret_value(self.totp_encryption_key)),
+            ("POSTHOG_PROJECT_API_KEY", secret_value(self.posthog_project_api_key)),
+            ("DATABASE_URL password", unquote(urlparse(self.database_url).password or "")),
+            ("REDIS_URL password", unquote(urlparse(self.redis_url).password or "")),
+        ):
+            if other_secret and hmac.compare_digest(fingerprint_secret, other_secret):
+                raise ValueError(f"WEBHOOK_LOG_FINGERPRINT_SECRET must differ from {label}.")
+        return self
+
+    @field_validator("remnawave_stream_receipt_max_idle_seconds", mode="after")
+    @classmethod
+    def validate_remnawave_stream_receipt_max_idle_seconds(cls, v: int) -> int:
+        if v < 30 or v > 3600:
+            raise ValueError("REMNAWAVE_STREAM_RECEIPT_MAX_IDLE_SECONDS must be between 30 and 3600 seconds.")
+        return v
+
+    @model_validator(mode="after")
+    def validate_remnawave_stream_ingestion_secret(self) -> Self:
+        if not self.remnawave_stream_ingestion_enabled:
+            return self
+        ip_hmac_secret = self.remnawave_stream_ip_hmac_secret.get_secret_value().strip()
+        if len(ip_hmac_secret) < 32:
+            raise ValueError("REMNAWAVE_STREAM_IP_HMAC_SECRET must be at least 32 characters when streams are enabled.")
+
+        # This key pseudonymizes privacy-sensitive stream fields and receipt
+        # fingerprints. Reusing any co-resident authentication or provider
+        # credential would let a compromise in one domain forge the other.
+        def secret_value(value: SecretStr | None) -> str:
+            return value.get_secret_value().strip() if value is not None else ""
+
+        for label, other_secret in (
+            ("JWT_SECRET", secret_value(self.jwt_secret)),
+            ("REMNAWAVE_TOKEN", secret_value(self.remnawave_token)),
+            ("REMNAWAVE_WEBHOOK_SECRET", secret_value(self.remnawave_webhook_secret)),
+            (
+                "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET",
+                secret_value(self.remnawave_connection_drop_hmac_secret),
+            ),
+            ("REMNAWAVE_NODE_SSH_BROKER_SECRET", secret_value(self.remnawave_node_ssh_broker_secret)),
+            ("VPN_TESTER_TASK2_XRAY_WEBHOOK_SECRET", secret_value(self.vpn_tester_task2_xray_webhook_secret)),
+            ("VPN_TEST_AGENT_SECRET", secret_value(self.vpn_test_agent_secret)),
+            ("VPN_TEST_AGENT_MOSCOW_SECRET", secret_value(self.vpn_test_agent_moscow_secret)),
+            ("VPN_TEST_AGENT_SPB_SECRET", secret_value(self.vpn_test_agent_spb_secret)),
+            ("HELIX_ADAPTER_TOKEN", secret_value(self.helix_adapter_token)),
+            ("OAUTH_TOKEN_ENCRYPTION_KEY", secret_value(self.oauth_token_encryption_key)),
+            ("GITHUB_CLIENT_SECRET", secret_value(self.github_client_secret)),
+            ("TELEGRAM_BOT_TOKEN", secret_value(self.telegram_bot_token)),
+            ("TELEGRAM_OIDC_CLIENT_SECRET", secret_value(self.telegram_oidc_client_secret)),
+            ("TELEGRAM_BOT_INTERNAL_SECRET", secret_value(self.telegram_bot_internal_secret)),
+            ("BACKEND_INTERNAL_SECRET", secret_value(self.backend_internal_secret)),
+            ("FRONTEND_OBSERVABILITY_INTERNAL_SECRET", secret_value(self.frontend_observability_internal_secret)),
+            ("PAYMENT_SETTLEMENT_WORKER_SECRET", secret_value(self.payment_settlement_worker_secret)),
+            ("GOOGLE_CLIENT_SECRET", secret_value(self.google_client_secret)),
+            ("DISCORD_CLIENT_SECRET", secret_value(self.discord_client_secret)),
+            ("FACEBOOK_CLIENT_SECRET", secret_value(self.facebook_client_secret)),
+            ("APPLE_PRIVATE_KEY", secret_value(self.apple_private_key)),
+            ("MICROSOFT_CLIENT_SECRET", secret_value(self.microsoft_client_secret)),
+            ("TWITTER_CLIENT_SECRET", secret_value(self.twitter_client_secret)),
+            ("CRYPTOBOT_TOKEN", secret_value(self.cryptobot_token)),
+            ("GROWTH_CODE_HASH_SECRET", secret_value(self.growth_code_hash_secret)),
+            ("TOTP_ENCRYPTION_KEY", secret_value(self.totp_encryption_key)),
+            ("POSTHOG_PROJECT_API_KEY", secret_value(self.posthog_project_api_key)),
+            ("DATABASE_URL password", unquote(urlparse(self.database_url).password or "")),
+            ("REDIS_URL password", unquote(urlparse(self.redis_url).password or "")),
+        ):
+            if other_secret and hmac.compare_digest(ip_hmac_secret, other_secret):
+                raise ValueError(f"REMNAWAVE_STREAM_IP_HMAC_SECRET must differ from {label}.")
+        if (
+            min(
+                self.remnawave_stream_receipt_retention_days,
+                self.remnawave_user_usage_retention_days,
+                self.remnawave_subscription_request_retention_days,
+                self.remnawave_node_connections_retention_days,
+            )
+            <= 0
+        ):
+            raise ValueError("Remnawave stream retention periods must be positive.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_remnawave_connection_drop_receipts(self) -> Self:
+        if not 300 <= self.remnawave_connection_drop_terminal_ttl_seconds <= 604_800:
+            raise ValueError("REMNAWAVE_CONNECTION_DROP_TERMINAL_TTL_SECONDS must be between 300 and 604800 seconds.")
+        if not 1_000 <= self.remnawave_connection_drop_max_active_receipts <= 10_000_000:
+            raise ValueError("REMNAWAVE_CONNECTION_DROP_MAX_ACTIVE_RECEIPTS must be between 1000 and 10000000.")
+        if not 10 <= self.remnawave_connection_drop_max_active_per_actor <= 100_000:
+            raise ValueError("REMNAWAVE_CONNECTION_DROP_MAX_ACTIVE_PER_ACTOR must be between 10 and 100000.")
+        if not 1 <= self.remnawave_connection_drop_max_pending_per_actor <= 1_000:
+            raise ValueError("REMNAWAVE_CONNECTION_DROP_MAX_PENDING_PER_ACTOR must be between 1 and 1000.")
+        if not 1 <= self.remnawave_connection_drop_cleanup_batch_size <= 5_000:
+            raise ValueError("REMNAWAVE_CONNECTION_DROP_CLEANUP_BATCH_SIZE must be between 1 and 5000.")
+
+        receipt_secret = self.remnawave_connection_drop_hmac_secret.get_secret_value().strip()
+        if not receipt_secret:
+            # Local/read-only deployments may leave drop mutations unavailable.
+            # The route dependency fails closed with 503 until a dedicated key
+            # is supplied; it never falls back to a rotatable provider/privacy key.
+            return self
+        if len(receipt_secret) < 32:
+            raise ValueError("REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must be at least 32 characters.")
+        if any(marker in receipt_secret.lower() for marker in self.PROVIDER_SECRET_PLACEHOLDER_PATTERNS):
+            raise ValueError("REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must not be a placeholder/test value.")
+
+        def secret_value(value: SecretStr | None) -> str:
+            return value.get_secret_value().strip() if value is not None else ""
+
+        for label, other_secret in (
+            ("JWT_SECRET", secret_value(self.jwt_secret)),
+            ("REMNAWAVE_TOKEN", secret_value(self.remnawave_token)),
+            ("REMNAWAVE_WEBHOOK_SECRET", secret_value(self.remnawave_webhook_secret)),
+            ("WEBHOOK_LOG_FINGERPRINT_SECRET", secret_value(self.webhook_log_fingerprint_secret)),
+            ("REMNAWAVE_STREAM_IP_HMAC_SECRET", secret_value(self.remnawave_stream_ip_hmac_secret)),
+            ("REMNAWAVE_NODE_SSH_BROKER_SECRET", secret_value(self.remnawave_node_ssh_broker_secret)),
+            ("BACKEND_INTERNAL_SECRET", secret_value(self.backend_internal_secret)),
+            ("PAYMENT_SETTLEMENT_WORKER_SECRET", secret_value(self.payment_settlement_worker_secret)),
+            ("OAUTH_TOKEN_ENCRYPTION_KEY", secret_value(self.oauth_token_encryption_key)),
+            ("TOTP_ENCRYPTION_KEY", secret_value(self.totp_encryption_key)),
+            ("DATABASE_URL password", unquote(urlparse(self.database_url).password or "")),
+            ("REDIS_URL password", unquote(urlparse(self.redis_url).password or "")),
+        ):
+            if other_secret and hmac.compare_digest(receipt_secret, other_secret):
+                raise ValueError(f"REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must differ from {label}.")
+        return self
+
+    @model_validator(mode="after")
+    def validate_remnawave_node_ssh_policy(self) -> Self:
+        if not 5 <= self.remnawave_node_ssh_ticket_ttl_seconds <= 15:
+            raise ValueError("REMNAWAVE_NODE_SSH_TICKET_TTL_SECONDS must be between 5 and 15 seconds.")
+        if not 60 <= self.remnawave_node_ssh_session_max_seconds <= 3600:
+            raise ValueError("REMNAWAVE_NODE_SSH_SESSION_MAX_SECONDS must be between 60 and 3600 seconds.")
+        if not 0.1 <= self.remnawave_node_ssh_revocation_poll_seconds <= 5:
+            raise ValueError("REMNAWAVE_NODE_SSH_REVOCATION_POLL_SECONDS must be between 0.1 and 5 seconds.")
+        if not self.remnawave_node_ssh_enabled:
+            return self
+
+        broker_secret = self.remnawave_node_ssh_broker_secret.get_secret_value().strip()
+        if re.fullmatch(r"[a-f0-9]{128}", broker_secret) is None:
+            raise ValueError(
+                "REMNAWAVE_NODE_SSH_BROKER_SECRET must contain exactly 128 lowercase hexadecimal characters "
+                "when Node SSH is enabled."
+            )
+        broker_url = self.remnawave_node_ssh_broker_url.strip()
+        parsed_broker_url = urlparse(broker_url)
+        if (
+            parsed_broker_url.scheme not in {"http", "https"}
+            or parsed_broker_url.hostname is None
+            or parsed_broker_url.username is not None
+            or parsed_broker_url.password is not None
+            or parsed_broker_url.path not in {"", "/"}
+            or parsed_broker_url.params
+            or parsed_broker_url.query
+            or parsed_broker_url.fragment
+        ):
+            raise ValueError(
+                "REMNAWAVE_NODE_SSH_BROKER_URL must be an absolute HTTP(S) origin without credentials, path, "
+                "query, or fragment when Node SSH is enabled."
+            )
+        for label, other_secret in (
+            ("REMNAWAVE_TOKEN", self.remnawave_token.get_secret_value().strip()),
+            ("JWT_SECRET", self.jwt_secret.get_secret_value().strip()),
+            ("BACKEND_INTERNAL_SECRET", self.backend_internal_secret.get_secret_value().strip()),
+            (
+                "REMNAWAVE_STREAM_IP_HMAC_SECRET",
+                self.remnawave_stream_ip_hmac_secret.get_secret_value().strip(),
+            ),
+            (
+                "REMNAWAVE_CONNECTION_DROP_HMAC_SECRET",
+                self.remnawave_connection_drop_hmac_secret.get_secret_value().strip(),
+            ),
+        ):
+            if other_secret and hmac.compare_digest(broker_secret, other_secret):
+                raise ValueError(f"REMNAWAVE_NODE_SSH_BROKER_SECRET must differ from {label}.")
+
+        trusted_admin_ids = [
+            item.strip() for item in self.remnawave_node_ssh_trusted_admin_ids.split(",") if item.strip()
+        ]
+        if not trusted_admin_ids:
+            raise ValueError(
+                "REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS must explicitly allow at least one admin when Node SSH is "
+                "enabled."
+            )
+        try:
+            parsed_admin_ids = [UUID(item) for item in trusted_admin_ids]
+        except ValueError as exc:
+            raise ValueError("REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS must contain comma-separated UUIDs.") from exc
+        if len(set(parsed_admin_ids)) != len(parsed_admin_ids):
+            raise ValueError("REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS must not contain duplicate UUIDs.")
+        allowed_node_ids = [
+            item.strip() for item in self.remnawave_node_ssh_allowed_node_ids.split(",") if item.strip()
+        ]
+        if not allowed_node_ids:
+            raise ValueError(
+                "REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS must explicitly allow at least one node when Node SSH is enabled."
+            )
+        try:
+            parsed_node_ids = [UUID(item) for item in allowed_node_ids]
+        except ValueError as exc:
+            raise ValueError("REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS must contain comma-separated UUIDs.") from exc
+        if len(set(parsed_node_ids)) != len(parsed_node_ids):
+            raise ValueError("REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS must not contain duplicate UUIDs.")
+        if not self.passkey_enabled or not self.passkey_admin_enabled:
+            raise ValueError("Admin passkey reauthentication must be enabled before Remnawave Node SSH.")
         return self
 
     @model_validator(mode="after")

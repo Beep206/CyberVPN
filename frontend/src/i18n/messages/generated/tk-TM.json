@@ -460,7 +460,17 @@
     "serverStatus": "SERWER ÝAGDAÝY",
     "statusLabel": "ULGAM ÝAGDAÝY:",
     "statusValue": "OPTIMAL",
-    "title": "VPN DOLANDYRYS MERKEZI"
+    "title": "VPN DOLANDYRYS MERKEZI",
+    "vpnServiceStatus": {
+      "available": "Elýeterli",
+      "connections": "Birikmeler",
+      "degraded": "Bölekleýin çäklendirilen",
+      "devices": "Enjamlar",
+      "loading": "VPN hyzmatynyň ýagdaýy ýüklenýär",
+      "title": "VPN hyzmatynyň elýeterliligi",
+      "unavailable": "Elýeterli däl",
+      "usage": "Ulanyş"
+    }
   },
   "DeleteAccount": {
     "contact": {

@@ -460,7 +460,17 @@
     "serverStatus": "IPÒ OLÙPÍN",
     "statusLabel": "IPÒ ỆRỌ:",
     "statusValue": "Ó DÁRA JÙLỌ",
-    "title": "IBI ÀṢẸ VPN"
+    "title": "IBI ÀṢẸ VPN",
+    "vpnServiceStatus": {
+      "available": "Ó wà",
+      "connections": "Àwọn ìsopọ̀",
+      "degraded": "Ó dín kù ní apá kan",
+      "devices": "Àwọn ẹ̀rọ",
+      "loading": "Ń ṣàkójọpọ̀ ipò iṣẹ́ VPN",
+      "title": "Wíwà iṣẹ́ VPN",
+      "unavailable": "Kò sí",
+      "usage": "Lílò"
+    }
   },
   "DeleteAccount": {
     "contact": {

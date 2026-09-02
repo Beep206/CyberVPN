@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Даступнасць VPN-сэрвісу",
+    "connections": "Падключэнні",
+    "usage": "Выкарыстанне",
+    "devices": "Прылады",
+    "available": "Даступна",
+    "unavailable": "Недаступна",
+    "loading": "Загрузка стану VPN-сэрвісу",
+    "degraded": "Часткова абмежавана"
   }
 }

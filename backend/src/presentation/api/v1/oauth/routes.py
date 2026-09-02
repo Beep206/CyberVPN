@@ -66,7 +66,6 @@ from src.infrastructure.oauth.google import GoogleOAuthProvider
 from src.infrastructure.oauth.microsoft import MicrosoftOAuthProvider
 from src.infrastructure.oauth.telegram import TelegramOAuthProvider
 from src.infrastructure.oauth.twitter import TwitterOAuthProvider
-from src.infrastructure.remnawave.adapters import RemnawaveUserAdapter, get_remnawave_adapter
 from src.presentation.api.v1.auth.cookies import (
     get_or_create_web_device_cookie_value,
     set_auth_cookies,
@@ -1191,7 +1190,6 @@ async def check_telegram_magic_link_status(
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
-    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> TelegramMagicLinkStatusResponse:
     """Poll the status of the Magic Link login session."""
     started_at = perf_counter()
@@ -1236,7 +1234,6 @@ async def check_telegram_magic_link_status(
         oauth_repo=oauth_repo,
         auth_service=auth_service,
         session=db,
-        remnawave_gateway=remnawave_adapter,
         allow_new_users=settings.registration_enabled,
     )
 
@@ -1509,7 +1506,6 @@ async def oauth_login_callback(
     redis_client: redis.Redis = Depends(get_redis),
     auth_service: AuthService = Depends(get_auth_service),
     current_realm: RealmResolution = Depends(get_request_web_auth_realm),
-    remnawave_adapter: RemnawaveUserAdapter = Depends(get_remnawave_adapter),
 ) -> OAuthLoginResponse:
     """Process OAuth login callback and return JWT tokens (no authentication required).
 
@@ -1627,7 +1623,6 @@ async def oauth_login_callback(
         oauth_repo=oauth_repo,
         auth_service=auth_service,
         session=db,
-        remnawave_gateway=remnawave_adapter,
         allow_new_users=settings.registration_enabled,
     )
 

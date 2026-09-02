@@ -672,6 +672,7 @@
   "subscriptions": {
     "fillAllFields": "Please fill all fields",
     "createError": "Error: {{error}}",
+    "secureStoreError": "The subscription could not be saved securely.",
     "syncSuccess": "Subscription synced successfully",
     "syncError": "Sync failed: {{error}}",
     "neverUpdated": "Never updated",

@@ -7,6 +7,9 @@ import 'package:cybervpn_mobile/core/storage/secure_storage.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/vpn/domain/entities/vpn_config_entity.dart';
 
+typedef ProtocolReachabilityProbe =
+    Future<bool> Function(String address, int port);
+
 // ---------------------------------------------------------------------------
 // Protocol Fallback Use-Case
 // ---------------------------------------------------------------------------
@@ -36,12 +39,16 @@ class ProtocolFallback {
   ];
 
   final SecureStorageWrapper _storage;
+  final ProtocolReachabilityProbe _probe;
 
   // SENSITIVE: Preferred VPN protocol is a security setting - must use SecureStorage
   static const String _preferredProtocolKey = 'preferred_vpn_protocol';
 
-  ProtocolFallback({required SecureStorageWrapper storage})
-      : _storage = storage;
+  ProtocolFallback({
+    required SecureStorageWrapper storage,
+    ProtocolReachabilityProbe? probe,
+  }) : _storage = storage,
+       _probe = probe ?? _testProtocol;
 
   // ── Public API ──────────────────────────────────────────────────────────
 
@@ -58,8 +65,9 @@ class ProtocolFallback {
     required int port,
     VpnProtocol? manualOverride,
   }) async {
-    final chain =
-        manualOverride != null ? [manualOverride] : await _buildChain();
+    final chain = manualOverride != null
+        ? [manualOverride]
+        : await _buildChain();
 
     final log = <ProtocolAttemptLog>[];
 
@@ -70,14 +78,16 @@ class ProtocolFallback {
           '(attempt $attempt/$maxRetries) -> $serverAddress:$port',
         );
 
-        final success = await _testProtocol(serverAddress, port);
+        final success = await _probe(serverAddress, port);
 
-        log.add(ProtocolAttemptLog(
-          protocol: protocol,
-          attempt: attempt,
-          success: success,
-          timestamp: DateTime.now(),
-        ));
+        log.add(
+          ProtocolAttemptLog(
+            protocol: protocol,
+            attempt: attempt,
+            success: success,
+            timestamp: DateTime.now(),
+          ),
+        );
 
         if (success) {
           AppLogger.info(
@@ -85,10 +95,7 @@ class ProtocolFallback {
           );
           // Persist as preferred for next time.
           await _savePreferredProtocol(protocol);
-          return ProtocolFallbackSuccess(
-            protocol: protocol,
-            attemptLog: log,
-          );
+          return ProtocolFallbackSuccess(protocol: protocol, attemptLog: log);
         }
 
         AppLogger.warning(
@@ -142,23 +149,16 @@ class ProtocolFallback {
     if (preferred == null) return _fallbackChain;
 
     // Move preferred to front, keep the rest in order.
-    return [
-      preferred,
-      ..._fallbackChain.where((p) => p != preferred),
-    ];
+    return [preferred, ..._fallbackChain.where((p) => p != preferred)];
   }
 
   /// Performs a TCP handshake test to [address]:[port].
   ///
   /// Returns `true` if the socket connects within [handshakeTimeout].
-  Future<bool> _testProtocol(String address, int port) async {
+  static Future<bool> _testProtocol(String address, int port) async {
     Socket? socket;
     try {
-      socket = await Socket.connect(
-        address,
-        port,
-        timeout: handshakeTimeout,
-      );
+      socket = await Socket.connect(address, port, timeout: handshakeTimeout);
       return true;
     } on SocketException catch (e) {
       AppLogger.debug('TCP handshake failed: $e');
@@ -172,7 +172,9 @@ class ProtocolFallback {
     } finally {
       try {
         socket?.destroy();
-      } catch (_) { /* intentionally ignored */ }
+      } catch (_) {
+        /* intentionally ignored */
+      }
     }
   }
 

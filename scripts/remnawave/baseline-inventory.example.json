@@ -1,0 +1,115 @@
+{
+  "schema_version": 2,
+  "environment": "staging",
+  "environment_binding_sha256": "REPLACE_WITH_SHA256_OF_THE_APPROVED_ENVIRONMENT_BINDING",
+  "collection_mode": "read_only",
+  "sanitized": true,
+  "contains_secret_values": false,
+  "collected_at": "REPLACE_WITH_CURRENT_ISO_8601_TIMESTAMP_WITH_TIMEZONE",
+  "panel": {
+    "version": "2.8.0",
+    "image_digest": "sha256:REPLACE_WITH_READ_ONLY_DOCKER_INSPECT_RESULT",
+    "auth_secret_sha256": "REPLACE_WITH_SHA256_OF_CURRENT_JWT_AUTH_SECRET_WITHOUT_EXPOSING_THE_SECRET",
+    "source_metadata": {
+      "image_ref": "cybervpn/remnawave-backend:2.8.0-raw-vision-flow.2",
+      "source_commit": "REPLACE_WITH_IMAGE_LABEL_OR_APPROVED_BUILD_RECORD",
+      "build_record_sha256": "REPLACE_WITH_SHA256_OF_THE_APPROVED_BUILD_RECORD"
+    }
+  },
+  "nodes": [
+    {
+      "name": "sanitized-node-name",
+      "version": "2.8.0",
+      "image_digest": "sha256:REPLACE_WITH_READ_ONLY_DOCKER_INSPECT_RESULT",
+      "runtime_secret_key_sha256": "REPLACE_WITH_SHA256_OF_THE_DEPLOYED_NODE_SECRET_KEY",
+      "panel_secret_key_sha256": "REPLACE_WITH_SHA256_OF_THE_MATCHING_PANEL_NODE_PAYLOAD"
+    }
+  ],
+  "subscription_page": {
+    "version": "7.2.6",
+    "image_digest": "sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c"
+  },
+  "migrations": {
+    "cybervpn_alembic_head": "20260711_plan_code_len",
+    "remnawave_pending": 0,
+    "remnawave_failed": false,
+    "remnawave_applied_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+    "remnawave_expected_count": "REPLACE_WITH_THE_SAME_NON_NEGATIVE_INTEGER",
+    "remnawave_applied_set_sha256": "REPLACE_WITH_SHA256_OF_THE_SORTED_APPLIED_MIGRATION_IDS",
+    "remnawave_expected_set_sha256": "REPLACE_WITH_SHA256_OF_THE_SORTED_EXPECTED_MIGRATION_IDS",
+    "parity": true
+  },
+  "topology": {
+    "expected_node_count": "REPLACE_WITH_APPROVED_NODE_COUNT",
+    "observed_node_count": "REPLACE_WITH_OBSERVED_NODE_COUNT",
+    "expected_node_names_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_APPROVED_NODE_NAMES",
+    "observed_node_names_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_NODE_NAMES",
+    "parity": true
+  },
+  "state_parity": {
+    "users": {
+      "authoritative_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "observed_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "authoritative_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_AUTHORITATIVE_IDS",
+      "observed_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_IDS",
+      "count_parity": true,
+      "identity_parity": true
+    },
+    "mappings": {
+      "authoritative_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "observed_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "authoritative_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_AUTHORITATIVE_IDS",
+      "observed_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_IDS",
+      "count_parity": true,
+      "identity_parity": true
+    },
+    "nodes": {
+      "authoritative_count": "REPLACE_WITH_APPROVED_NODE_COUNT",
+      "observed_count": "REPLACE_WITH_OBSERVED_NODE_COUNT",
+      "authoritative_set_sha256": "REPLACE_WITH_EXPECTED_NODE_NAMES_SHA256",
+      "observed_set_sha256": "REPLACE_WITH_OBSERVED_NODE_NAMES_SHA256",
+      "count_parity": true,
+      "identity_parity": true
+    },
+    "hosts": {
+      "authoritative_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "observed_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "authoritative_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_AUTHORITATIVE_IDS",
+      "observed_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_IDS",
+      "count_parity": true,
+      "identity_parity": true
+    },
+    "profiles": {
+      "authoritative_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "observed_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "authoritative_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_AUTHORITATIVE_IDS",
+      "observed_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_IDS",
+      "count_parity": true,
+      "identity_parity": true
+    },
+    "squads": {
+      "authoritative_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "observed_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "authoritative_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_AUTHORITATIVE_IDS",
+      "observed_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_IDS",
+      "count_parity": true,
+      "identity_parity": true
+    },
+    "plugins": {
+      "authoritative_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "observed_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "authoritative_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_AUTHORITATIVE_IDS",
+      "observed_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_IDS",
+      "count_parity": true,
+      "identity_parity": true
+    },
+    "hwids": {
+      "authoritative_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "observed_count": "REPLACE_WITH_NON_NEGATIVE_INTEGER",
+      "authoritative_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_AUTHORITATIVE_IDS",
+      "observed_set_sha256": "REPLACE_WITH_SHA256_OF_CANONICAL_SORTED_OBSERVED_IDS",
+      "count_parity": true,
+      "identity_parity": true
+    }
+  }
+}

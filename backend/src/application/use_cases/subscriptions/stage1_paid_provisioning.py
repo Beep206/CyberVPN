@@ -39,6 +39,7 @@ class Stage1PaidProvisioningRequest:
     device_limit: int
     profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID
     existing_remnawave_uuid: str | None = None
+    existing_remnawave_user_id: int | None = None
     source_provider: str | None = None
     source_payment_id: str | None = None
     traffic_limit_strategy: str = STAGE1_PAID_TRAFFIC_LIMIT_STRATEGY
@@ -56,21 +57,23 @@ class Stage1PaidProvisioningResult:
 
     customer_account_id: UUID
     order_id: UUID
-    remnawave_uuid: str
+    remnawave_uuid: str | None
     profile_id: str
     status: str
     expires_at: datetime
     subscription_url: str | None = None
     created: bool = False
     provider_name: str = "remnawave"
+    remnawave_user_id: int | None = None
 
-    def to_safe_dict(self) -> dict[str, str | bool]:
+    def to_safe_dict(self) -> dict[str, str | int | bool | None]:
         """Serialize metadata without leaking config links or provider secrets."""
 
         return {
             "customer_account_id": str(self.customer_account_id),
             "order_id": str(self.order_id),
             "remnawave_uuid": self.remnawave_uuid,
+            "remnawave_user_id": self.remnawave_user_id,
             "profile_id": self.profile_id,
             "status": self.status,
             "expires_at": self.expires_at.isoformat(),
@@ -106,6 +109,7 @@ def build_stage1_paid_provisioning_request(
     traffic_limit_bytes: int | None,
     device_limit: int,
     existing_remnawave_uuid: str | None = None,
+    existing_remnawave_user_id: int | None = None,
     source_provider: str | None = None,
     source_payment_id: str | None = None,
     profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID,
@@ -148,6 +152,7 @@ def build_stage1_paid_provisioning_request(
         device_limit=device_limit,
         profile_id=profile.profile_id,
         existing_remnawave_uuid=existing_remnawave_uuid,
+        existing_remnawave_user_id=existing_remnawave_user_id,
         source_provider=source_provider,
         source_payment_id=source_payment_id,
     )
@@ -177,6 +182,7 @@ class Stage1PaidProvisioningService:
         traffic_limit_bytes: int | None,
         device_limit: int,
         existing_remnawave_uuid: str | None = None,
+        existing_remnawave_user_id: int | None = None,
         source_provider: str | None = None,
         source_payment_id: str | None = None,
         profile_id: str = STAGE1_DEFAULT_VPN_PROFILE_ID,
@@ -197,6 +203,7 @@ class Stage1PaidProvisioningService:
             traffic_limit_bytes=traffic_limit_bytes,
             device_limit=device_limit,
             existing_remnawave_uuid=existing_remnawave_uuid,
+            existing_remnawave_user_id=existing_remnawave_user_id,
             source_provider=source_provider,
             source_payment_id=source_payment_id,
             profile_id=profile_id,
@@ -207,8 +214,19 @@ class Stage1PaidProvisioningService:
         expires_delta_seconds = abs((result.expires_at - request.access_expires_at).total_seconds())
         if expires_delta_seconds > 1:
             raise Stage1PaidProvisioningError("Provisioning gateway returned an unexpected paid expiry")
-        if not result.remnawave_uuid:
-            raise Stage1PaidProvisioningError("Provisioning gateway returned no Remnawave user UUID")
+        if (
+            isinstance(result.remnawave_user_id, bool)
+            or not isinstance(result.remnawave_user_id, int)
+            or result.remnawave_user_id <= 0
+        ):
+            raise Stage1PaidProvisioningError("Provisioning gateway returned an incomplete Remnawave 3.x identity")
+        if result.remnawave_uuid is not None:
+            try:
+                UUID(result.remnawave_uuid)
+            except ValueError as exc:
+                raise Stage1PaidProvisioningError(
+                    "Provisioning gateway returned an invalid Remnawave rollback reference"
+                ) from exc
         return result
 
 

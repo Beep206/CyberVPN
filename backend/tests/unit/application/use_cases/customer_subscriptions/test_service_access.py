@@ -7,16 +7,70 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import HTTPException
+from httpx import ReadTimeout, Request
 
+from src.application.services.remnawave_create_attempts import (
+    RemnawaveCreateAttemptService as RealRemnawaveCreateAttemptService,
+)
 from src.application.use_cases.customer_subscriptions import service_access as service_access_module
 from src.application.use_cases.customer_subscriptions.service_access import (
     CustomerSubscriptionServiceAccessUseCase,
 )
 from src.config.settings import settings
 from src.domain.enums import AccessDeliveryChannelType, DeviceCredentialType
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
+from src.infrastructure.remnawave.user_gateway import RemnawaveMutationAcceptedPending
 from src.presentation.api.v1.access_delivery_channels.schemas import GetCurrentServiceStateRequest
 from src.presentation.api.v1.customer_subscriptions import routes as customer_subscription_routes
 from tests.helpers.spb_de_readiness import enable_spb_de_readiness, manifest_pointer_json
+
+
+@pytest.fixture(autouse=True)
+def _stub_runtime_identity_ledger(monkeypatch: pytest.MonkeyPatch):
+    """Keep routing-focused fixtures independent from the ledger unit suite."""
+
+    async def resolve(_session, *, numeric_user_id, legacy_uuid_raw, **_kwargs):
+        if numeric_user_id is None and not legacy_uuid_raw:
+            return None
+        numeric_id = numeric_user_id if isinstance(numeric_user_id, int) else 42
+        legacy_uuid = uuid.UUID(str(legacy_uuid_raw)) if legacy_uuid_raw else uuid.uuid4()
+        return RemnawaveUserRef(id=numeric_id, legacy_uuid=legacy_uuid)
+
+    async def persist_mobile(_session, *, customer, remnawave_user_id, remnawave_uuid, **_kwargs):
+        numeric_id = remnawave_user_id if isinstance(remnawave_user_id, int) else 42
+        legacy_uuid = uuid.UUID(str(remnawave_uuid)) if remnawave_uuid else uuid.uuid4()
+        customer.remnawave_user_id = numeric_id
+        customer.remnawave_uuid = str(legacy_uuid)
+        return RemnawaveUserRef(id=numeric_id, legacy_uuid=legacy_uuid)
+
+    async def persist_service(_session, *, service_identity, remnawave_user_id, remnawave_uuid, **_kwargs):
+        numeric_id = remnawave_user_id if isinstance(remnawave_user_id, int) else 42
+        legacy_uuid = uuid.UUID(str(remnawave_uuid)) if remnawave_uuid else uuid.uuid4()
+        service_identity.provider_numeric_subject_id = numeric_id
+        service_identity.provider_subject_ref = str(legacy_uuid)
+        return RemnawaveUserRef(id=numeric_id, legacy_uuid=legacy_uuid)
+
+    class RoutingOnlyCreateAttemptService:
+        def __init__(self, _session) -> None:
+            self.record = SimpleNamespace(status="pending", response_payload={})
+
+        async def begin(self, **_kwargs):
+            return SimpleNamespace(record=self.record, should_mutate=True)
+
+        async def mark_reconciliation_required(self, _record) -> None:
+            return None
+
+        async def mark_completed(self, _record, *, user_ref) -> None:
+            return None
+
+    monkeypatch.setattr(service_access_module, "resolve_exact_mapped_remnawave_ref", resolve)
+    monkeypatch.setattr(service_access_module, "persist_runtime_mapped_mobile_identity", persist_mobile)
+    monkeypatch.setattr(service_access_module, "persist_runtime_mapped_service_identity", persist_service)
+    monkeypatch.setattr(
+        service_access_module,
+        "RemnawaveCreateAttemptService",
+        RoutingOnlyCreateAttemptService,
+    )
 
 
 def _subscription_summary() -> SimpleNamespace:
@@ -48,6 +102,82 @@ def _spb_de_context(external_squad_uuid: str, internal_squad_uuid: str) -> dict[
 
 def _enable_spb_de_data_plane(monkeypatch: pytest.MonkeyPatch) -> None:
     enable_spb_de_readiness(monkeypatch)
+
+
+class _CreateAttemptScalarResult:
+    def __init__(self, record) -> None:
+        self._record = record
+
+    def scalars(self):
+        return self
+
+    def one_or_none(self):
+        return self._record
+
+
+class _CreateAttemptSession:
+    def __init__(self) -> None:
+        self.record = None
+        self.commits = 0
+
+    async def execute(self, _statement):
+        return _CreateAttemptScalarResult(self.record)
+
+    def add(self, record) -> None:
+        self.record = record
+
+    async def commit(self) -> None:
+        self.commits += 1
+
+    async def rollback(self) -> None:
+        return None
+
+    async def flush(self) -> None:
+        return None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_kind", ["accepted", "timeout"])
+async def test_selected_service_ambiguous_create_is_latched_and_never_reposted(
+    failure_kind: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        service_access_module,
+        "RemnawaveCreateAttemptService",
+        RealRemnawaveCreateAttemptService,
+    )
+    session = _CreateAttemptSession()
+    use_case = CustomerSubscriptionServiceAccessUseCase(session)
+
+    class AmbiguousGateway:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def create(self, username: str, **_payload):
+            self.calls += 1
+            if failure_kind == "accepted":
+                raise RemnawaveMutationAcceptedPending(operation="create")
+            raise ReadTimeout("ambiguous create", request=Request("POST", "https://remnawave.test/api/users"))
+
+    gateway = AmbiguousGateway()
+    customer_account_id = uuid.uuid4()
+    business_key = f"grant:{uuid.uuid4()}"
+    for _attempt in range(2):
+        with pytest.raises(HTTPException) as exc_info:
+            await use_case._create_remnawave_user_once(
+                gateway=gateway,
+                username="cvpn_s_safe",
+                customer_account_id=customer_account_id,
+                business_key=business_key,
+                payload={"expire_at": "2026-09-01T00:00:00Z"},
+            )
+        assert exc_info.value.status_code == 409
+
+    assert gateway.calls == 1
+    assert session.record.status == "reconciliation_required"
+    assert session.record.response_payload == {}
+    assert session.commits == 2
 
 
 @pytest.mark.asyncio
@@ -440,8 +570,8 @@ async def test_selected_subscription_recreates_stale_remnawave_identity(
         def __init__(self, client) -> None:
             captured["remnawave_client"] = client
 
-        async def get_by_uuid(self, remnawave_uuid: uuid.UUID):
-            captured["looked_up_remnawave_uuid"] = remnawave_uuid
+        async def get_by_ref(self, user_ref: RemnawaveUserRef):
+            captured["looked_up_remnawave_uuid"] = user_ref.legacy_uuid
             return None
 
         async def create(self, username: str, **kwargs):
@@ -549,8 +679,8 @@ async def test_selected_subscription_config_recreates_stale_existing_identity(
         def __init__(self, client) -> None:
             captured["remnawave_client"] = client
 
-        async def get_by_uuid(self, remnawave_uuid: uuid.UUID):
-            captured["looked_up_remnawave_uuid"] = remnawave_uuid
+        async def get_by_ref(self, user_ref: RemnawaveUserRef):
+            captured["looked_up_remnawave_uuid"] = user_ref.legacy_uuid
             return None
 
         async def create(self, username: str, **kwargs):
@@ -565,8 +695,8 @@ async def test_selected_subscription_config_recreates_stale_existing_identity(
         def __init__(self, client) -> None:
             captured["config_client"] = client
 
-        async def execute(self, user_uuid: str, *, plan_code: str | None = None, user_segments=None):
-            captured["config_user_uuid"] = user_uuid
+        async def execute(self, user_ref: RemnawaveUserRef, *, plan_code: str | None = None, user_segments=None):
+            captured["config_user_ref"] = user_ref
             captured["config_plan_code"] = plan_code
             captured["config_user_segments"] = user_segments
             return {"subscription_url": new_subscription_url}
@@ -607,7 +737,7 @@ async def test_selected_subscription_config_recreates_stale_existing_identity(
 
     assert config["subscription_url"] == new_subscription_url
     assert captured["looked_up_remnawave_uuid"] == stale_remnawave_uuid
-    assert captured["config_user_uuid"] == str(recreated_remnawave_uuid)
+    assert captured["config_user_ref"] == RemnawaveUserRef(id=42, legacy_uuid=recreated_remnawave_uuid)
     assert captured["config_plan_code"] == "premium_smart_ru"
     assert captured["config_user_segments"] is None
     assert existing_identity.provider_subject_ref == str(recreated_remnawave_uuid)
@@ -1097,8 +1227,8 @@ async def test_selected_subscription_existing_spb_de_identity_reuses_without_dup
         def __init__(self, client) -> None:
             captured["remnawave_client"] = client
 
-        async def get_by_uuid(self, remnawave_uuid: uuid.UUID):
-            captured["looked_up_remnawave_uuid"] = remnawave_uuid
+        async def get_by_ref(self, user_ref: RemnawaveUserRef):
+            captured["looked_up_remnawave_uuid"] = user_ref.legacy_uuid
             return SimpleNamespace(uuid=existing_remnawave_uuid, subscription_url=subscription_url)
 
         async def update(self, remnawave_uuid: uuid.UUID, **kwargs):  # noqa: ARG002
@@ -1190,15 +1320,15 @@ async def test_selected_subscription_existing_spb_de_identity_reasserts_dedicate
         def __init__(self, client) -> None:
             captured["remnawave_client"] = client
 
-        async def get_by_uuid(self, remnawave_uuid: uuid.UUID):
-            captured["looked_up_remnawave_uuid"] = remnawave_uuid
+        async def get_by_ref(self, user_ref: RemnawaveUserRef):
+            captured["looked_up_remnawave_uuid"] = user_ref.legacy_uuid
             return SimpleNamespace(
                 uuid=existing_remnawave_uuid,
                 subscription_url="https://subscription.example.local/sub/old-smart",
             )
 
-        async def update(self, remnawave_uuid: uuid.UUID, **kwargs):
-            captured["updated_remnawave_uuid"] = remnawave_uuid
+        async def update(self, user_ref: RemnawaveUserRef, **kwargs):
+            captured["updated_remnawave_uuid"] = user_ref.legacy_uuid
             captured["remnawave_update_payload"] = kwargs
             return SimpleNamespace(uuid=existing_remnawave_uuid, subscription_url=updated_subscription_url)
 
@@ -1395,8 +1525,11 @@ async def test_selected_subscription_config_passes_plan_code_to_xhttp_gate(
     captured: dict[str, object] = {}
     customer_account_id = uuid.uuid4()
     auth_realm_id = uuid.uuid4()
+    legacy_uuid = uuid.uuid4()
     service_identity = SimpleNamespace(
-        provider_subject_ref="remnawave-premium-smart-ru-user",
+        id=uuid.uuid4(),
+        provider_subject_ref=str(legacy_uuid),
+        provider_numeric_subject_id=42,
     )
 
     class FakeGenerateConfigUseCase:
@@ -1428,7 +1561,7 @@ async def test_selected_subscription_config_passes_plan_code_to_xhttp_gate(
         remnawave_client=SimpleNamespace(),
     )
 
-    assert captured["user_uuid"] == "remnawave-premium-smart-ru-user"
+    assert captured["user_uuid"] == RemnawaveUserRef(id=42, legacy_uuid=legacy_uuid)
     assert captured["plan_code"] == "premium_smart_ru"
     assert captured["user_segments"] is None
     assert result["subscription_url"] == "https://subscription.example.local/sub/redacted-smart"
@@ -1442,8 +1575,11 @@ async def test_selected_subscription_config_passes_spb_de_plan_code_to_xhttp_gat
     captured: dict[str, object] = {}
     customer_account_id = uuid.uuid4()
     auth_realm_id = uuid.uuid4()
+    legacy_uuid = uuid.uuid4()
     service_identity = SimpleNamespace(
-        provider_subject_ref="remnawave-premium-spb-de-user",
+        id=uuid.uuid4(),
+        provider_subject_ref=str(legacy_uuid),
+        provider_numeric_subject_id=42,
     )
 
     class FakeGenerateConfigUseCase:
@@ -1475,7 +1611,7 @@ async def test_selected_subscription_config_passes_spb_de_plan_code_to_xhttp_gat
         remnawave_client=SimpleNamespace(),
     )
 
-    assert captured["user_uuid"] == "remnawave-premium-spb-de-user"
+    assert captured["user_uuid"] == RemnawaveUserRef(id=42, legacy_uuid=legacy_uuid)
     assert captured["plan_code"] == "premium_spb_de_exceptions"
     assert captured["user_segments"] is None
     assert result["subscription_url"] == "https://subscription.example.local/sub/redacted-spb-de"
@@ -1547,7 +1683,7 @@ async def test_selected_subscription_service_state_route_forwards_credential_req
 
 
 @pytest.mark.asyncio
-async def test_selected_subscription_service_state_route_serializes_ready_delivery_payload(
+async def test_selected_subscription_service_state_route_redacts_credential_payloads(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = datetime(2026, 6, 10, tzinfo=UTC)
@@ -1646,6 +1782,7 @@ async def test_selected_subscription_service_state_route_serializes_ready_delive
                     identity_scope="subscription",
                     subscription_key=kwargs["subscription_key"],
                     provider_subject_ref="remnawave-user-ready",
+                    provider_numeric_subject_id=42,
                     identity_status="active",
                     service_context={},
                     created_at=now,
@@ -1680,8 +1817,13 @@ async def test_selected_subscription_service_state_route_serializes_ready_delive
     assert response.device_credential is not None
     assert response.device_credential.credential_status == "active"
     assert response.device_credential.subject_key == "desktop-ready"
+    assert response.device_credential.provider_credential_ref is None
+    assert response.device_credential.credential_context == {}
     assert response.access_delivery_channel is not None
     assert response.access_delivery_channel.channel_status == "active"
     assert response.access_delivery_channel.device_credential_id == device_credential_id
-    assert response.access_delivery_channel.delivery_payload["subscription_url"].endswith("/ready")
+    assert response.access_delivery_channel.delivery_payload == {}
+    assert response.provisioning_profile.provisioning_payload == {}
+    assert response.service_identity.subscription_key is None
+    assert response.service_identity.service_context == {}
     assert response.consumption_context.credential_subject_key == "desktop-ready"

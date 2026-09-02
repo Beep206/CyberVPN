@@ -248,11 +248,23 @@ pub fn run() {
                                 };
 
                                 if let Ok(node) = crate::engine::parser::parse_link(&parse_target) {
-                                    if let Ok(mut store) = crate::engine::store::load_store(&h) {
-                                        store.profiles.push(node);
-                                        let _ = crate::engine::store::save_store(&h, &store);
-                                        use tauri::Emitter;
-                                        let _ = h.emit("profile-imported", ());
+                                    match crate::engine::store::import_profile_with_retry(&h, node) {
+                                        Ok(true) => {
+                                            use tauri::Emitter;
+                                            let _ = h.emit("profile-imported", ());
+                                        }
+                                        Ok(false) => {}
+                                        Err(error) => {
+                                            let _ = crate::engine::diagnostics::record_event(
+                                                &h,
+                                                crate::engine::diagnostics::DiagnosticLevel::Warn,
+                                                "profile.import",
+                                                "Deep-link profile import could not be committed",
+                                                serde_json::json!({
+                                                    "error": error.to_string(),
+                                                }),
+                                            );
+                                        }
                                     }
                                 }
                             }

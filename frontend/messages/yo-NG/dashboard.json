@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "Wíwà iṣẹ́ VPN",
+    "connections": "Àwọn ìsopọ̀",
+    "usage": "Lílò",
+    "devices": "Àwọn ẹ̀rọ",
+    "available": "Ó wà",
+    "unavailable": "Kò sí",
+    "loading": "Ń ṣàkójọpọ̀ ipò iṣẹ́ VPN",
+    "degraded": "Ó dín kù ní apá kan"
   }
 }

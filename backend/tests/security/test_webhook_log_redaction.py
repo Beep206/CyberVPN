@@ -16,11 +16,22 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
+from pydantic import SecretStr
 
 from src.application.use_cases.payments.payment_webhook import ProcessPaymentWebhookUseCase
 from src.application.use_cases.webhooks.remnawave_webhook import ProcessRemnawaveWebhookUseCase
+from src.application.use_cases.webhooks.webhook_log_redaction import (
+    build_cryptobot_webhook_log_payload,
+    build_remnawave_webhook_log_payload,
+    signature_fingerprint,
+    webhook_log_fingerprint,
+)
+from src.config.settings import settings
 from src.infrastructure.payments.cryptobot.webhook_handler import CryptoBotWebhookHandler
 from src.infrastructure.remnawave.webhook_validator import RemnawaveWebhookValidator
+
+_WEBHOOK_LOG_FINGERPRINT_SECRET = "webhook-fingerprint-key-8f1c7d9a2e6b4f03"
+_WEBHOOK_LOG_FINGERPRINT_DOMAIN = b"cybervpn/webhook-log-fingerprint/v2"
 
 
 class _FakeSession:
@@ -29,6 +40,31 @@ class _FakeSession:
 
     def add(self, instance: Any) -> None:
         self.added.append(instance)
+
+
+@pytest.fixture(autouse=True)
+def _configure_webhook_log_fingerprint_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        settings,
+        "webhook_log_fingerprint_secret",
+        SecretStr(_WEBHOOK_LOG_FINGERPRINT_SECRET),
+    )
+
+
+def _expected_fingerprint(value: str | bytes, *, namespace: str) -> str:
+    normalized = value if isinstance(value, bytes) else value.strip().encode("utf-8")
+    message = b"\x00".join(
+        (
+            _WEBHOOK_LOG_FINGERPRINT_DOMAIN,
+            namespace.encode("ascii"),
+            normalized,
+        )
+    )
+    return hmac.new(
+        _WEBHOOK_LOG_FINGERPRINT_SECRET.encode("utf-8"),
+        message,
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def _cryptobot_signed_body(token: str, payload: dict[str, Any]) -> tuple[bytes, str]:
@@ -104,8 +140,8 @@ async def test_cryptobot_webhook_log_stores_allowlisted_metadata_only() -> None:
     log = session.added[0]
     assert log.event_type == "unknown_event"
     assert log.is_valid is True
-    assert log.signature_fingerprint == hashlib.sha256(signature.encode("utf-8")).hexdigest()
-    assert log.payload["schema"] == "webhook_log.redacted.v1"
+    assert log.signature_fingerprint == _expected_fingerprint(signature, namespace="signature")
+    assert log.payload["schema"] == "webhook_log.redacted.v2"
     assert log.payload["status"] == "paid"
     assert "invoice_id_fingerprint" in log.payload
     assert "event_id_fingerprint" in log.payload
@@ -138,14 +174,17 @@ async def test_cryptobot_invalid_signature_log_never_stores_raw_signature_or_pay
     assert result == {"status": "invalid_signature"}
     log = session.added[0]
     assert log.is_valid is False
-    assert log.signature_fingerprint == hashlib.sha256(b"raw-signature-value").hexdigest()
+    assert log.signature_fingerprint == _expected_fingerprint("raw-signature-value", namespace="signature")
     _assert_sensitive_values_absent(_serialized(log.payload))
 
 
 @pytest.mark.asyncio
 async def test_payment_webhook_application_logs_redact_provider_external_ids(caplog, monkeypatch) -> None:
     raw_external_id = "raw-provider-invoice-424242"
-    expected_fingerprint = hashlib.sha256(raw_external_id.encode("utf-8")).hexdigest()
+    expected_fingerprint = _expected_fingerprint(
+        raw_external_id,
+        namespace="payment_provider_reference",
+    )
     caplog.set_level(logging.INFO, logger="src.application.use_cases.payments.payment_webhook")
 
     missing_repo = SimpleNamespace(
@@ -357,7 +396,7 @@ async def test_remnawave_webhook_log_stores_allowlisted_metadata_only() -> None:
     log = session.added[0]
     assert log.event_type == "node.updated"
     assert log.is_valid is True
-    assert log.signature_fingerprint == hashlib.sha256(signature.encode("utf-8")).hexdigest()
+    assert log.signature_fingerprint == _expected_fingerprint(signature, namespace="signature")
     assert log.payload["status"] == "online"
     assert "subject_fingerprint" in log.payload
     _assert_sensitive_values_absent(_serialized(log.payload))
@@ -386,8 +425,73 @@ async def test_remnawave_invalid_json_log_never_stores_raw_body() -> None:
     assert log.payload["body_parse_status"] == "invalid_json"
     assert log.payload["body_size_bytes"] == len(body)
     assert "raw_body" not in log.payload
-    assert log.signature_fingerprint == hashlib.sha256(b"raw-signature-value").hexdigest()
+    assert log.signature_fingerprint == _expected_fingerprint("raw-signature-value", namespace="signature")
     _assert_sensitive_values_absent(_serialized(log.payload))
+
+
+def test_webhook_log_fingerprints_are_keyed_and_domain_separated() -> None:
+    raw_low_entropy_id = "123456789"
+
+    event_fingerprint = webhook_log_fingerprint(
+        raw_low_entropy_id,
+        namespace="cryptobot_event_id",
+    )
+    invoice_fingerprint = webhook_log_fingerprint(
+        raw_low_entropy_id,
+        namespace="cryptobot_invoice_id",
+    )
+
+    assert event_fingerprint == _expected_fingerprint(
+        raw_low_entropy_id,
+        namespace="cryptobot_event_id",
+    )
+    assert invoice_fingerprint == _expected_fingerprint(
+        raw_low_entropy_id,
+        namespace="cryptobot_invoice_id",
+    )
+    assert event_fingerprint != invoice_fingerprint
+    assert event_fingerprint != hashlib.sha256(raw_low_entropy_id.encode("utf-8")).hexdigest()
+
+    raw_body = b'{"event":"user.updated","data":{"userId":42}}'
+    assert webhook_log_fingerprint(raw_body, namespace="remnawave_body") == _expected_fingerprint(
+        raw_body,
+        namespace="remnawave_body",
+    )
+    assert webhook_log_fingerprint(raw_body, namespace="remnawave_body") != hashlib.sha256(raw_body).hexdigest()
+
+
+def test_missing_webhook_log_fingerprint_secret_omits_all_fingerprints(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "webhook_log_fingerprint_secret", SecretStr(""))
+
+    cryptobot_payload = build_cryptobot_webhook_log_payload(
+        {
+            "update_id": "123",
+            "update_type": "invoice_paid",
+            "payload": {"invoice_id": "456", "status": "paid"},
+        },
+        signature="signature-value",
+        is_valid=True,
+    )
+    remnawave_payload = build_remnawave_webhook_log_payload(
+        {
+            "id": "event-1",
+            "event": "user.updated",
+            "data": {"userId": 42, "status": "active"},
+        },
+        signature="signature-value",
+        is_valid=True,
+        validation_reason=None,
+    )
+
+    assert signature_fingerprint("signature-value") is None
+    assert "event_id_fingerprint" not in cryptobot_payload
+    assert "invoice_id_fingerprint" not in cryptobot_payload
+    assert "event_id_fingerprint" not in remnawave_payload
+    assert "subject_fingerprint" not in remnawave_payload
+    assert cryptobot_payload["schema"] == "webhook_log.redacted.v2"
+    assert remnawave_payload["schema"] == "webhook_log.redacted.v2"
 
 
 def test_legacy_webhook_log_migration_sanitizes_existing_raw_rows() -> None:

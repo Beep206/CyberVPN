@@ -66,6 +66,20 @@ jobs:
         working-directory: ./apps/desktop-client
         run: npm ci || npm install
 
+      - name: Verify persistent native credential backend
+        shell: bash
+        working-directory: ./apps/desktop-client/src-tauri
+        run: |
+          case "${RUNNER_OS}" in
+            Windows) EXPECTED_FEATURE='windows-native' ;;
+            macOS) EXPECTED_FEATURE='apple-native' ;;
+            Linux) EXPECTED_FEATURE='linux-native-sync-persistent' ;;
+            *) echo "Unsupported desktop credential platform: ${RUNNER_OS}" >&2; exit 1 ;;
+          esac
+          cargo tree --locked -e features -i keyring | tee keyring-features.txt
+          grep -F "keyring feature \"${EXPECTED_FEATURE}\"" keyring-features.txt
+          rm keyring-features.txt
+
       - name: Cargo Fmt Check
         working-directory: ./apps/desktop-client/src-tauri
         run: cargo fmt --check
@@ -77,6 +91,30 @@ jobs:
       - name: Cargo Test
         working-directory: ./apps/desktop-client/src-tauri
         run: cargo test
+
+      - name: Verify desktop updater signing configuration
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const config = JSON.parse(fs.readFileSync('apps/desktop-client/src-tauri/tauri.conf.json', 'utf8'));
+          const pubkey = String(config?.plugins?.updater?.pubkey || '').trim();
+          const forbidden = new Set([
+            '',
+            'dGVzdF9wdWJsaWNfa2V5X3BsYWNlaG9sZGVy',
+            'test_public_key_placeholder',
+          ]);
+          if (forbidden.has(pubkey)) {
+            console.error('Desktop release blocked: configure the authorized Tauri updater public key.');
+            process.exit(1);
+          }
+          NODE
+          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY}" ]]; then
+            echo 'Desktop release blocked: TAURI_SIGNING_PRIVATE_KEY is not configured.' >&2
+            exit 1
+          fi
 
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0

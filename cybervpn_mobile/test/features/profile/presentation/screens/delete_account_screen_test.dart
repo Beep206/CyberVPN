@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/repositories/profile_repository.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
@@ -11,6 +12,12 @@ import 'package:cybervpn_mobile/core/di/providers.dart'
     show profileRepositoryProvider;
 import 'package:cybervpn_mobile/features/profile/presentation/screens/delete_account_screen.dart';
 import 'package:cybervpn_mobile/features/vpn/presentation/providers/vpn_connection_provider.dart';
+
+Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+}
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -68,9 +75,7 @@ class _FakeProfileNotifier extends AsyncNotifier<ProfileState>
 // Helper: build widget under test
 // ---------------------------------------------------------------------------
 
-Widget _buildTestWidget({
-  required ProfileState profileState,
-}) {
+Widget _buildTestWidget({required ProfileState profileState}) {
   final fakeProfileNotifier = _FakeProfileNotifier(profileState);
 
   return ProviderScope(
@@ -82,6 +87,9 @@ Widget _buildTestWidget({
       ),
     ],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
       home: DeleteAccountScreen(),
     ),
   );
@@ -112,9 +120,7 @@ void main() {
   group('DeleteAccountScreen', () {
     testWidgets('renders warning step on initial load', (tester) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile)),
       );
       await tester.pumpAndSettle();
 
@@ -137,17 +143,16 @@ void main() {
       expect(find.text('Cancel'), findsOneWidget);
     });
 
-    testWidgets('navigates to re-authentication step on continue',
-        (tester) async {
+    testWidgets('navigates to re-authentication step on continue', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile)),
       );
       await tester.pumpAndSettle();
 
       // Tap continue button
-      await tester.tap(find.text('Continue with Deletion'));
+      await _tapVisible(tester, find.text('Continue with Deletion'));
       await tester.pumpAndSettle();
 
       // Verify re-authentication step is displayed
@@ -164,14 +169,12 @@ void main() {
 
     testWidgets('shows TOTP field when 2FA is enabled', (tester) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile2FA),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile2FA)),
       );
       await tester.pumpAndSettle();
 
       // Navigate to re-authentication step
-      await tester.tap(find.text('Continue with Deletion'));
+      await _tapVisible(tester, find.text('Continue with Deletion'));
       await tester.pumpAndSettle();
 
       // Verify TOTP field is displayed
@@ -184,17 +187,16 @@ void main() {
       );
     });
 
-    testWidgets('does not show TOTP field when 2FA is disabled',
-        (tester) async {
+    testWidgets('does not show TOTP field when 2FA is disabled', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile)),
       );
       await tester.pumpAndSettle();
 
       // Navigate to re-authentication step
-      await tester.tap(find.text('Continue with Deletion'));
+      await _tapVisible(tester, find.text('Continue with Deletion'));
       await tester.pumpAndSettle();
 
       // Verify TOTP field is NOT displayed
@@ -203,17 +205,16 @@ void main() {
       expect(find.text('6-digit code'), findsNothing);
     });
 
-    testWidgets('navigates back to warning step from re-authentication',
-        (tester) async {
+    testWidgets('navigates back to warning step from re-authentication', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile)),
       );
       await tester.pumpAndSettle();
 
       // Navigate to re-authentication step
-      await tester.tap(find.text('Continue with Deletion'));
+      await _tapVisible(tester, find.text('Continue with Deletion'));
       await tester.pumpAndSettle();
 
       expect(find.text('Verify Your Identity'), findsOneWidget);
@@ -227,17 +228,16 @@ void main() {
       expect(find.text('What will be deleted?'), findsOneWidget);
     });
 
-    testWidgets('navigates to final confirmation after re-auth',
-        (tester) async {
+    testWidgets('navigates to final confirmation after re-auth', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile)),
       );
       await tester.pumpAndSettle();
 
       // Navigate to re-authentication step
-      await tester.tap(find.text('Continue with Deletion'));
+      await _tapVisible(tester, find.text('Continue with Deletion'));
       await tester.pumpAndSettle();
 
       // Enter password
@@ -252,57 +252,67 @@ void main() {
       expect(find.text('Final Confirmation'), findsOneWidget);
       expect(find.text('Type DELETE to confirm'), findsOneWidget);
       expect(
-        find.text('This is your last chance to cancel. Once confirmed, your account '
-            'will be scheduled for permanent deletion.'),
+        find.text(
+          'This is your last chance to cancel. Once confirmed, your account '
+          'will be scheduled for permanent deletion.',
+        ),
         findsOneWidget,
       );
     });
 
     testWidgets('requires DELETE confirmation text', (tester) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile)),
       );
       await tester.pumpAndSettle();
 
       // Navigate to final confirmation
-      await tester.tap(find.text('Continue with Deletion'));
+      await _tapVisible(tester, find.text('Continue with Deletion'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'password123');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Verify and Continue'));
       await tester.pumpAndSettle();
 
-      // Verify delete button is disabled initially
-      final deleteButton =
-          tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Delete My Account'));
+      // The destructive action remains disabled throughout its safety delay.
+      final countdownButton = find.byType(FilledButton);
+      final deleteButton = tester.widget<FilledButton>(countdownButton);
       expect(deleteButton.onPressed, isNull);
+
+      for (var second = 0; second < 5; second++) {
+        await tester.pump(const Duration(seconds: 1));
+      }
+
+      final finalDeleteButton = find.widgetWithText(
+        FilledButton,
+        'Delete Account',
+      );
+      expect(finalDeleteButton, findsOneWidget);
+      expect(tester.widget<FilledButton>(finalDeleteButton).onPressed, isNull);
 
       // Enter DELETE
       await tester.enterText(find.byType(TextField).last, 'DELETE');
       await tester.pumpAndSettle();
 
       // Verify delete button is now enabled
-      final enabledButton =
-          tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Delete My Account'));
+      final enabledButton = tester.widget<FilledButton>(finalDeleteButton);
       expect(enabledButton.onPressed, isNotNull);
     });
 
     testWidgets('password visibility toggle works', (tester) async {
       await tester.pumpWidget(
-        _buildTestWidget(
-          profileState: ProfileState(profile: _testProfile),
-        ),
+        _buildTestWidget(profileState: ProfileState(profile: _testProfile)),
       );
       await tester.pumpAndSettle();
 
       // Navigate to re-authentication step
-      await tester.tap(find.text('Continue with Deletion'));
+      await _tapVisible(tester, find.text('Continue with Deletion'));
       await tester.pumpAndSettle();
 
       // Find password field
-      final passwordField = tester.widget<TextField>(find.byType(TextField).first);
+      final passwordField = tester.widget<TextField>(
+        find.byType(TextField).first,
+      );
       expect(passwordField.obscureText, isTrue);
 
       // Tap visibility toggle
@@ -310,8 +320,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify password is now visible
-      final visiblePasswordField =
-          tester.widget<TextField>(find.byType(TextField).first);
+      final visiblePasswordField = tester.widget<TextField>(
+        find.byType(TextField).first,
+      );
       expect(visiblePasswordField.obscureText, isFalse);
     });
   });

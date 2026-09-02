@@ -949,7 +949,7 @@ mod tests {
             "blocking_reason_keys": [],
             "supported_upstream_environment_present": true,
             "supported_upstream_base_url": "https://supported.example",
-            "upstream_source_version": "2.7.4"
+            "upstream_source_version": "3.4.1"
         });
 
         match kind {
@@ -958,11 +958,11 @@ mod tests {
             }
             PriorSummaryKind::Lifecycle => {
                 value["supported_upstream_lifecycle_passed"] = json!(true);
-                value["supported_upstream_expected_account_id"] = json!("acct-1");
+                value["supported_upstream_expected_account_id"] = json!("42");
             }
             PriorSummaryKind::DeploymentReality => {
                 value["supported_upstream_deployment_reality_passed"] = json!(true);
-                value["supported_upstream_expected_account_id"] = json!("acct-1");
+                value["supported_upstream_expected_account_id"] = json!("42");
                 value["control_plane_issuance_only"] = json!(true);
             }
         }
@@ -1019,7 +1019,7 @@ mod tests {
                 "blocking_reason_keys": [],
                 "supported_upstream_environment_present": false,
                 "supported_upstream_base_url": "https://supported.example",
-                "upstream_source_version": "2.7.4",
+                "upstream_source_version": "3.4.1",
                 "supported_upstream_compatibility_passed": null
             }),
         );
@@ -1032,8 +1032,8 @@ mod tests {
                 "blocking_reason_keys": [],
                 "supported_upstream_environment_present": false,
                 "supported_upstream_base_url": "https://supported.example",
-                "supported_upstream_expected_account_id": "acct-1",
-                "upstream_source_version": "2.7.4",
+                "supported_upstream_expected_account_id": "42",
+                "upstream_source_version": "3.4.1",
                 "supported_upstream_lifecycle_passed": null
             }),
         );
@@ -1046,8 +1046,8 @@ mod tests {
                 "blocking_reason_keys": [],
                 "supported_upstream_environment_present": false,
                 "supported_upstream_base_url": "https://supported.example",
-                "supported_upstream_expected_account_id": "acct-1",
-                "upstream_source_version": "2.7.4",
+                "supported_upstream_expected_account_id": "42",
+                "upstream_source_version": "3.4.1",
                 "supported_upstream_deployment_reality_passed": null,
                 "control_plane_issuance_only": true
             }),

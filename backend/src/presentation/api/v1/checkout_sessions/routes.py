@@ -47,6 +47,9 @@ def _partner_attribution_error_response(exc: PartnerAttributionError) -> JSONRes
 def _build_checkout_session_response(model) -> CheckoutSessionResponse:
     context_snapshot = model.context_snapshot or {}
     storefront_snapshot = context_snapshot.get("storefront") or {}
+    storefront_key = context_snapshot.get("storefront_key") or storefront_snapshot.get("storefront_key")
+    if not isinstance(storefront_key, str) or not storefront_key.strip():
+        raise ValueError("Checkout session storefront key is missing")
     pricebook_snapshot = context_snapshot.get("pricebook") or {}
     offer_snapshot = context_snapshot.get("offer") or {}
     legal_document_set_snapshot = context_snapshot.get("legal_document_set") or {}
@@ -57,7 +60,7 @@ def _build_checkout_session_response(model) -> CheckoutSessionResponse:
         user_id=model.user_id,
         auth_realm_id=model.auth_realm_id,
         storefront_id=model.storefront_id,
-        storefront_key=context_snapshot.get("storefront_key") or storefront_snapshot.get("storefront_key"),
+        storefront_key=storefront_key,
         merchant_profile_id=model.merchant_profile_id,
         invoice_profile_id=model.invoice_profile_id,
         billing_descriptor_id=model.billing_descriptor_id,

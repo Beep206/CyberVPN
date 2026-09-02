@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from typing import cast
 
 import pytest
-from fastapi import Response
+from fastapi import Request, Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -81,6 +81,7 @@ class RecordingOnboardingCodeApplier:
 
 class _FakeOnboardingRemnawaveClient:
     def __init__(self, *, subscription_url: str) -> None:
+        self.created_numeric_id = 4202
         self.created_uuid = uuid.uuid4()
         self.username = "cvpn_s_onboarding"
         self.subscription_url = subscription_url
@@ -99,7 +100,12 @@ class _FakeOnboardingRemnawaveClient:
         assert path == "/internal-squads"
         assert collection_key == "internalSquads"
         _ = item_schema
-        return [SimpleNamespace(uuid=str(uuid.uuid4()), name="Default-Squad")]
+        return [
+            SimpleNamespace(
+                uuid=str(uuid.uuid4()),
+                name="CYBERVPN_PREMIUM_SMART_RU_NODES",
+            )
+        ]
 
     async def post_validated(self, path: str, schema, *, json=None):
         assert path == "/api/users"
@@ -108,22 +114,22 @@ class _FakeOnboardingRemnawaveClient:
         self.post_payloads.append(payload)
         self.username = str(payload.get("username") or self.username)
         now = datetime.now(UTC)
-        return RemnawaveUserResponse(
-            uuid=str(self.created_uuid),
-            username=self.username,
-            status="ACTIVE",
-            short_uuid=str(self.created_uuid)[:8],
-            created_at=now,
-            updated_at=now,
-            expire_at=payload.get("expireAt"),
-            subscription_url=self.subscription_url,
-            traffic_limit_bytes=payload.get("trafficLimitBytes"),
-            hwid_device_limit=payload.get("hwidDeviceLimit"),
+        return RemnawaveUserResponse.model_validate(
+            {
+                **payload,
+                "id": self.created_numeric_id,
+                "uuid": str(self.created_uuid),
+                "status": "ACTIVE",
+                "shortUuid": str(self.created_uuid)[:8],
+                "createdAt": now,
+                "updatedAt": now,
+                "subscriptionUrl": self.subscription_url,
+            }
         )
 
     async def get_validated(self, path: str, schema):
         self.get_validated_paths.append(path)
-        assert path == f"/subscriptions/by-uuid/{self.created_uuid}"
+        assert path == f"/subscriptions/by-id/{self.created_numeric_id}"
         assert schema is RemnawaveSubscriptionDetailsResponse
         return RemnawaveSubscriptionDetailsResponse(
             is_found=True,
@@ -234,6 +240,17 @@ async def test_postgres_customer_onboarding_state_restores_and_persists_idempote
                         flow_token=restored.flow_token,
                         idempotency_key="apply-1",
                         source_surface="web",
+                    ),
+                    request=Request(
+                        {
+                            "type": "http",
+                            "method": "POST",
+                            "path": "/api/v1/customer/onboarding/growth-code/apply",
+                            "headers": [(b"x-device-id", b"onboarding-integration")],
+                            "client": ("198.51.100.10", 443),
+                            "server": ("testserver", 443),
+                            "scheme": "https",
+                        }
                     ),
                     user_id=user_id,
                     telegram_bot_secret=None,

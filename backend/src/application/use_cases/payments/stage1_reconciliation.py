@@ -782,7 +782,7 @@ def _stage1_provider_or_none(provider: str) -> Stage1PaymentProvider | None:
         return None
 
 
-def _string(value: Any, *, fallback: str | None) -> str | None:
+def _string[FallbackT](value: Any, *, fallback: FallbackT) -> str | FallbackT:
     if value is None:
         return fallback
     text = str(value).strip()

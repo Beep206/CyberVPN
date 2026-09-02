@@ -7,17 +7,25 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from uuid import UUID
 
+import redis.asyncio as redis
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_service import AuthService
-from src.application.use_cases.auth.permissions import Permission
-from src.application.use_cases.customer_subscriptions import ListCustomerSubscriptionsUseCase
-from src.application.use_cases.subscriptions.stage1_credential_regeneration import (
-    STAGE1_CREDENTIAL_REGENERATION_ACTION,
-    Stage1CredentialRegenerationService,
-    build_stage1_credential_regeneration_request,
+from src.application.services.remnawave_create_attempts import (
+    RemnawaveCreateAttemptConflict,
+    RemnawaveCreateAttemptService,
+    remnawave_create_request_hash,
+    remnawave_customer_create_key,
 )
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    persist_runtime_mapped_mobile_identity,
+    resolve_exact_mapped_mobile_user_ref,
+)
+from src.application.use_cases.auth.permissions import Permission
+from src.application.use_cases.auth_realms import RealmResolution
+from src.application.use_cases.customer_subscriptions import ListCustomerSubscriptionsUseCase
 from src.application.use_cases.subscriptions.stage1_manual_subscription import (
     STAGE1_MANUAL_SUBSCRIPTION_ACTION,
     Stage1ManualSubscriptionError,
@@ -26,6 +34,8 @@ from src.application.use_cases.subscriptions.stage1_manual_subscription import (
 )
 from src.domain.entities.auth_realm import DEFAULT_AUTH_REALMS, stable_auth_realm_id
 from src.domain.enums import UserStatus
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
+from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.customer_staff_note_model import CustomerStaffNoteModel
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
@@ -37,9 +47,6 @@ from src.infrastructure.database.repositories.payment_repo import PaymentReposit
 from src.infrastructure.database.repositories.wallet_repo import WalletRepository
 from src.infrastructure.database.repositories.withdrawal_repo import WithdrawalRepository
 from src.infrastructure.monitoring.metrics import route_operations_total
-from src.infrastructure.remnawave.stage1_credential_regeneration_gateway import (
-    RemnawaveStage1CredentialRegenerationGateway,
-)
 from src.infrastructure.remnawave.stage1_manual_subscription_gateway import (
     RemnawaveStage1ManualSubscriptionGateway,
 )
@@ -48,7 +55,13 @@ from src.presentation.api.v1.customer_subscriptions.schemas import (
     CustomerSubscriptionListResponse,
     CustomerSubscriptionSummaryResponse,
 )
-from src.presentation.dependencies.auth import get_current_active_user
+from src.presentation.api.v1.subscriptions.credential_access import read_customer_vpn_credentials_as_admin
+from src.presentation.dependencies.auth import (
+    CurrentPrincipalActor,
+    get_current_active_user,
+    get_current_principal_actor,
+)
+from src.presentation.dependencies.auth_realms import get_request_auth_realm
 from src.presentation.dependencies.database import get_db
 from src.presentation.dependencies.remnawave import get_remnawave_client
 from src.presentation.dependencies.roles import require_permission
@@ -71,7 +84,7 @@ from .customer_support_schemas import (
     AdminCustomerVpnUserResponse,
     AdminSupportActorSummary,
 )
-from .mobile_users import build_mobile_user_subscription_snapshot
+from .mobile_users import _serialize_mobile_device
 from .mobile_users_schemas import AdminMobileDeviceResponse
 
 router = APIRouter(prefix="/admin/mobile-users", tags=["admin", "customer-support"])
@@ -170,6 +183,30 @@ async def _require_mobile_user(
     return user
 
 
+async def _resolve_customer_vpn_ref(
+    db: AsyncSession,
+    user: MobileUserModel,
+) -> RemnawaveUserRef | None:
+    try:
+        user_ref = await resolve_exact_mapped_mobile_user_ref(db, user)
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Remnawave identity reconciliation required",
+        ) from exc
+    return user_ref
+
+
+async def _require_customer_vpn_ref(
+    db: AsyncSession,
+    user: MobileUserModel,
+) -> RemnawaveUserRef:
+    user_ref = await _resolve_customer_vpn_ref(db, user)
+    if user_ref is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer has no linked VPN user")
+    return user_ref
+
+
 def _generate_temporary_password(length: int = 18) -> str:
     if length < 12:
         length = 12
@@ -190,25 +227,39 @@ def _redact_admin_url(value: str | None) -> str | None:
     return REDACTED_ADMIN_URL if value else None
 
 
-def _serialize_vpn_user(remnawave_uuid: str | None, vpn_user) -> AdminCustomerVpnUserResponse:
-    parsed_uuid = None
-    if remnawave_uuid:
-        try:
-            parsed_uuid = UUID(remnawave_uuid)
-        except ValueError:
-            parsed_uuid = None
+def _optional_uuid(value: str | None) -> UUID | None:
+    if not value:
+        return None
+    try:
+        return UUID(value)
+    except ValueError:
+        return None
+
+
+def _serialize_vpn_user(
+    remnawave_user_id: int | None,
+    remnawave_uuid: str | None,
+    vpn_user,
+) -> AdminCustomerVpnUserResponse:
+    parsed_uuid = _optional_uuid(remnawave_uuid)
 
     if vpn_user is None:
-        return AdminCustomerVpnUserResponse(exists=False, remnawave_uuid=parsed_uuid)
+        return AdminCustomerVpnUserResponse(
+            exists=False,
+            remnawave_user_id=remnawave_user_id,
+            remnawave_uuid=parsed_uuid,
+        )
 
     return AdminCustomerVpnUserResponse(
         exists=True,
+        remnawave_user_id=vpn_user.remnawave_id or remnawave_user_id,
         remnawave_uuid=parsed_uuid,
         username=vpn_user.username,
         email=vpn_user.email,
         status=vpn_user.status,
-        short_uuid=vpn_user.short_uuid,
-        subscription_uuid=vpn_user.subscription_uuid,
+        # These identifiers are live bearer material, not support metadata.
+        short_uuid=None,
+        subscription_uuid=None,
         expire_at=vpn_user.expire_at,
         traffic_limit_bytes=vpn_user.traffic_limit_bytes,
         used_traffic_bytes=vpn_user.used_traffic_bytes,
@@ -353,16 +404,12 @@ async def get_customer_vpn_user(
 ) -> AdminCustomerVpnUserResponse:
     user = await _require_mobile_user(user_id, db)
     gateway = RemnawaveUserGateway(client=client)
+    user_ref = await _resolve_customer_vpn_ref(db, user)
 
-    vpn_user = None
-    if user.remnawave_uuid:
-        try:
-            vpn_user = await gateway.get_by_uuid(UUID(user.remnawave_uuid))
-        except ValueError:
-            vpn_user = None
+    vpn_user = await gateway.get_by_ref(user_ref) if user_ref is not None else None
 
     route_operations_total.labels(route="admin_customer_support", action="vpn_get", status="success").inc()
-    return _serialize_vpn_user(user.remnawave_uuid, vpn_user)
+    return _serialize_vpn_user(getattr(user, "remnawave_user_id", None), user.remnawave_uuid, vpn_user)
 
 
 @router.post("/{user_id}/vpn-user/enable", response_model=AdminCustomerVpnUserResponse)
@@ -376,17 +423,11 @@ async def enable_customer_vpn_user(
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
 ) -> AdminCustomerVpnUserResponse:
     user = await _require_mobile_user(user_id, db)
-    if not user.remnawave_uuid:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer has no linked VPN user")
+    user_ref = await _require_customer_vpn_ref(db, user)
 
     gateway = RemnawaveUserGateway(client=client)
-    try:
-        vpn_uuid = UUID(user.remnawave_uuid)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Remnawave UUID") from exc
-
-    await gateway.update(vpn_uuid, status=UserStatus.ACTIVE)
-    vpn_user = await gateway.get_by_uuid(vpn_uuid)
+    await gateway.update(user_ref, status=UserStatus.ACTIVE)
+    vpn_user = await gateway.get_by_ref(user_ref)
 
     await _write_audit_entry(
         db=db,
@@ -395,13 +436,14 @@ async def enable_customer_vpn_user(
         actor=current_user,
         request=request,
         details={
+            "remnawave_user_id": getattr(user, "remnawave_user_id", None),
             "remnawave_uuid": user.remnawave_uuid,
             "reason_length": len(body.reason.strip()) if body.reason else 0,
         },
     )
 
     route_operations_total.labels(route="admin_customer_support", action="vpn_enable", status="success").inc()
-    return _serialize_vpn_user(user.remnawave_uuid, vpn_user)
+    return _serialize_vpn_user(getattr(user, "remnawave_user_id", None), user.remnawave_uuid, vpn_user)
 
 
 @router.post("/{user_id}/vpn-user/disable", response_model=AdminCustomerVpnUserResponse)
@@ -415,17 +457,11 @@ async def disable_customer_vpn_user(
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
 ) -> AdminCustomerVpnUserResponse:
     user = await _require_mobile_user(user_id, db)
-    if not user.remnawave_uuid:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer has no linked VPN user")
+    user_ref = await _require_customer_vpn_ref(db, user)
 
     gateway = RemnawaveUserGateway(client=client)
-    try:
-        vpn_uuid = UUID(user.remnawave_uuid)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Remnawave UUID") from exc
-
-    await gateway.update(vpn_uuid, status=UserStatus.DISABLED)
-    vpn_user = await gateway.get_by_uuid(vpn_uuid)
+    await gateway.update(user_ref, status=UserStatus.DISABLED)
+    vpn_user = await gateway.get_by_ref(user_ref)
 
     await _write_audit_entry(
         db=db,
@@ -434,13 +470,14 @@ async def disable_customer_vpn_user(
         actor=current_user,
         request=request,
         details={
+            "remnawave_user_id": getattr(user, "remnawave_user_id", None),
             "remnawave_uuid": user.remnawave_uuid,
             "reason_length": len(body.reason.strip()) if body.reason else 0,
         },
     )
 
     route_operations_total.labels(route="admin_customer_support", action="vpn_disable", status="success").inc()
-    return _serialize_vpn_user(user.remnawave_uuid, vpn_user)
+    return _serialize_vpn_user(getattr(user, "remnawave_user_id", None), user.remnawave_uuid, vpn_user)
 
 
 @router.post(
@@ -457,68 +494,15 @@ async def regenerate_customer_vpn_credentials(
     _: None = Depends(require_permission(Permission.VPN_CREDENTIAL_REGENERATE)),
 ) -> AdminCustomerCredentialRegenerationResponse:
     user = await _require_mobile_user(user_id, db)
-    if not user.remnawave_uuid:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer has no linked VPN user")
+    await _require_customer_vpn_ref(db, user)
 
-    current_vpn_user = None
-    user_gateway = RemnawaveUserGateway(client=client)
-    try:
-        vpn_uuid = UUID(user.remnawave_uuid)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Remnawave UUID") from exc
-
-    current_vpn_user = await user_gateway.get_by_uuid(vpn_uuid)
-    previous_short_uuid = current_vpn_user.short_uuid if current_vpn_user else None
-    previous_subscription_url = user.subscription_url or (
-        current_vpn_user.subscription_url if current_vpn_user else None
-    )
-
-    regeneration_request = build_stage1_credential_regeneration_request(
-        customer_account_id=user_id,
-        remnawave_uuid=user.remnawave_uuid,
-        actor_admin_id=current_user.id,
-        reason=body.reason,
-        previous_short_uuid=previous_short_uuid,
-        previous_subscription_url=previous_subscription_url,
-        revoke_only_passwords=body.revoke_only_passwords,
-    )
-    result = await Stage1CredentialRegenerationService(
-        RemnawaveStage1CredentialRegenerationGateway(user_gateway),
-    ).regenerate(regeneration_request)
-
-    if result.subscription_url and user.subscription_url != result.subscription_url:
-        user.subscription_url = result.subscription_url
-        user_repo = MobileUserRepository(db)
-        await user_repo.update(user)
-
-    await _write_required_audit_entry(
-        db=db,
-        action=STAGE1_CREDENTIAL_REGENERATION_ACTION,
-        user_id=user_id,
-        actor=current_user,
-        request=request,
-        details=result.to_audit_details(reason=body.reason),
-    )
-
-    logger.info(
-        "Stage 1 VPN credential regeneration completed",
-        extra={"stage1_vpn_credential_regeneration": result.to_safe_dict()},
-    )
-    route_operations_total.labels(
-        route="admin_customer_support",
-        action="vpn_credentials_regenerate",
-        status="success",
-    ).inc()
-    return AdminCustomerCredentialRegenerationResponse(
-        user_id=user_id,
-        remnawave_uuid=UUID(result.remnawave_uuid),
-        status=result.status,
-        short_uuid_changed=result.short_uuid_changed,
-        subscription_url_changed=result.subscription_url_changed,
-        revoke_only_passwords=result.revoke_only_passwords,
-        expires_at=result.expires_at,
-        regenerated_at=result.regenerated_at,
-        audit_action=STAGE1_CREDENTIAL_REGENERATION_ACTION,
+    # Remnawave exposes no idempotency key and a password-only rotation has no
+    # authoritative readback postcondition. Keep the operator surface closed
+    # until a durable per-customer attempt receipt and settlement workflow are
+    # deployed; otherwise a retry after a lost response can rotate twice.
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="VPN credential regeneration is safety-disabled pending durable reconciliation receipts",
     )
 
 
@@ -538,18 +522,18 @@ async def apply_manual_customer_subscription(
     user = await _require_mobile_user(user_id, db)
     user_gateway = RemnawaveUserGateway(client=client)
     current_vpn_user = None
+    user_ref = await _resolve_customer_vpn_ref(db, user)
 
-    if user.remnawave_uuid:
-        try:
-            current_vpn_user = await user_gateway.get_by_uuid(UUID(user.remnawave_uuid))
-        except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Remnawave UUID") from exc
+    if user_ref is not None:
+        current_vpn_user = await user_gateway.get_by_ref(user_ref)
 
     current_expires_at = current_vpn_user.expires_at if current_vpn_user is not None else None
     previous_subscription_url = user.subscription_url or (
         current_vpn_user.subscription_url if current_vpn_user is not None else None
     )
 
+    create_attempts: RemnawaveCreateAttemptService | None = None
+    create_record = None
     try:
         manual_request = build_stage1_manual_subscription_request(
             customer_account_id=user_id,
@@ -563,19 +547,64 @@ async def apply_manual_customer_subscription(
             current_access_expires_at=current_expires_at,
             traffic_limit_bytes=body.traffic_limit_bytes,
             device_limit=body.device_limit,
-            existing_remnawave_uuid=user.remnawave_uuid,
+            existing_remnawave_user_id=user_ref.id if user_ref is not None else None,
+            existing_remnawave_uuid=(
+                str(user_ref.legacy_uuid) if user_ref is not None and user_ref.legacy_uuid is not None else None
+            ),
             previous_subscription_url=previous_subscription_url,
         )
+        if user_ref is None:
+            create_attempts = RemnawaveCreateAttemptService(db)
+            decision = await create_attempts.begin(
+                scope="remnawave-customer:create",
+                idempotency_key=remnawave_customer_create_key(user_id),
+                request_hash=remnawave_create_request_hash(
+                    {
+                        "customer_account_id": str(user_id),
+                        "plan_code": manual_request.plan_code,
+                        "access_expires_at": manual_request.access_expires_at,
+                        "traffic_limit_bytes": manual_request.traffic_limit_bytes,
+                        "device_limit": manual_request.device_limit,
+                    }
+                ),
+                customer_account_id=user_id,
+            )
+            if not decision.should_mutate:
+                raise RemnawaveCreateAttemptConflict("Manual Remnawave creation requires reconciliation")
+            create_record = decision.record
         result = await Stage1ManualSubscriptionService(
             RemnawaveStage1ManualSubscriptionGateway(user_gateway),
         ).apply(manual_request)
-    except Stage1ManualSubscriptionError as exc:
+    except (Stage1ManualSubscriptionError, RemnawaveCreateAttemptConflict) as exc:
+        if create_attempts is not None and create_record is not None:
+            await create_attempts.mark_reconciliation_required(create_record)
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except Exception as exc:
+        if create_attempts is not None and create_record is not None:
+            await create_attempts.mark_reconciliation_required(create_record)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Manual Remnawave creation requires reconciliation",
+            ) from exc
+        raise
 
-    user_changed = False
-    if user.remnawave_uuid != result.remnawave_uuid:
-        user.remnawave_uuid = result.remnawave_uuid
-        user_changed = True
+    try:
+        persisted_user_ref = await persist_runtime_mapped_mobile_identity(
+            db,
+            customer=user,
+            remnawave_user_id=result.remnawave_user_id,
+            remnawave_uuid=result.remnawave_uuid,
+            source="admin_customer_support_manual_subscription",
+        )
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Remnawave identity reconciliation required",
+        ) from exc
+    if create_attempts is not None and create_record is not None:
+        await create_attempts.mark_completed(create_record, user_ref=persisted_user_ref)
+
+    user_changed = user_ref != persisted_user_ref
     if result.subscription_url and user.subscription_url != result.subscription_url:
         user.subscription_url = result.subscription_url
         user_changed = True
@@ -612,7 +641,8 @@ async def apply_manual_customer_subscription(
     ).inc()
     return AdminCustomerManualSubscriptionResponse(
         user_id=user_id,
-        remnawave_uuid=UUID(result.remnawave_uuid),
+        remnawave_user_id=result.remnawave_user_id,
+        remnawave_uuid=_optional_uuid(result.remnawave_uuid),
         status=result.status,
         operation=result.operation,
         duration_days=result.duration_days,
@@ -641,7 +671,7 @@ async def revoke_customer_device(
     if device is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
 
-    response = AdminMobileDeviceResponse.model_validate(device)
+    response = _serialize_mobile_device(device)
     await device_repo.delete(device)
 
     await _write_audit_entry(
@@ -674,7 +704,7 @@ async def revoke_all_customer_devices(
 
     device_repo = MobileDeviceRepository(db)
     devices = await device_repo.get_user_devices(user_id)
-    revoked_devices = [AdminMobileDeviceResponse.model_validate(device) for device in devices]
+    revoked_devices = [_serialize_mobile_device(device) for device in devices]
 
     if not revoked_devices:
         route_operations_total.labels(route="admin_customer_support", action="device_revoke_all", status="noop").inc()
@@ -764,26 +794,38 @@ async def resync_customer_subscription(
     body: AdminCustomerSupportActionRequest,
     request: Request,
     current_user: AdminUserModel = Depends(get_current_active_user),
+    current_actor: CurrentPrincipalActor = Depends(get_current_principal_actor),
+    current_realm: RealmResolution = Depends(get_request_auth_realm),
     db: AsyncSession = Depends(get_db),
     client=Depends(get_remnawave_client),
+    redis_client: redis.Redis = Depends(get_redis),
     _: None = Depends(require_permission(Permission.USER_UPDATE)),
 ) -> AdminCustomerSubscriptionResyncResponse:
+    config = await read_customer_vpn_credentials_as_admin(
+        customer_id=user_id,
+        request=request,
+        actor=current_actor,
+        current_realm=current_realm,
+        db=db,
+        client=client,
+        redis_client=redis_client,
+    )
     user = await _require_mobile_user(user_id, db)
-    snapshot = await build_mobile_user_subscription_snapshot(user, client)
-
-    if not snapshot.exists:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer subscription snapshot not found")
-
-    if not snapshot.subscription_url:
+    subscription_url = config.get("subscription_url")
+    if not isinstance(subscription_url, str) or not subscription_url:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="No upstream subscription URL available")
 
     previous_subscription_url = user.subscription_url
-    changed = previous_subscription_url != snapshot.subscription_url
+    changed = previous_subscription_url != subscription_url
 
     if changed:
-        user.subscription_url = snapshot.subscription_url
+        user.subscription_url = subscription_url
         user_repo = MobileUserRepository(db)
         await user_repo.update(user)
+
+    config_client_type = config.get("client_type")
+    links = config.get("links")
+    links_count = len(links) if isinstance(links, list) else 0
 
     await _write_audit_entry(
         db=db,
@@ -793,12 +835,12 @@ async def resync_customer_subscription(
         request=request,
         details={
             "previous_subscription_url_present": previous_subscription_url is not None,
-            "stored_subscription_url_present": snapshot.subscription_url is not None,
-            "upstream_subscription_url_present": snapshot.subscription_url is not None,
+            "stored_subscription_url_present": True,
+            "upstream_subscription_url_present": True,
             "changed": changed,
-            "config_available": snapshot.config_available,
-            "config_client_type": snapshot.config_client_type,
-            "links_count": len(snapshot.links),
+            "config_available": bool(config.get("config") or config.get("config_string")),
+            "config_client_type": config_client_type if isinstance(config_client_type, str) else None,
+            "links_count": links_count,
             "reason_length": len(body.reason.strip()) if body.reason else 0,
         },
     )
@@ -811,15 +853,15 @@ async def resync_customer_subscription(
     return AdminCustomerSubscriptionResyncResponse(
         user_id=user_id,
         previous_subscription_url=_redact_admin_url(previous_subscription_url),
-        stored_subscription_url=_redact_admin_url(snapshot.subscription_url),
-        upstream_subscription_url=_redact_admin_url(snapshot.subscription_url) or REDACTED_ADMIN_URL,
+        stored_subscription_url=REDACTED_ADMIN_URL,
+        upstream_subscription_url=REDACTED_ADMIN_URL,
         previous_subscription_url_present=previous_subscription_url is not None,
-        stored_subscription_url_present=snapshot.subscription_url is not None,
-        upstream_subscription_url_present=snapshot.subscription_url is not None,
+        stored_subscription_url_present=True,
+        upstream_subscription_url_present=True,
         changed=changed,
-        config_available=snapshot.config_available,
-        config_client_type=snapshot.config_client_type,
-        links_count=len(snapshot.links),
+        config_available=bool(config.get("config") or config.get("config_string")),
+        config_client_type=config_client_type if isinstance(config_client_type, str) else None,
+        links_count=links_count,
     )
 
 

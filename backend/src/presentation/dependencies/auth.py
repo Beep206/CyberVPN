@@ -643,9 +643,19 @@ async def get_current_pending_mobile_2fa_context(
     app_version = claims.get("app_version")
     device_model = claims.get("device_model")
 
-    if not all(
-        isinstance(value, str) and value
-        for value in [device_id, platform, platform_id, os_version, app_version, device_model]
+    if not (
+        isinstance(device_id, str)
+        and device_id
+        and isinstance(platform, str)
+        and platform
+        and isinstance(platform_id, str)
+        and platform_id
+        and isinstance(os_version, str)
+        and os_version
+        and isinstance(app_version, str)
+        and app_version
+        and isinstance(device_model, str)
+        and device_model
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

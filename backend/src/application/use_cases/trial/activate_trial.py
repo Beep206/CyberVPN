@@ -6,6 +6,17 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.application.services.remnawave_create_attempts import (
+    RemnawaveCreateAttemptConflict,
+    RemnawaveCreateAttemptService,
+    remnawave_create_request_hash,
+    remnawave_customer_create_key,
+)
+from src.application.services.remnawave_identity_access import (
+    persist_runtime_mapped_mobile_identity,
+    resolve_exact_mapped_mobile_user_ref,
+)
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.database.repositories.mobile_user_repo import MobileUserRepository
 
 from .stage1_trial_policy import (
@@ -101,22 +112,76 @@ class ActivateTrialUseCase:
 
         trial_end = now + timedelta(days=TRIAL_DURATION_DAYS)
         provisioning_result = None
+        create_attempts: RemnawaveCreateAttemptService | None = None
+        create_record = None
         if self._provisioning is not None:
-            provisioning_result = await self._provisioning.provision(
-                customer_account_id=user_id,
-                email=user.email,
-                username=user.username,
-                telegram_id=user.telegram_id,
-                trial_expires_at=trial_end,
-                existing_remnawave_uuid=user.remnawave_uuid,
-            )
+            existing_ref = await resolve_exact_mapped_mobile_user_ref(self.session, user)
+            if existing_ref is None:
+                create_attempts = RemnawaveCreateAttemptService(self.session)
+                try:
+                    decision = await create_attempts.begin(
+                        scope="remnawave-customer:create",
+                        idempotency_key=remnawave_customer_create_key(user_id),
+                        request_hash=remnawave_create_request_hash(
+                            {
+                                "customer_account_id": str(user_id),
+                                "trial_expires_at": trial_end,
+                                "traffic_limit_bytes": STAGE1_TRIAL_TRAFFIC_LIMIT_BYTES,
+                                "device_limit": STAGE1_TRIAL_DEVICE_LIMIT,
+                            }
+                        ),
+                        customer_account_id=user_id,
+                    )
+                except RemnawaveCreateAttemptConflict as exc:
+                    raise ValueError("Trial Remnawave creation requires reconciliation") from exc
+                if not decision.should_mutate:
+                    raise ValueError("Trial Remnawave creation requires reconciliation")
+                create_record = decision.record
+            try:
+                provisioning_result = await self._provisioning.provision(
+                    customer_account_id=user_id,
+                    email=user.email,
+                    username=user.username,
+                    telegram_id=user.telegram_id,
+                    trial_expires_at=trial_end,
+                    existing_remnawave_uuid=(
+                        str(existing_ref.legacy_uuid)
+                        if existing_ref is not None and existing_ref.legacy_uuid is not None
+                        else None
+                    ),
+                    existing_remnawave_user_id=(
+                        existing_ref.require_numeric_id() if existing_ref is not None else None
+                    ),
+                )
+            except Exception:
+                if create_attempts is not None and create_record is not None:
+                    await create_attempts.mark_reconciliation_required(create_record)
+                raise
 
         # Activate trial only after upstream provisioning succeeds when a gateway is configured.
         user.trial_activated_at = now
         user.trial_expires_at = trial_end
         if provisioning_result is not None:
-            user.remnawave_uuid = provisioning_result.remnawave_uuid
+            await persist_runtime_mapped_mobile_identity(
+                self.session,
+                customer=user,
+                remnawave_user_id=provisioning_result.remnawave_user_id,
+                remnawave_uuid=provisioning_result.remnawave_uuid,
+                source="trial_activation",
+            )
             user.subscription_url = provisioning_result.subscription_url
+            if create_attempts is not None and create_record is not None:
+                await create_attempts.mark_completed(
+                    create_record,
+                    user_ref=RemnawaveUserRef(
+                        id=provisioning_result.remnawave_user_id,
+                        legacy_uuid=(
+                            UUID(provisioning_result.remnawave_uuid)
+                            if provisioning_result.remnawave_uuid is not None
+                            else None
+                        ),
+                    ),
+                )
 
         await self.user_repo.update(user)
 

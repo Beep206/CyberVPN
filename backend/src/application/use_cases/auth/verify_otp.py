@@ -61,8 +61,10 @@ class VerifyOtpUseCase:
 
     Upon successful verification:
     1. Activates user account (is_active=True, is_email_verified=True)
-    2. Creates user in Remnawave VPN backend
-    3. Issues access and refresh tokens (auto-login)
+    2. Issues access and refresh tokens (auto-login)
+
+    VPN provisioning is intentionally owned by canonical MobileUser
+    subscription/trial flows that atomically persist the identity ledger.
     """
 
     def __init__(
@@ -77,7 +79,6 @@ class VerifyOtpUseCase:
         self._auth_service = auth_service
         self._otp_service = otp_service
         self._session = session
-        self._remnawave_gateway = remnawave_gateway
         self._session_issuer = AuthSessionIssuer(auth_service=auth_service, session=session)
 
     async def execute(
@@ -150,18 +151,6 @@ class VerifyOtpUseCase:
         user.is_active = True
         user.is_email_verified = True
         await self._session.flush()
-
-        # Register in Remnawave (optional, don't fail if unavailable)
-        if self._remnawave_gateway:
-            try:
-                await self._remnawave_gateway.create_user(
-                    username=user.login,
-                    email=user.email or email,
-                    telegram_id=user.telegram_id,
-                )
-            except Exception as e:
-                # Log but don't fail - user can still use dashboard
-                logger.warning("Failed to create Remnawave user during OTP verification: %s", e)
 
         issued_session = await self._session_issuer.issue_auth_session(
             AuthSessionIssueRequest(

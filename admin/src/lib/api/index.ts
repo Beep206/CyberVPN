@@ -45,7 +45,6 @@ export {
   inboundsApi,
   nodePluginsApi,
   squadsApi,
-  snippetsApi,
   xrayApi,
   helixApi,
 } from './infrastructure';

@@ -69,6 +69,12 @@ class MockServerRepository implements ServerRepository {
 
 class MockPingService implements PingService {
   @override
+  int? getLatency(String serverId) => null;
+
+  @override
+  bool isFresh(String serverId) => false;
+
+  @override
   Future<Map<String, int>> pingAllConcurrent(List<ServerEntity> servers) async {
     return {};
   }

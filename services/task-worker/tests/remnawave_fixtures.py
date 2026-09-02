@@ -1,4 +1,4 @@
-"""Canonical Remnawave 2.7.4 test fixtures for task-worker consumers."""
+"""Canonical Remnawave 3.4.3 test fixtures for task-worker consumers."""
 
 from __future__ import annotations
 

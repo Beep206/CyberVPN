@@ -118,9 +118,9 @@ void main() {
         findsAtLeastNWidgets(1),
       );
 
-      // Verify GitHub provider is also shown
-      expect(find.text('GitHub'), findsOneWidget);
-      expect(find.text('Facebook'), findsOneWidget);
+      // Disabled mobile OAuth entry points stay hidden unless already linked.
+      expect(find.text('GitHub'), findsNothing);
+      expect(find.text('Facebook'), findsNothing);
       expect(find.text('Apple'), findsNothing);
     });
 
@@ -326,7 +326,7 @@ void main() {
       expect(button.onPressed, isNotNull);
     });
 
-    testWidgets('Telegram and GitHub provider cards are visible at top', (
+    testWidgets('only enabled provider cards are visible at top', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -336,10 +336,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // First providers should be visible without scrolling
+      // Telegram is the only enabled mobile link entry point.
       expect(find.text('Telegram'), findsOneWidget);
-      expect(find.text('GitHub'), findsOneWidget);
-      expect(find.text('Google'), findsOneWidget);
+      expect(find.text('GitHub'), findsNothing);
+      expect(find.text('Google'), findsNothing);
     });
   });
 }

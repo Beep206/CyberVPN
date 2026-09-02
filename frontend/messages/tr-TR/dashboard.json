@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "VPN hizmeti kullanılabilirliği",
+    "connections": "Bağlantılar",
+    "usage": "Kullanım",
+    "devices": "Cihazlar",
+    "available": "Kullanılabilir",
+    "unavailable": "Kullanılamıyor",
+    "loading": "VPN hizmet durumu yükleniyor",
+    "degraded": "Kısmen aksadı"
   }
 }

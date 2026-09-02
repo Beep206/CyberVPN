@@ -1,11 +1,20 @@
 ---
 control_plane_stack_environment: staging
+control_plane_stack_remnawave_preupgrade_auth_secret_sha256: >-
+  {{ control_plane_remnawave_preupgrade_auth_secret_sha256 | default('', true) }}
 control_plane_stack_project_name: control-plane
 
 control_plane_stack_release_name: "{{ control_plane_release_name | default('', true) }}"
+control_plane_stack_release_source_commit: "{{ control_plane_release_source_commit | default('', true) }}"
+control_plane_stack_remnawave_image: "{{ control_plane_release_images.remnawave | default('', true) }}"
 control_plane_stack_backend_image: "{{ control_plane_release_images.backend | default('', true) }}"
 control_plane_stack_worker_image: "{{ control_plane_release_images.worker | default('', true) }}"
 control_plane_stack_helix_adapter_image: "{{ control_plane_release_images.helix_adapter | default('', true) }}"
+control_plane_stack_node_image: "{{ control_plane_release_images.node | default('', true) }}"
+control_plane_stack_subscription_page_image: "{{ control_plane_release_images.subscription_page | default('', true) }}"
+control_plane_stack_node_ssh_proxy_image: "{{ control_plane_release_images.node_ssh_proxy | default('', true) }}"
+control_plane_stack_subscription_page_rollback_image: remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c
+control_plane_stack_release_supply_chain: "{{ control_plane_release_supply_chain | default({}, true) }}"
 control_plane_stack_enforce_immutable_images: true
 control_plane_stack_registry_logins: >-
   {{
@@ -27,10 +36,13 @@ control_plane_stack_enable_backend: true
 control_plane_stack_enable_worker: true
 control_plane_stack_enable_scheduler: true
 control_plane_stack_enable_helix_adapter: true
+control_plane_stack_enable_subscription_page: true
+control_plane_node_ssh_enabled: false
+control_plane_stack_enable_node_ssh_proxy: "{{ control_plane_node_ssh_enabled | bool }}"
 
 control_plane_public_base_url: https://panel.staging.example.com
 control_plane_panel_domain: panel.staging.example.com
-control_plane_subscription_domain: sub.staging.example.com
+control_plane_subscription_domain: sub.staging.example.com/api/sub
 control_plane_stack_vpn_test_agent_url: ""
 control_plane_stack_vpn_test_agent_moscow_url: ""
 control_plane_stack_vpn_test_agent_spb_url: ""
@@ -54,11 +66,30 @@ control_plane_stack_remnawave_env: >-
       'HELIX_ADAPTER_PORT': control_plane_stack_helix_adapter_port | string,
       'HELIX_INTERNAL_AUTH_TOKEN': vault_control_plane_helix_internal_auth_token,
       'HELIX_REMNAWAVE_TOKEN': vault_control_plane_helix_remnawave_token,
-      'JWT_AUTH_SECRET': vault_control_plane_remnawave_jwt_auth_secret,
-      'JWT_API_TOKENS_SECRET': vault_control_plane_remnawave_jwt_api_tokens_secret,
+      'APP_SECRET': vault_control_plane_remnawave_app_secret,
+      'EXPORT_TO_STREAM_ENABLED': 'true',
+      'EXPORT_TO_STREAM_MAXLEN': '3000',
+      'SHORT_UUID_METHOD': 'nanoid',
+      'SHORT_UUID_LENGTH': '16',
       'METRICS_USER': vault_control_plane_remnawave_metrics_user,
-      'METRICS_PASS': vault_control_plane_remnawave_metrics_pass
+      'METRICS_PASS': vault_control_plane_remnawave_metrics_pass,
+      'CYBERVPN_NODE_SSH_BROKER_ENABLED': (control_plane_node_ssh_enabled | bool) | ternary('true', 'false'),
+      'CYBERVPN_NODE_SSH_BROKER_SECRET': vault_control_plane_remnawave_node_ssh_broker_secret | default(''),
+      'CYBERVPN_NODE_SSH_BROKER_TRUSTED_PROXY_RANGES': (control_plane_node_ssh_enabled | bool) | ternary(control_plane_stack_node_ssh_proxy_ipv4, '')
     } | combine(vault_control_plane_remnawave_env_extra | default({}))
+  }}
+
+control_plane_stack_subscription_page_env: >-
+  {{
+    {
+      'APP_PORT': control_plane_stack_subscription_page_app_port | string,
+      'REMNAWAVE_PANEL_URL': 'http://remnawave:3000',
+      'REMNAWAVE_API_TOKEN': vault_control_plane_subscription_page_remnawave_api_token,
+      'CUSTOM_SUB_PREFIX': 'api/sub',
+      'TRUST_PROXY': control_plane_stack_subscription_page_subnet,
+      'PM2_HOME': '/tmp/pm2',
+      'MARZBAN_LEGACY_LINK_ENABLED': 'false'
+    } | combine(vault_control_plane_subscription_page_env_extra | default({}))
   }}
 
 control_plane_stack_backend_env: >-
@@ -69,7 +100,26 @@ control_plane_stack_backend_env: >-
       'REMNAWAVE_URL': 'http://remnawave:3000',
       'REMNAWAVE_TOKEN': vault_control_plane_backend_remnawave_token,
       'REMNAWAVE_WEBHOOK_SECRET': vault_control_plane_backend_remnawave_webhook_secret,
+      'WEBHOOK_LOG_FINGERPRINT_SECRET': vault_control_plane_backend_webhook_log_fingerprint_secret,
       'REMNAWAVE_WEBHOOK_MAX_BODY_BYTES': vault_control_plane_backend_remnawave_webhook_max_body_bytes | default('65536'),
+      'REMNAWAVE_STREAM_INGESTION_ENABLED': 'true',
+      'REMNAWAVE_STREAM_IP_HMAC_SECRET': vault_control_plane_backend_remnawave_stream_ip_hmac_secret,
+      'REMNAWAVE_CONNECTION_DROP_HMAC_SECRET': vault_control_plane_backend_remnawave_connection_drop_hmac_secret,
+      'REMNAWAVE_STREAM_CONSUMER_GROUP': 'cybervpn-remnawave-v1',
+      'REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS': '14',
+      'REMNAWAVE_USER_USAGE_RETENTION_DAYS': '180',
+      'REMNAWAVE_SUBSCRIPTION_REQUEST_RETENTION_DAYS': '30',
+      'REMNAWAVE_NODE_CONNECTIONS_RETENTION_DAYS': '30',
+      'REMNAWAVE_NODE_SSH_ENABLED': (control_plane_node_ssh_enabled | bool) | ternary('true', 'false'),
+      'REMNAWAVE_NODE_SSH_BROKER_URL': (control_plane_node_ssh_enabled | bool) | ternary('http://' ~ control_plane_stack_node_ssh_proxy_container_name ~ ':' ~ (control_plane_stack_node_ssh_proxy_port | string), ''),
+      'REMNAWAVE_NODE_SSH_BROKER_SECRET': vault_control_plane_remnawave_node_ssh_broker_secret | default(''),
+      'REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS': vault_control_plane_backend_remnawave_node_ssh_trusted_admin_ids | default(''),
+      'REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS': vault_control_plane_backend_remnawave_node_ssh_allowed_node_ids | default(''),
+      'REMNAWAVE_NODE_SSH_TICKET_TTL_SECONDS': '15',
+      'REMNAWAVE_NODE_SSH_SESSION_MAX_SECONDS': '1800',
+      'REMNAWAVE_NODE_SSH_REVOCATION_POLL_SECONDS': '0.5',
+      'PASSKEY_ENABLED': vault_control_plane_backend_passkey_enabled | default('false'),
+      'PASSKEY_ADMIN_ENABLED': vault_control_plane_backend_passkey_admin_enabled | default('false'),
       'REMNAWAVE_SMART_RU_EXTERNAL_SQUAD_UUID': vault_control_plane_backend_remnawave_smart_ru_external_squad_uuid | default(''),
       'REMNAWAVE_SMART_RU_INTERNAL_SQUAD_UUID': vault_control_plane_backend_remnawave_smart_ru_internal_squad_uuid | default(''),
       'REMNAWAVE_SMART_RU_PLAN_CODES': vault_control_plane_backend_remnawave_smart_ru_plan_codes | default('premium_smart_ru'),
@@ -109,6 +159,12 @@ control_plane_stack_worker_env: >-
     {
       'DATABASE_URL': 'postgresql+asyncpg://' ~ control_plane_postgres_user ~ ':' ~ control_plane_postgres_password ~ '@remnawave-db:5432/' ~ control_plane_postgres_db,
       'REDIS_URL': 'redis://remnawave-redis:6379/0',
+      'REMNAWAVE_STREAM_CONSUMER_ENABLED': 'true',
+      'REMNAWAVE_STREAM_REDIS_URL': 'redis://remnawave-redis:6379/0',
+      'REMNAWAVE_STREAM_CONSUMER_GROUP': 'cybervpn-remnawave-v1',
+      'REMNAWAVE_STREAM_IP_HMAC_SECRET': vault_control_plane_backend_remnawave_stream_ip_hmac_secret,
+      'REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS': '14',
+      'REMNAWAVE_STREAM_CHECKPOINT_OBSERVE_INTERVAL_SECONDS': '30',
       'REMNAWAVE_URL': 'http://remnawave:3000',
       'REMNAWAVE_API_TOKEN': vault_control_plane_worker_remnawave_api_token,
       'HELIX_ENABLED': 'true',
@@ -136,7 +192,12 @@ control_plane_stack_worker_env: >-
     } | combine(vault_control_plane_worker_env_extra | default({}))
   }}
 
-control_plane_stack_scheduler_env: "{{ control_plane_stack_worker_env }}"
+control_plane_stack_scheduler_env: >-
+  {{
+    control_plane_stack_worker_env | combine({
+      'REMNAWAVE_STREAM_CONSUMER_ENABLED': 'false'
+    })
+  }}
 
 control_plane_stack_helix_adapter_env: >-
   {{

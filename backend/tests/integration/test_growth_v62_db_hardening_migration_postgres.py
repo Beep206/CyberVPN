@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.integration]
 
 PREVIOUS_REVISION = "20260626_reg_access_idem"
 GROWTH_V62_DB_REVISION = "20260627_growth_v62_db"
-CURRENT_HEAD_REVISION = "20260711_plan_code_len"
+CURRENT_HEAD_REVISION = "20260901_partner_grant_exclusive"
 
 NEW_TABLES = {
     "fx_provider_configs",

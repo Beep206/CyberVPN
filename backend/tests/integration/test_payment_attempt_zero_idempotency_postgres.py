@@ -7,7 +7,7 @@ from decimal import Decimal
 
 import asyncpg
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -19,7 +19,6 @@ from src.application.use_cases.payment_attempts.create_payment_attempt import (
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.brand_model import BrandModel
 from src.infrastructure.database.models.checkout_session_model import CheckoutSessionModel
-from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.order_model import OrderModel
 from src.infrastructure.database.models.payment_attempt_model import PaymentAttemptModel
 from src.infrastructure.database.models.payment_model import PaymentModel
@@ -278,15 +277,50 @@ async def _seed_order_fixture(
         )
         assert customer_realm_id is not None
 
-        user = MobileUserModel(
-            id=uuid.uuid4(),
-            auth_realm_id=customer_realm_id,
-            email=f"payment-attempt-idem-{suffix}@example.test",
-            password_hash="hash",
-            notification_prefs={},
-            totp_enabled=False,
-            is_active=True,
-            status="active",
+        user_id = uuid.uuid4()
+        # This seed is also used after downgrading to PREVIOUS_REVISION.  Insert
+        # only columns present at that historical schema instead of asking the
+        # current ORM mapper to write post-Remnawave expand columns.
+        await session.execute(
+            text(
+                """
+                INSERT INTO mobile_users (
+                    id,
+                    public_uid,
+                    auth_realm_id,
+                    email,
+                    password_hash,
+                    notification_prefs,
+                    totp_enabled,
+                    is_active,
+                    status,
+                    created_at,
+                    updated_at
+                ) VALUES (
+                    :id,
+                    :public_uid,
+                    :auth_realm_id,
+                    :email,
+                    :password_hash,
+                    CAST(:notification_prefs AS json),
+                    false,
+                    true,
+                    'active',
+                    :created_at,
+                    :updated_at
+                )
+                """
+            ),
+            {
+                "id": user_id,
+                "public_uid": 900_000_000 + (int(suffix, 16) % 99_999_999),
+                "auth_realm_id": customer_realm_id,
+                "email": f"payment-attempt-idem-{suffix}@example.test",
+                "password_hash": "hash",
+                "notification_prefs": "{}",
+                "created_at": now,
+                "updated_at": now,
+            },
         )
         brand = BrandModel(
             id=uuid.uuid4(),
@@ -303,12 +337,12 @@ async def _seed_order_fixture(
             auth_realm_id=customer_realm_id,
             status="active",
         )
-        session.add_all([user, brand, storefront])
+        session.add_all([brand, storefront])
         await session.flush()
 
         quote = QuoteSessionModel(
             id=uuid.uuid4(),
-            user_id=user.id,
+            user_id=user_id,
             auth_realm_id=customer_realm_id,
             storefront_id=storefront.id,
             sale_channel="web",
@@ -325,7 +359,7 @@ async def _seed_order_fixture(
         checkout = CheckoutSessionModel(
             id=uuid.uuid4(),
             quote_session_id=quote.id,
-            user_id=user.id,
+            user_id=user_id,
             auth_realm_id=customer_realm_id,
             storefront_id=storefront.id,
             sale_channel="web",
@@ -344,7 +378,7 @@ async def _seed_order_fixture(
             id=uuid.uuid4(),
             quote_session_id=quote.id,
             checkout_session_id=checkout.id,
-            user_id=user.id,
+            user_id=user_id,
             auth_realm_id=customer_realm_id,
             storefront_id=storefront.id,
             sale_channel="web",
@@ -368,7 +402,7 @@ async def _seed_order_fixture(
         )
         session.add(order)
         await session.commit()
-        return order.id, user.id
+        return order.id, user_id
 
 
 async def _seed_zero_gateway_order_fixture(

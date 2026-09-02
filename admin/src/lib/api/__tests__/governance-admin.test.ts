@@ -9,7 +9,6 @@ const MATCH_ANY_API_ORIGIN = {
   adminInvites: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/invites$/,
   adminInviteByToken: /https?:\/\/localhost(?::\d+)?\/api\/v1\/admin\/invites\/[^/]+$/,
   settings: /https?:\/\/localhost(?::\d+)?\/api\/v1\/settings\/$/,
-  settingById: /https?:\/\/localhost(?::\d+)?\/api\/v1\/settings\/\d+$/,
   policies: /https?:\/\/localhost(?::\d+)?\/api\/v1\/policies\/(?:\?.*)?$/,
   policyApprove: /https?:\/\/localhost(?::\d+)?\/api\/v1\/policies\/[^/]+\/approve$/,
   legalDocuments: /https?:\/\/localhost(?::\d+)?\/api\/v1\/legal-documents\/(?:\?.*)?$/,
@@ -156,88 +155,68 @@ describe('governanceApi admin invite operations', () => {
 });
 
 describe('governanceApi policy settings operations', () => {
-  it('loads visible settings from the settings endpoint', async () => {
+  it('loads the singleton Remnawave 3.4.3 settings document', async () => {
     server.use(
       http.get(MATCH_ANY_API_ORIGIN.settings, () =>
-        HttpResponse.json([
-          {
-            id: 7,
-            key: 'registration_mode',
-            value: { enabled: true },
-            description: 'Registration gate',
-            isPublic: false,
+        HttpResponse.json({
+          passkeySettings: {
+            enabled: true,
+            rpId: 'panel.example.com',
+            origin: 'https://panel.example.com',
           },
-        ]),
+          oauth2Settings: null,
+          passwordSettings: { enabled: false },
+          brandingSettings: { title: 'CyberVPN', logoUrl: null },
+        }),
       ),
     );
 
     const response = await governanceApi.getSettings();
 
     expect(response.status).toBe(200);
-    expect(response.data[0]?.key).toBe('registration_mode');
-    expect(response.data[0]?.isPublic).toBe(false);
+    expect(response.data.passkeySettings?.rpId).toBe('panel.example.com');
+    expect(response.data.passwordSettings?.enabled).toBe(false);
   });
 
-  it('creates a setting with JSON payload', async () => {
+  it('patches the singleton settings endpoint without a legacy id', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(
-      http.post(MATCH_ANY_API_ORIGIN.settings, async ({ request }) => {
+      http.patch(MATCH_ANY_API_ORIGIN.settings, async ({ request }) => {
         capturedBody = (await request.json()) as Record<string, unknown>;
 
         return HttpResponse.json({
-          id: 8,
-          key: 'invite_policy',
-          value: { ttl_hours: 24 },
-          description: 'Invite ttl policy',
-          isPublic: false,
+          passkeySettings: null,
+          oauth2Settings: null,
+          passwordSettings: { enabled: false },
+          brandingSettings: { title: 'CyberVPN', logoUrl: null },
         });
       }),
     );
 
-    const response = await governanceApi.createSetting({
-      key: 'invite_policy',
-      value: { ttl_hours: 24 },
-      description: 'Invite ttl policy',
-      is_public: false,
+    const response = await governanceApi.updateSettings({
+      brandingSettings: { title: 'CyberVPN', logoUrl: null },
     });
 
     expect(response.status).toBe(200);
-    expect(response.data.key).toBe('invite_policy');
-    expect(capturedBody).toMatchObject({
-      key: 'invite_policy',
-      description: 'Invite ttl policy',
-      is_public: false,
+    expect(capturedBody).toEqual({
+      brandingSettings: { title: 'CyberVPN', logoUrl: null },
     });
   });
 
-  it('updates a setting by numeric id', async () => {
-    let updatedId = '';
-
+  it('accepts a bodyless 202 response for an ambiguously acknowledged patch', async () => {
     server.use(
-      http.put(MATCH_ANY_API_ORIGIN.settingById, async ({ request }) => {
-        updatedId = new URL(request.url).pathname.split('/').at(-1) ?? '';
-        const body = (await request.json()) as Record<string, unknown>;
-
-        return HttpResponse.json({
-          id: Number(updatedId),
-          key: 'registration_mode',
-          value: body.value ?? { enabled: false },
-          description: body.description ?? 'Updated policy',
-          isPublic: body.is_public ?? true,
-        });
-      }),
+      http.patch(
+        MATCH_ANY_API_ORIGIN.settings,
+        () => new HttpResponse(null, { status: 202 }),
+      ),
     );
 
-    const response = await governanceApi.updateSetting(7, {
-      value: { enabled: false },
-      description: 'Updated policy',
-      is_public: true,
+    const response = await governanceApi.updateSettings({
+      passwordSettings: { enabled: true },
     });
 
-    expect(response.status).toBe(200);
-    expect(updatedId).toBe('7');
-    expect(response.data.isPublic).toBe(true);
+    expect(response.status).toBe(202);
   });
 
 });

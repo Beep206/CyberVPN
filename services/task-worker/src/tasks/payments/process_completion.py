@@ -1,21 +1,13 @@
-"""Process completed payment — enable user and extend subscription."""
+"""Fail-closed boundary for the legacy worker-owned completion flow."""
 
-from contextlib import suppress
-from datetime import UTC, datetime
 from typing import Any, cast
 
 import structlog
-from sqlalchemy import select
 
 from src.broker import broker
-from src.database.session import get_session_factory
-from src.models.payment import PaymentModel
-from src.services.remnawave_client import RemnawaveClient
-from src.services.sse_publisher import publish_event
-from src.services.telegram_client import TelegramClient
-from src.utils.formatting import payment_received
 
 logger = structlog.get_logger(__name__)
+_SAFETY_REASON = "backend_payment_completion_saga_required"
 
 
 def _attach_task_labels(task: Any, **labels: str) -> Any:
@@ -34,95 +26,22 @@ def _attach_task_labels(task: Any, **labels: str) -> Any:
 
 @broker.task(task_name="process_payment_completion", queue="payments")
 async def process_payment_completion(payment_id: str) -> dict:
-    """Process a completed payment: update DB, enable user, send notification."""
-    factory = get_session_factory()
+    """Leave the payment pending until an atomic backend saga owns all effects."""
 
-    async with factory() as session:
-        stmt = select(PaymentModel).where(PaymentModel.id == payment_id)
-        result = await session.execute(stmt)
-        payment = result.scalar_one_or_none()
-
-        if not payment:
-            logger.error("payment_not_found", payment_id=payment_id)
-            return {"error": "payment_not_found"}
-
-        if payment.status == "completed":
-            return {"already_processed": True}
-
-        # Update payment status
-        payment.status = "completed"
-        payment.updated_at = datetime.now(UTC)
-        session.add(payment)
-        await session.commit()
-
-    # Enable user via Remnawave and extend subscription
-    user_uuid = str(payment.user_uuid)
-    subscription_extended = False
-    try:
-        async with RemnawaveClient() as rw:
-            user = await rw.get_user(user_uuid)
-            extend_days = int(payment.subscription_days or 0)
-            if extend_days > 0:
-                await rw.bulk_extend_expiration_date([user_uuid], extend_days)
-                subscription_extended = True
-            await rw.enable_user(user_uuid)
-    except Exception as e:
-        logger.error(
-            "enable_user_failed",
-            user_uuid=user_uuid,
-            subscription_extended=subscription_extended,
-            error=str(e),
-        )
-        return {
-            "payment_updated": True,
-            "user_enabled": False,
-            "subscription_extended": subscription_extended,
-            "error": str(e),
-        }
-
-    # Send notification
-    username = user.get("username", "unknown")
-    telegram_id = user.get("telegram_id")
-    plan_name = ""
-    if payment.metadata_ and isinstance(payment.metadata_, dict):
-        plan_name = payment.metadata_.get("plan_name") or payment.metadata_.get("planName") or ""
-    if telegram_id:
-        msg = payment_received(
-            username,
-            float(payment.amount),
-            payment.currency,
-            plan_name,
-            payment.subscription_days,
-        )
-        with suppress(Exception):
-            async with TelegramClient() as tg:
-                await tg.send_message(chat_id=int(telegram_id), text=msg)
-
-    try:
-        await publish_event(
-            "payment.completed",
-            {
-                "payment_id": str(payment.id),
-                "user_uuid": user_uuid,
-                "amount": float(payment.amount),
-                "currency": payment.currency,
-                "subscription_days": payment.subscription_days,
-                "subscription_extended": subscription_extended,
-            },
-        )
-    except Exception:
-        logger.warning("payment_sse_publish_failed", payment_id=payment_id)
-
-    logger.info(
-        "payment_processed",
+    logger.error(
+        "payment_completion_task_safety_disabled",
         payment_id=payment_id,
-        user_uuid=user_uuid,
-        subscription_extended=subscription_extended,
+        reason=_SAFETY_REASON,
     )
     return {
-        "payment_updated": True,
-        "user_enabled": True,
-        "subscription_extended": subscription_extended,
+        "payment_id": payment_id,
+        "payment_updated": False,
+        "user_enabled": False,
+        "subscription_extended": False,
+        "notification_queued": False,
+        "pending_reconciliation": True,
+        "safety_disabled": True,
+        "reason": _SAFETY_REASON,
     }
 
 

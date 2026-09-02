@@ -34,6 +34,7 @@ import {
   type PartnerSectionVisibility,
 } from '@/features/partner-portal-state/lib/portal-visibility';
 import { usePartnerPortalRuntimeState } from '@/features/partner-portal-state/lib/use-partner-portal-runtime-state';
+import { PartnerVpnServiceStatusPanel } from '@/features/partner-remnawave-status/components/partner-vpn-service-status-panel';
 
 type DashboardRouteHref = '/dashboard' | `/${PartnerSectionSlug}`;
 
@@ -650,6 +651,8 @@ export function PartnerDashboardPage() {
           ) : null}
         </div>
       </header>
+
+      <PartnerVpnServiceStatusPanel />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-[1.5rem] border border-grid-line/20 bg-terminal-surface/35 p-5">

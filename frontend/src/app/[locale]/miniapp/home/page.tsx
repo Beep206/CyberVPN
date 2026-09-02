@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, useTranslations } from 'next-intl';
-import { invitesApi, miniappApi } from '@/lib/api';
+import { invitesApi, miniappApi, remnawaveStatusApi } from '@/lib/api';
 import { motion } from 'motion/react';
 import {
   AlertTriangle,
@@ -26,6 +26,7 @@ import { toIntlLocale } from '@/i18n/intl-locale';
 import { VpnConfigCard } from '../components/VpnConfigCard';
 import { emitMiniAppRuntimeEvent } from '@/features/miniapp-runtime/lib/runtime-analytics';
 import { useCustomerSubscriptions } from '@/features/customer-subscriptions/customer-subscription-context';
+import { CustomerConnectionsAvailability } from '@/features/client-capabilities/components/customer-connections-availability';
 
 function formatBytes(bytes?: number | null) {
   if (!bytes) return '0 GB';
@@ -72,6 +73,14 @@ export default function MiniAppHomePage() {
   const bootstrap = bootstrapQuery.data;
   const hasActiveSubscription = bootstrap?.subscription.status === 'active';
   const isOnTrial = bootstrap?.subscription.status === 'trial';
+  const hasVpnAccess = hasActiveSubscription === true || isOnTrial === true;
+  const vpnServiceStatusQuery = useQuery({
+    queryKey: ['miniapp-vpn-service-status'],
+    queryFn: () => remnawaveStatusApi.getCustomerStatus(),
+    enabled: hasVpnAccess,
+    retry: false,
+    staleTime: 45_000,
+  });
   const rollout = bootstrap?.rollout;
   const canActivateTrial = Boolean(
     bootstrap?.trial.eligible
@@ -412,6 +421,15 @@ export default function MiniAppHomePage() {
             </div>
           )}
         </motion.div>
+      )}
+
+      {hasVpnAccess && (
+        <CustomerConnectionsAvailability
+          surface="miniapp"
+          status={vpnServiceStatusQuery.data}
+          isPending={vpnServiceStatusQuery.isPending}
+          isError={vpnServiceStatusQuery.isError}
+        />
       )}
 
       {!hasActiveSubscription && !isOnTrial && canActivateTrial && (

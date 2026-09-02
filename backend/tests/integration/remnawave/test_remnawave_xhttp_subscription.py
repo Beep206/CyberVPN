@@ -36,7 +36,7 @@ async def test_remnawave_2_8_subscription_exposes_xhttp_and_stable_fallback(
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("xhttp-user", user_segments=["internal"])
+    result = await GenerateConfigUseCase(client).execute(101, user_segments=["internal"])
 
     assert result["subscription_url"] == "https://sub.example.com/xhttp-user"
     assert result["xhttp_enabled"] is True
@@ -71,7 +71,7 @@ async def test_remnawave_2_8_subscription_filters_premium_rollout_without_plan(
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("xhttp-user")
+    result = await GenerateConfigUseCase(client).execute(102)
 
     assert result["config"] == stable_link
     assert result["xhttp_enabled"] is False
@@ -104,7 +104,7 @@ async def test_remnawave_2_8_subscription_force_disable_filters_xhttp(
         )
     )
 
-    result = await GenerateConfigUseCase(client).execute("xhttp-user")
+    result = await GenerateConfigUseCase(client).execute(103)
 
     assert result["config"] == stable_link
     assert result["xhttp_enabled"] is False

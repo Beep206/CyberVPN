@@ -86,9 +86,10 @@ Widget buildTestableOtpScreen({
 
 // Finders
 Finder findCodeField() => find.byType(TextFormField);
-Finder findSubmitButton() => find.widgetWithText(FilledButton, 'Verify Code');
+Finder findSubmitButton() => find.widgetWithText(FilledButton, 'Verify Email');
 Finder findResendButton() => find.widgetWithText(TextButton, 'Resend Code');
-Finder findBackToLoginButton() => find.widgetWithText(TextButton, 'Back to Login');
+Finder findBackToLoginButton() =>
+    find.widgetWithText(TextButton, 'Back to Login');
 Finder findErrorIcon() => find.byIcon(Icons.error_outline);
 Finder findSuccessIcon() => find.byIcon(Icons.check_circle_outline);
 Finder findRateLimitIcon() => find.byIcon(Icons.hourglass_top);
@@ -121,8 +122,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Verify Email'), findsOneWidget);
-      expect(find.text('test@example.com'), findsOneWidget);
+      expect(find.text('Verify Email'), findsNWidgets(3));
+      expect(find.textContaining('test@example.com'), findsOneWidget);
       expect(findCodeField(), findsOneWidget);
       expect(findSubmitButton(), findsOneWidget);
       expect(findResendButton(), findsOneWidget);
@@ -157,7 +158,7 @@ void main() {
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('This field is required'), findsOneWidget);
+      expect(find.text('This field is required.'), findsOneWidget);
     });
 
     testWidgets('test_validates_code_length_less_than_6', (tester) async {
@@ -174,14 +175,19 @@ void main() {
       await tester.tap(findSubmitButton());
       await tester.pumpAndSettle();
 
-      expect(find.text('Invalid verification code'), findsOneWidget);
+      expect(
+        find.text('Invalid or expired code. Please try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('test_accepts_valid_6_digit_code', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.verifyEmail,
-            data: any<dynamic>(named: 'data'),
-          )).thenAnswer(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.verifyEmail,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           data: {
             'access_token': 'valid_access_token',
@@ -192,10 +198,12 @@ void main() {
         ),
       );
 
-      when(() => mockSecureStorage.setTokens(
-            accessToken: any<String>(named: 'accessToken'),
-            refreshToken: any<String>(named: 'refreshToken'),
-          )).thenAnswer((_) async => {});
+      when(
+        () => mockSecureStorage.setTokens(
+          accessToken: any<String>(named: 'accessToken'),
+          refreshToken: any<String>(named: 'refreshToken'),
+        ),
+      ).thenAnswer((_) async => {});
 
       // mockAuthNotifier.checkAuthStatus() is a no-op (tracks call count)
 
@@ -219,24 +227,25 @@ void main() {
 
   group('OtpVerificationScreen - Successful Verification', () {
     testWidgets('test_successful_verification_stores_tokens', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.verifyEmail,
-            data: any<dynamic>(named: 'data'),
-          )).thenAnswer(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.verifyEmail,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
-          data: {
-            'access_token': 'new_access',
-            'refresh_token': 'new_refresh',
-          },
+          data: {'access_token': 'new_access', 'refresh_token': 'new_refresh'},
           statusCode: 200,
           requestOptions: RequestOptions(path: ApiConstants.verifyEmail),
         ),
       );
 
-      when(() => mockSecureStorage.setTokens(
-            accessToken: 'new_access',
-            refreshToken: 'new_refresh',
-          )).thenAnswer((_) async => {});
+      when(
+        () => mockSecureStorage.setTokens(
+          accessToken: 'new_access',
+          refreshToken: 'new_refresh',
+        ),
+      ).thenAnswer((_) async => {});
 
       // mockAuthNotifier.checkAuthStatus() is a no-op (tracks call count)
 
@@ -251,35 +260,41 @@ void main() {
 
       await tester.enterText(findCodeField(), '123456');
       await tester.tap(findSubmitButton());
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
-      verify(() => mockSecureStorage.setTokens(
-            accessToken: 'new_access',
-            refreshToken: 'new_refresh',
-          )).called(1);
+      verify(
+        () => mockSecureStorage.setTokens(
+          accessToken: 'new_access',
+          refreshToken: 'new_refresh',
+        ),
+      ).called(1);
       expect(mockAuthNotifier.checkAuthStatusCallCount, 1);
+      await tester.pumpWidget(const SizedBox.shrink());
     });
 
-    testWidgets('test_successful_verification_shows_success_state',
-        (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.verifyEmail,
-            data: any<dynamic>(named: 'data'),
-          )).thenAnswer(
+    testWidgets('test_successful_verification_shows_success_state', (
+      tester,
+    ) async {
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.verifyEmail,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
-          data: {
-            'access_token': 'token',
-            'refresh_token': 'refresh',
-          },
+          data: {'access_token': 'token', 'refresh_token': 'refresh'},
           statusCode: 200,
           requestOptions: RequestOptions(path: ApiConstants.verifyEmail),
         ),
       );
 
-      when(() => mockSecureStorage.setTokens(
-            accessToken: any<String>(named: 'accessToken'),
-            refreshToken: any<String>(named: 'refreshToken'),
-          )).thenAnswer((_) async => {});
+      when(
+        () => mockSecureStorage.setTokens(
+          accessToken: any<String>(named: 'accessToken'),
+          refreshToken: any<String>(named: 'refreshToken'),
+        ),
+      ).thenAnswer((_) async => {});
 
       // mockAuthNotifier.checkAuthStatus() is a no-op (tracks call count)
 
@@ -294,19 +309,23 @@ void main() {
 
       await tester.enterText(findCodeField(), '123456');
       await tester.tap(findSubmitButton());
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       expect(findSuccessIcon(), findsOneWidget);
-      expect(find.text('Email Verified'), findsOneWidget);
+      expect(find.text('Email Verified!'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   });
 
   group('OtpVerificationScreen - Error Handling', () {
     testWidgets('test_invalid_code_shows_error', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.verifyEmail,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.verifyEmail,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
         const ServerException(message: 'Invalid verification code', code: 400),
       );
 
@@ -324,16 +343,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findErrorIcon(), findsOneWidget);
-      expect(find.text('Invalid verification code'), findsOneWidget);
+      expect(
+        find.text('Invalid or expired code. Please try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('test_expired_code_shows_error', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.verifyEmail,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
-        const ServerException(message: 'Code expired', code: 422),
-      );
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.verifyEmail,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(const ServerException(message: 'Code expired', code: 422));
 
       await tester.pumpWidget(
         buildTestableOtpScreen(
@@ -349,16 +371,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findErrorIcon(), findsOneWidget);
-      expect(find.text('Invalid verification code'), findsOneWidget);
+      expect(
+        find.text('Invalid or expired code. Please try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('test_network_error_shows_message', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.verifyEmail,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
-        const NetworkException(message: 'No internet connection'),
-      );
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.verifyEmail,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(const NetworkException(message: 'No internet connection'));
 
       await tester.pumpWidget(
         buildTestableOtpScreen(
@@ -380,10 +405,12 @@ void main() {
 
   group('OtpVerificationScreen - Rate Limiting', () {
     testWidgets('test_rate_limit_429_shows_countdown', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.verifyEmail,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.verifyEmail,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
         const ServerException(message: 'Too many requests', code: 429),
       );
 
@@ -401,16 +428,18 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(findRateLimitIcon(), findsOneWidget);
-      expect(find.text('Rate Limit Exceeded'), findsOneWidget);
+      expect(find.text('Too Many Requests'), findsOneWidget);
     });
   });
 
   group('OtpVerificationScreen - Resend Functionality', () {
     testWidgets('test_resend_otp_success_shows_snackbar', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.resendOtp,
-            data: any<dynamic>(named: 'data'),
-          )).thenAnswer(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.resendOtp,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           data: {'message': 'Code sent'},
           statusCode: 200,
@@ -434,10 +463,12 @@ void main() {
     });
 
     testWidgets('test_resend_shows_cooldown_timer', (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.resendOtp,
-            data: any<dynamic>(named: 'data'),
-          )).thenAnswer(
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.resendOtp,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenAnswer(
         (_) async => Response(
           data: {'message': 'Code sent'},
           statusCode: 200,
@@ -461,12 +492,15 @@ void main() {
       expect(find.textContaining('Resend in'), findsOneWidget);
     });
 
-    testWidgets('test_resend_rate_limit_shows_rate_limit_state',
-        (tester) async {
-      when(() => mockApiClient.post<Map<String, dynamic>>(
-            ApiConstants.resendOtp,
-            data: any<dynamic>(named: 'data'),
-          )).thenThrow(
+    testWidgets('test_resend_rate_limit_shows_rate_limit_state', (
+      tester,
+    ) async {
+      when(
+        () => mockApiClient.post<Map<String, dynamic>>(
+          ApiConstants.resendOtp,
+          data: any<dynamic>(named: 'data'),
+        ),
+      ).thenThrow(
         const ServerException(message: 'Too many requests', code: 429),
       );
 

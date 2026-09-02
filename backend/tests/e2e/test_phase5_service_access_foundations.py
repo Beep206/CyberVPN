@@ -6,6 +6,7 @@ import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.application.services.remnawave_identity_access import persist_runtime_mapped_mobile_identity
 from src.infrastructure.cache.redis_client import get_redis
 from src.infrastructure.database.models.admin_user_model import AdminUserModel
 from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
@@ -67,7 +68,8 @@ async def test_phase5_service_access_foundations_cross_channel_gate(async_client
             )
 
             with sessionmaker() as db:
-                realm_repo = AuthRealmRepository(SyncSessionAdapter(db))
+                session = SyncSessionAdapter(db)
+                realm_repo = AuthRealmRepository(session)
                 admin_realm = await realm_repo.get_or_create_default_realm("admin")
                 admin_user = AdminUserModel(
                     login="phase5_service_access_admin",
@@ -80,7 +82,13 @@ async def test_phase5_service_access_foundations_cross_channel_gate(async_client
                 )
                 customer_user = db.get(MobileUserModel, uuid.UUID(seeded["customer_user_id"]))
                 assert customer_user is not None
-                customer_user.remnawave_uuid = "phase5-remnawave-subject-001"
+                await persist_runtime_mapped_mobile_identity(
+                    session,
+                    customer=customer_user,
+                    remnawave_user_id=500_001,
+                    remnawave_uuid=uuid.UUID("00000000-0000-4000-8000-000000000501"),
+                    source="phase5_e2e_fixture",
+                )
                 db.add(admin_user)
                 db.commit()
                 admin_token = _make_admin_access_token(

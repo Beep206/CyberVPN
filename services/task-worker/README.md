@@ -164,7 +164,7 @@ docker run -d \
   --name task-scheduler \
   --env-file .env \
   cybervpn-task-worker:latest \
-  taskiq scheduler src.broker:scheduler
+  taskiq scheduler src.scheduler:scheduler
 ```
 
 ## Environment Variables
@@ -175,6 +175,16 @@ docker run -d \
 | `REDIS_URL` | Redis connection string | - | Yes |
 | `REMNAWAVE_URL` | Remnawave API base URL | - | Yes |
 | `REMNAWAVE_API_TOKEN` | API authentication token | - | Yes |
+| `BACKEND_API_URL` | CyberVPN backend `/api/v1` base URL for trusted worker calls | - | For internal jobs/streams |
+| `BACKEND_INTERNAL_SECRET` | Dedicated worker-to-backend secret | - | With `BACKEND_API_URL` |
+| `REMNAWAVE_STREAM_CONSUMER_ENABLED` | Consume Remnawave 3.4 export streams | `false` | No |
+| `REMNAWAVE_STREAM_REDIS_URL` | Dedicated Remnawave export Valkey URL; never falls back to `REDIS_URL` | - | When stream consumer enabled |
+| `REMNAWAVE_STREAM_CONSUMER_GROUP` | Stable Redis consumer group | `cybervpn-remnawave-v1` | No |
+| `REMNAWAVE_STREAM_IP_HMAC_SECRET` | Dedicated 32+ byte key for non-reversible stream/DLQ fingerprints; must differ from every worker auth/provider secret and parsed database/Valkey URL password; shared with the backend stream privacy boundary | - | When stream consumer enabled |
+| `REMNAWAVE_STREAM_CHECKPOINT_OBSERVE_INTERVAL_SECONDS` | Live Valkey epoch/range/group comparison interval; startup and `NOGROUP` checks are immediate | `30` | No |
+| `REMNAWAVE_STREAM_RETENTION_ENABLED` | Schedule bounded backend PostgreSQL telemetry retention | `false` | Enable with streams in deployed worker |
+| `REMNAWAVE_STREAM_RETENTION_BATCH_LIMIT` | Rows deleted per backend transaction | `1000` | No |
+| `REMNAWAVE_STREAM_RETENTION_MAX_BATCHES` | Maximum transactions per daily run | `20` | No |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token for notifications | - | Yes |
 | `ADMIN_TELEGRAM_IDS` | Comma-separated admin Telegram IDs | - | Yes |
 | `CRYPTOBOT_TOKEN` | CryptoBot API token for payments | - | No |
@@ -214,6 +224,43 @@ docker run -d \
 - `disable_expired_users` - Every 15 minutes
 - `auto_renew_subscriptions` - Every 30 minutes
 - `reset_monthly_traffic` - 1st of month at 00:00 UTC
+
+Remnawave 3 cutover safety status is documented in
+[`docs/remnawave-3-worker-safety-boundary.md`](docs/remnawave-3-worker-safety-boundary.md).
+Auto-renew uses the backend-owned exact identity, invoice, recipient, and
+notification receipt. Expiry reminders, expiry disablement, monthly traffic
+reset, and the legacy payment-completion family remain registered but return an
+observable `safety_disabled` result with zero side effects until their named
+backend sagas are implemented. The same fail-closed boundary applies to
+`bulk_disable_users` and `bulk_enable_users` until backend-owned durable
+per-user mutation receipts make their at-least-once delivery safe.
+
+When enabled, the worker also consumes the Remnawave 3.4 `user_usage`,
+`subscription_requests`, and `node_connections` Redis Streams. Entries are
+acknowledged only after the CyberVPN backend commits the normalized event.
+`subscription_requests` is the privacy-sensitive exception to source
+retention: after that commit the worker atomically performs `XACK` + `XDEL`,
+so raw `requestIp` and User-Agent do not remain in the source stream. A
+terminal contract error follows the same rule only after the backend commits
+the redacted DLQ receipt; Redis then atomically writes redacted DLQ metadata,
+acknowledges, and deletes the source entry. Parse/persistence retries neither
+acknowledge nor delete it.
+
+The `cybervpn-remnawave-v1` group is the sole supported consumer of
+`subscription_requests`; adding another group would be incompatible with this
+post-commit deletion contract unless durable fan-out is introduced first.
+The export Valkey stream is transport, not a source of truth. The committed
+CyberVPN projection is authoritative, and detected transport loss is resolved
+through the existing bounded Remnawave REST reconciliation path.
+Permanent schema/contract failures move to redacted per-stream DLQs; transient
+backend failures remain in the PEL even after the alert threshold so an outage
+cannot discard raw usage/presence data. Redis-trimmed IDs and Valkey epoch/range
+loss are durably latched, reconciled through bounded authoritative REST reads,
+and released only on a terminal `partial`/`reconciled` receipt. A reclaimed PEL
+entry older than the matching 14-day PostgreSQL receipt lifetime follows the
+same gap/reconciliation path before `XACK`; it is never applied again after its
+dedupe receipt may have expired. DLQ fingerprints are domain-separated HMACs,
+never logged, and removed in bounded batches at the 14-day retention boundary.
 
 ### Analytics (Queue: `analytics`)
 
@@ -273,7 +320,7 @@ taskiq worker src.broker:broker --workers 4 --fs-discover
 ### Run Scheduler
 
 ```bash
-taskiq scheduler src.broker:scheduler
+taskiq scheduler src.scheduler:scheduler
 ```
 
 ### Run Tests

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/diagnostic_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/domain/entities/speed_test_result.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/providers/diagnostics_provider.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/screens/diagnostics_screen.dart';
 import 'package:cybervpn_mobile/features/diagnostics/presentation/widgets/diagnostic_step_tile.dart';
+import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 
 // ---------------------------------------------------------------------------
 // Test data
@@ -55,9 +57,7 @@ class _FakeDiagnosticsNotifier extends AsyncNotifier<DiagnosticsState>
   Future<DiagnosticsState> build() async => _state;
 
   @override
-  Future<void> runDiagnostics({
-    dynamic serverTarget,
-  }) async {
+  Future<void> runDiagnostics({dynamic serverTarget}) async {
     runDiagnosticsCalled = true;
   }
 
@@ -65,6 +65,8 @@ class _FakeDiagnosticsNotifier extends AsyncNotifier<DiagnosticsState>
   Future<void> runSpeedTest({
     bool vpnActive = false,
     String? serverName,
+    PingMode pingMode = PingMode.tcp,
+    String? pingTestUrl,
   }) async {}
 
   @override
@@ -93,10 +95,11 @@ Widget _buildApp(DiagnosticsState state) {
   final notifier = _FakeDiagnosticsNotifier(state);
 
   return ProviderScope(
-    overrides: [
-      diagnosticsProvider.overrideWith(() => notifier),
-    ],
+    overrides: [diagnosticsProvider.overrideWith(() => notifier)],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
       home: DiagnosticsScreen(),
     ),
   );
@@ -110,11 +113,10 @@ void main() {
   setUp(_ignoreOverflowErrors);
 
   group('DiagnosticsScreen', () {
-    testWidgets('renders 6 steps in pending state when not running',
-        (WidgetTester tester) async {
-      const state = DiagnosticsState(
-        isRunningDiagnostics: false,
-      );
+    testWidgets('renders 6 steps in pending state when not running', (
+      WidgetTester tester,
+    ) async {
+      const state = DiagnosticsState(isRunningDiagnostics: false);
 
       await tester.pumpWidget(_buildApp(state));
       await tester.pump();
@@ -123,11 +125,10 @@ void main() {
       expect(find.text('Tap Run Again to start'), findsOneWidget);
     });
 
-    testWidgets('shows 6 pending steps when running',
-        (WidgetTester tester) async {
-      const state = DiagnosticsState(
-        isRunningDiagnostics: true,
-      );
+    testWidgets('shows 6 pending steps when running', (
+      WidgetTester tester,
+    ) async {
+      const state = DiagnosticsState(isRunningDiagnostics: true);
 
       await tester.pumpWidget(_buildApp(state));
       await tester.pump();
@@ -142,8 +143,9 @@ void main() {
       expect(find.text('Running...'), findsOneWidget);
     });
 
-    testWidgets('displays completed steps with statuses',
-        (WidgetTester tester) async {
+    testWidgets('displays completed steps with statuses', (
+      WidgetTester tester,
+    ) async {
       final state = DiagnosticsState(
         diagnosticResult: _completedDiagnosticResult,
         isRunningDiagnostics: false,
@@ -164,8 +166,7 @@ void main() {
       expect(find.text('API Reachability'), findsOneWidget);
     });
 
-    testWidgets('shows suggestion on failed step',
-        (WidgetTester tester) async {
+    testWidgets('shows suggestion on failed step', (WidgetTester tester) async {
       final state = DiagnosticsState(
         diagnosticResult: _completedDiagnosticResult,
         isRunningDiagnostics: false,
@@ -181,8 +182,9 @@ void main() {
       );
     });
 
-    testWidgets('shows running status with spinner',
-        (WidgetTester tester) async {
+    testWidgets('shows running status with spinner', (
+      WidgetTester tester,
+    ) async {
       final partialSteps = [
         const DiagnosticStep(
           name: 'Network Connectivity',
@@ -215,20 +217,18 @@ void main() {
       expect(tiles, findsNWidgets(6));
     });
 
-    testWidgets('triggers runDiagnostics on init',
-        (WidgetTester tester) async {
-      const state = DiagnosticsState(
-        isRunningDiagnostics: false,
-      );
+    testWidgets('triggers runDiagnostics on init', (WidgetTester tester) async {
+      const state = DiagnosticsState(isRunningDiagnostics: false);
 
       final notifier = _FakeDiagnosticsNotifier(state);
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            diagnosticsProvider.overrideWith(() => notifier),
-          ],
+          overrides: [diagnosticsProvider.overrideWith(() => notifier)],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
             home: DiagnosticsScreen(),
           ),
         ),
@@ -241,8 +241,9 @@ void main() {
       expect(notifier.runDiagnosticsCalled, isTrue);
     });
 
-    testWidgets('Run Again button triggers diagnostics',
-        (WidgetTester tester) async {
+    testWidgets('Run Again button triggers diagnostics', (
+      WidgetTester tester,
+    ) async {
       final state = DiagnosticsState(
         diagnosticResult: _completedDiagnosticResult,
         isRunningDiagnostics: false,
@@ -252,10 +253,11 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            diagnosticsProvider.overrideWith(() => notifier),
-          ],
+          overrides: [diagnosticsProvider.overrideWith(() => notifier)],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('en'),
             home: DiagnosticsScreen(),
           ),
         ),
@@ -274,8 +276,9 @@ void main() {
       expect(notifier.runDiagnosticsCalled, isTrue);
     });
 
-    testWidgets('Export Report button appears when diagnostic completed',
-        (WidgetTester tester) async {
+    testWidgets('Export Report button appears when diagnostic completed', (
+      WidgetTester tester,
+    ) async {
       final state = DiagnosticsState(
         diagnosticResult: _completedDiagnosticResult,
         isRunningDiagnostics: false,
@@ -288,11 +291,10 @@ void main() {
       expect(find.text('Export Report'), findsOneWidget);
     });
 
-    testWidgets('Export Report button hidden when no result',
-        (WidgetTester tester) async {
-      const state = DiagnosticsState(
-        isRunningDiagnostics: false,
-      );
+    testWidgets('Export Report button hidden when no result', (
+      WidgetTester tester,
+    ) async {
+      const state = DiagnosticsState(isRunningDiagnostics: false);
 
       await tester.pumpWidget(_buildApp(state));
       await tester.pumpAndSettle();
@@ -301,11 +303,10 @@ void main() {
       expect(find.text('Export Report'), findsNothing);
     });
 
-    testWidgets('displays all 6 step names correctly when running',
-        (WidgetTester tester) async {
-      const state = DiagnosticsState(
-        isRunningDiagnostics: true,
-      );
+    testWidgets('displays all 6 step names correctly when running', (
+      WidgetTester tester,
+    ) async {
+      const state = DiagnosticsState(isRunningDiagnostics: true);
 
       await tester.pumpWidget(_buildApp(state));
       await tester.pump();

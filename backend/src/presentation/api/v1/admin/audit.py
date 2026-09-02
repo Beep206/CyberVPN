@@ -26,6 +26,7 @@ STAGE1_REQUIRED_ADMIN_AUDIT_ACTIONS = frozenset(
         "customer_vpn_enabled",
         "customer_vpn_disabled",
         "customer_vpn_credentials_regenerated",
+        "customer_vpn_credentials_read",
         "customer_device_revoked",
         "customer_devices_revoked_all",
         "customer_password_reset",
@@ -73,6 +74,16 @@ STAGE1_REQUIRED_ADMIN_AUDIT_ACTIONS = frozenset(
         "growth_fx.rate.rejected",
         "growth_onboarding_settings.updated",
         "growth_onboarding_state.reset",
+        "remnawave.node_ssh.ticket_issued",
+        "remnawave.node_ssh.ticket_revoked",
+        "remnawave.node_ssh.vault_evaluated",
+        "remnawave.node_ssh.ticket_used",
+        "remnawave.node_ssh.session_started",
+        "remnawave.node_ssh.session_closed",
+        "remnawave.connections.drop.accepted",
+        "remnawave.connections.drop.outcome_unknown",
+        "remnawave.connections.drop.rejected",
+        "remnawave.connections.drop.reconciled",
     }
 )
 
@@ -112,6 +123,7 @@ async def write_required_admin_audit_entry(
     request: Request,
     details: Mapping[str, Any] | None = None,
     old_value: Mapping[str, Any] | None = None,
+    audit_entry_id: UUID | None = None,
 ) -> AuditLog:
     client_ip = resolve_client_ip(request)
     audit_entry = AuditLog(
@@ -124,6 +136,10 @@ async def write_required_admin_audit_entry(
         ip_address=client_ip.ip,
         user_agent=request.headers.get("user-agent"),
     )
+    if audit_entry_id is not None:
+        # Deterministic IDs let security-sensitive callers make append-only
+        # audit writes idempotent without updating an existing event.
+        audit_entry.id = audit_entry_id
     db.add(audit_entry)
     await db.flush()
     return audit_entry

@@ -147,10 +147,14 @@ Adds: DEBUG logging, Python debugger port (5678), Grafana anonymous auth.
 
 ## Remnawave baseline
 
-- validated baseline: panel/backend `2.7.4`, edge node `2.7.4`
+- target baseline: custom panel/backend/frontend `3.4.3`, edge node `3.4.1`, subscription page `8.0.0`
+- custom panel build: pinned upstream commit plus the fail-closed TypeScript RAW Vision compatibility patch in `infra/remnawave-backend-compat/`
+- data services remain PostgreSQL `17.10` and Valkey `8.1.8` over TCP
 - canonical internal contract: `backend/src/infrastructure/remnawave/contracts.py`
-- vendored SDK baseline: `SDK/python-sdk-production` on `2.7.4`, reference and contract-test input only
 - webhook contract: `X-Remnawave-Signature` + `X-Remnawave-Timestamp` with `REMNAWAVE_WEBHOOK_SECRET`
+- connection-drop mutation receipts use a dedicated, stable backend-only
+  `REMNAWAVE_CONNECTION_DROP_HMAC_SECRET`; never rotate it while an
+  `outcome_unknown` receipt remains unreconciled and never pass it to workers
 - upgrade procedure and doc guards: `docs/runbooks/REMNAWAVE_UPGRADE_GUARDRAILS.md`
 
 ## Helix Lab
@@ -335,7 +339,7 @@ If you need durable queues in the future, enable AOF: `--appendonly yes --append
 - Control-plane rollout is handled by `make ansible-control-plane-rollout-staging` / `make ansible-control-plane-rollout-production` once the corresponding inventory and vault files exist.
 - Control-plane backup evidence is handled by `make ansible-control-plane-backup-staging` and documented in `docs/runbooks/CONTROL_PLANE_BACKUP_RESTORE_RUNBOOK.md`.
 - Phase 8 promotes control-plane images through `infra/ansible/inventories/*/group_vars/control_plane_*/release.yml` with digest-pinned refs, not mutable tags.
-- Use `.github/workflows/control-plane-images.yml` to publish digests and `.github/workflows/control-plane-promote.yml` to prepare a reviewable promotion branch.
+- Use `.github/workflows/control-plane-images.yml` to build/scan all seven release images and publish signed provenance, validated SPDX-2.3 SBOMs, and exact-count/report-hash scan attestations. `.github/workflows/control-plane-promote.yml` verifies the protected default-branch identity and requires a schema-valid digest-bound owner decision for any nonzero Critical/High findings; it uploads a read-only review artifact and never pushes a branch or applies a deployment.
 - Use `docs/runbooks/CONTROL_PLANE_RELEASE_PROMOTION_RUNBOOK.md` for the release and vault bootstrap procedure.
 - Use `docs/runbooks/CONTROL_PLANE_DR_DRILL.md` before running a destructive restore drill.
 - Run `make monitoring-validate` from `infra/` to verify the dashboard set expected by Phase 5.

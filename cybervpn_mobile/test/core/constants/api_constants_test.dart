@@ -125,11 +125,11 @@ void main() {
         expect(ApiConstants.plans, equals('/api/v1/plans'));
       });
 
-      test('subscription endpoints match backend /subscriptions/* routes', () {
+      test('subscription endpoints match canonical backend routes', () {
         expect(ApiConstants.subscriptions, equals('/api/v1/subscriptions'));
         expect(
           ApiConstants.activeSubscription,
-          equals('/api/v1/subscriptions/active'),
+          equals('/api/v1/entitlements/current'),
         );
         expect(
           ApiConstants.cancelSubscription,
@@ -139,7 +139,10 @@ void main() {
 
       test('mobile me endpoints match backend /mobile/auth/me route', () {
         expect(ApiConstants.me, equals('/api/v1/mobile/auth/me'));
-        expect(ApiConstants.mobileDevices, equals('/api/v1/mobile/auth/devices'));
+        expect(
+          ApiConstants.mobileDevices,
+          equals('/api/v1/mobile/auth/devices'),
+        );
         expect(
           ApiConstants.mobileDeviceRegistration,
           equals('/api/v1/mobile/auth/device'),
@@ -148,9 +151,9 @@ void main() {
         expect(ApiConstants.deleteAccount, equals('/api/v1/auth/me'));
       });
 
-      test('payment endpoints match backend /payments/* routes', () {
+      test('payment endpoints match canonical backend routes', () {
         expect(ApiConstants.createPayment, equals('/api/v1/payments/create'));
-        expect(ApiConstants.paymentHistory, equals('/api/v1/payments/history'));
+        expect(ApiConstants.paymentHistory, equals('/api/v1/orders'));
         expect(
           ApiConstants.paymentStatus('xyz'),
           equals('/api/v1/payments/xyz/status'),
@@ -597,15 +600,6 @@ void main() {
         // Mobile should use: GET /servers/:id instead
         final statusPath = ApiConstants.serverStatus('test-id');
         expect(statusPath, equals('/api/v1/servers/test-id/status'));
-      });
-
-      test('activeSubscription is not implemented in backend', () {
-        // Mobile expects: GET /subscriptions/active
-        // Backend has: No /active endpoint yet
-        expect(
-          ApiConstants.activeSubscription,
-          equals('/api/v1/subscriptions/active'),
-        );
       });
 
       test('cancelSubscription is not implemented in backend', () {

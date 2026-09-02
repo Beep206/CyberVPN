@@ -5,6 +5,7 @@ from src.tasks.cleanup.cache import cleanup_cache
 from src.tasks.cleanup.cleanup_old_records import cleanup_old_records
 from src.tasks.cleanup.export_files import cleanup_export_files
 from src.tasks.cleanup.notifications import cleanup_notifications
+from src.tasks.cleanup.remnawave_stream_retention import purge_remnawave_stream_retention
 from src.tasks.cleanup.tokens import cleanup_expired_tokens
 from src.tasks.cleanup.webhook_logs import cleanup_webhook_logs
 
@@ -16,4 +17,5 @@ __all__ = [
     "cleanup_notifications",
     "cleanup_old_records",
     "cleanup_webhook_logs",
+    "purge_remnawave_stream_retention",
 ]

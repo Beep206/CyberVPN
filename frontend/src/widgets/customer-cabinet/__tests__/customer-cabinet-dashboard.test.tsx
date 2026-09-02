@@ -17,6 +17,7 @@ const {
   getCurrentServiceStateMock,
   getProfileMock,
   getReferralStatsMock,
+  getVpnServiceStatusMock,
   getSelectedSubscriptionKeyMock,
   getTrialStatusMock,
   getUsageMock,
@@ -72,6 +73,7 @@ const {
   getCurrentServiceStateMock: vi.fn(),
   getProfileMock: vi.fn(),
   getReferralStatsMock: vi.fn(),
+  getVpnServiceStatusMock: vi.fn(),
   getSelectedSubscriptionKeyMock: vi.fn(),
   getTrialStatusMock: vi.fn(),
   getUsageMock: vi.fn(),
@@ -106,6 +108,12 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 
+vi.mock('@/features/client-capabilities/components/customer-connections-card', () => ({
+  CustomerConnectionsCard: ({ surface }: { surface: string }) => (
+    <div data-testid={`customer-connections-card-${surface}`} />
+  ),
+}));
+
 vi.mock('@/lib/api', () => ({
   DEFAULT_SERVICE_STATE_REQUEST: {
     channel_type: 'shared_client',
@@ -129,6 +137,9 @@ vi.mock('@/lib/api', () => ({
   },
   referralApi: {
     getStats: getReferralStatsMock,
+  },
+  remnawaveStatusApi: {
+    getCustomerStatus: getVpnServiceStatusMock,
   },
   serviceAccessApi: {
     getCurrentServiceState: getCurrentServiceStateMock,
@@ -296,6 +307,13 @@ beforeEach(() => {
     },
   });
   getCurrentServiceStateMock.mockResolvedValue({ data: activeServiceState });
+  getVpnServiceStatusMock.mockResolvedValue({
+    connections_available: true,
+    usage_available: true,
+    devices_available: true,
+    degraded: false,
+    degraded_reason: null,
+  });
   getTrialStatusMock.mockResolvedValue({
     data: {
       days_remaining: 0,
@@ -317,6 +335,73 @@ beforeEach(() => {
 });
 
 describe('CustomerCabinetDashboard', () => {
+  it('renders live connections only after the fetched status explicitly enables them', async () => {
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    expect(await screen.findByTestId('customer-connections-card-dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('errors.unavailable')).not.toBeInTheDocument();
+  });
+
+  it('fails closed when the fetched status explicitly disables connections', async () => {
+    getVpnServiceStatusMock.mockResolvedValueOnce({
+      connections_available: false,
+      usage_available: true,
+      devices_available: true,
+      degraded: false,
+      degraded_reason: null,
+    });
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    const unavailable = await screen.findByText('errors.unavailable');
+    await waitFor(() => {
+      expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'unavailable');
+    });
+    expect(screen.queryByTestId('customer-connections-card-dashboard')).not.toBeInTheDocument();
+  });
+
+  it('fails closed while the customer VPN service status is pending', async () => {
+    getVpnServiceStatusMock.mockReturnValueOnce(new Promise(() => undefined));
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    const unavailable = screen.getByText('errors.unavailable');
+    expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'pending');
+    expect(screen.queryByTestId('customer-connections-card-dashboard')).not.toBeInTheDocument();
+  });
+
+  it('fails closed when the customer VPN service status request errors', async () => {
+    getVpnServiceStatusMock.mockRejectedValueOnce(new Error('status unavailable'));
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    const unavailable = await screen.findByText('errors.unavailable');
+    await waitFor(() => {
+      expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'error');
+    });
+    expect(screen.queryByTestId('customer-connections-card-dashboard')).not.toBeInTheDocument();
+  });
+
+  it('fails closed when connections=true conflicts with a degraded service status', async () => {
+    getVpnServiceStatusMock.mockResolvedValueOnce({
+      connections_available: true,
+      usage_available: true,
+      devices_available: true,
+      degraded: true,
+      degraded_reason: 'redacted',
+    });
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    const unavailable = await screen.findByText('errors.unavailable');
+    await waitFor(() => {
+      expect(unavailable.closest('section')).toHaveAttribute('data-connections-state', 'degraded');
+    });
+    expect(screen.queryByTestId('customer-connections-card-dashboard')).not.toBeInTheDocument();
+    expect(screen.queryByText('redacted')).not.toBeInTheDocument();
+  });
+
   it('renders backend-backed customer cabinet signals and safe actions', async () => {
     renderWithQueryClient(<CustomerCabinetDashboard />);
 
@@ -340,7 +425,10 @@ describe('CustomerCabinetDashboard', () => {
     expect(screen.getByText('50 B')).toBeInTheDocument();
     expect(screen.getByText('$12.50')).toBeInTheDocument();
     expect(screen.getByText('Shared Client')).toBeInTheDocument();
-    expect(screen.getByText('default')).toBeInTheDocument();
+    expect(screen.queryByText('default')).not.toBeInTheDocument();
+    expect(
+      screen.getAllByText('stage1States.provisioning.ready.title').length,
+    ).toBeGreaterThan(0);
     expect(await screen.findByText('Reward ready')).toBeInTheDocument();
     expect(screen.getByText('sync.title')).toBeInTheDocument();
 
@@ -458,14 +546,14 @@ describe('CustomerCabinetDashboard', () => {
     expect(
       screen.getByText('sync.resources.notificationList'),
     ).toBeInTheDocument();
-    expect(screen.getByText('readiness.degraded')).toBeInTheDocument();
+    expect(screen.getByText('degraded')).toBeInTheDocument();
     expect(screen.getByText('notifications.errorTitle')).toBeInTheDocument();
     expect(
       screen.getByText('notifications.errorDescription'),
     ).toBeInTheDocument();
 
     const trafficCard = screen
-      .getByText('metrics.traffic.title')
+      .getAllByText('metrics.traffic.title')[0]!
       .closest('article');
     expect(trafficCard).not.toBeNull();
     fireEvent.click(
@@ -485,6 +573,30 @@ describe('CustomerCabinetDashboard', () => {
     });
     expect(await screen.findByText('Shared Client')).toBeInTheDocument();
     expect(screen.getByText('Reward ready')).toBeInTheDocument();
+  });
+
+  it('shows only own-safe VPN availability and never renders backend reasons or control-plane fields', async () => {
+    getVpnServiceStatusMock.mockResolvedValueOnce({
+      connections_available: true,
+      usage_available: false,
+      devices_available: true,
+      degraded: true,
+      degraded_reason: 'node 203.0.113.44 consumer-group-secret',
+      node_ssh: true,
+      integration_uuid: '11111111-1111-1111-1111-111111111111',
+    });
+
+    renderWithQueryClient(<CustomerCabinetDashboard />);
+
+    expect(await screen.findByText('degraded')).toBeInTheDocument();
+    expect(screen.getByText('connections')).toBeInTheDocument();
+    expect(screen.getByText('usage')).toBeInTheDocument();
+    expect(screen.getByText('devices')).toBeInTheDocument();
+    expect(screen.queryByText('node 203.0.113.44 consumer-group-secret')).not.toBeInTheDocument();
+    expect(screen.queryByText('11111111-1111-1111-1111-111111111111')).not.toBeInTheDocument();
+    expect(screen.queryByText(/node_ssh/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('default')).not.toBeInTheDocument();
+    expect(getVpnServiceStatusMock).toHaveBeenCalledTimes(1);
   });
 
   it('prioritizes critical trial, provisioning, traffic and alert actions', async () => {
@@ -702,7 +814,7 @@ describe('CustomerCabinetDashboard', () => {
     expect(await screen.findByText('sync.status.degraded')).toBeInTheDocument();
 
     const trafficCard = screen
-      .getByText('metrics.traffic.title')
+      .getAllByText('metrics.traffic.title')[0]!
       .closest('article');
     expect(trafficCard).not.toBeNull();
     fireEvent.click(
@@ -714,7 +826,7 @@ describe('CustomerCabinetDashboard', () => {
     });
 
     const deviceCard = screen
-      .getByText('metrics.devices.title')
+      .getAllByText('metrics.devices.title')[0]!
       .closest('article');
     expect(deviceCard).not.toBeNull();
     fireEvent.click(within(deviceCard!).getByRole('button', { name: 'retry' }));

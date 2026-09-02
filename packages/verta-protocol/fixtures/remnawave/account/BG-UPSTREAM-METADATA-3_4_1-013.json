@@ -1,0 +1,10 @@
+{
+  "response": {
+    "metadata": {
+      "verta": {
+        "enabled": true,
+        "rollout_cohort": "stable"
+      }
+    }
+  }
+}

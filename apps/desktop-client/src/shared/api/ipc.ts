@@ -12,6 +12,9 @@ export interface ProxyNode {
   password?: string;
   flow?: string;
   network?: string;
+  transportPath?: string;
+  transportHost?: string;
+  xhttpMode?: string;
   tls?: string;
   sni?: string;
   fingerprint?: string;
@@ -220,9 +223,15 @@ export const deleteRoutingRule = async (id: string): Promise<void> => {
 export interface Subscription {
   id: string;
   name: string;
-  url: string;
   autoUpdate: boolean;
   lastUpdated?: number;
+}
+
+export interface CreateSubscriptionInput {
+  id: string;
+  name: string;
+  url: string;
+  autoUpdate: boolean;
 }
 
 export interface ProfileGroup {
@@ -236,7 +245,9 @@ export const getSubscriptions = async (): Promise<Subscription[]> => {
 };
 
 /** Add a new subscription */
-export const addSubscription = async (sub: Subscription): Promise<void> => {
+export const addSubscription = async (
+  sub: CreateSubscriptionInput,
+): Promise<void> => {
   return await invoke("add_subscription", { sub });
 };
 

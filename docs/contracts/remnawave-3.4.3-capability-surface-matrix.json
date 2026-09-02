@@ -1,0 +1,2811 @@
+{
+  "schema_version": "1.0.0",
+  "title": "Remnawave 3.4.3 capability-to-surface adoption matrix",
+  "baseline": {
+    "panel_backend_frontend": "2.8.0",
+    "node": "2.8.0",
+    "subscription_page": "7.2.6"
+  },
+  "targets": {
+    "panel": "3.4.3",
+    "backend": "3.4.3",
+    "frontend": "3.4.3",
+    "node": "3.4.1",
+    "subscription_page": "8.0.0"
+  },
+  "sources": {
+    "backend_release": "https://github.com/remnawave/backend/releases/tag/3.4.3",
+    "backend_compare": "https://github.com/remnawave/backend/compare/3.4.2...3.4.3",
+    "frontend_release": "https://github.com/remnawave/frontend/releases/tag/3.4.3",
+    "frontend_compare": "https://github.com/remnawave/frontend/compare/3.4.2...3.4.3",
+    "node_release": "https://github.com/remnawave/node/releases/tag/3.4.1",
+    "node_compare": "https://github.com/remnawave/node/compare/3.4.0...3.4.1",
+    "subscription_page_tag": "https://github.com/remnawave/subscription-page/tree/8.0.0"
+  },
+  "disposition_policy": {
+    "adopted": "The exact CyberVPN production path and every applicable surface are implemented with capability-specific automated and runtime evidence.",
+    "not_applicable": "The surface cannot or must not expose the capability; the RBAC/tenant/security rationale and negative assertion are explicit.",
+    "gap": "Required behavior, trust-boundary enforcement, UI, test or runtime evidence is missing. Any gap blocks release.",
+    "forbidden_shortcuts": [
+      "native panel does not satisfy CyberVPN Admin or Partner UI",
+      "API without required UI is a gap",
+      "image inheritance is not behavior evidence",
+      "generic canary prose is not test evidence",
+      "no deferred disposition"
+    ]
+  },
+  "required_surfaces": [
+    "backend",
+    "task_worker",
+    "admin",
+    "partner",
+    "customer_web",
+    "miniapp",
+    "mobile",
+    "desktop",
+    "native_panel",
+    "node",
+    "subscription_page"
+  ],
+  "summary": {
+    "capabilities": 25,
+    "surface_dispositions": {
+      "backend": {
+        "adopted": 0,
+        "not_applicable": 0,
+        "gap": 25
+      },
+      "task_worker": {
+        "adopted": 0,
+        "not_applicable": 20,
+        "gap": 5
+      },
+      "admin": {
+        "adopted": 0,
+        "not_applicable": 0,
+        "gap": 25
+      },
+      "partner": {
+        "adopted": 0,
+        "not_applicable": 6,
+        "gap": 19
+      },
+      "customer_web": {
+        "adopted": 0,
+        "not_applicable": 16,
+        "gap": 9
+      },
+      "miniapp": {
+        "adopted": 0,
+        "not_applicable": 16,
+        "gap": 9
+      },
+      "mobile": {
+        "adopted": 0,
+        "not_applicable": 16,
+        "gap": 9
+      },
+      "desktop": {
+        "adopted": 0,
+        "not_applicable": 16,
+        "gap": 9
+      },
+      "native_panel": {
+        "adopted": 0,
+        "not_applicable": 4,
+        "gap": 21
+      },
+      "node": {
+        "adopted": 0,
+        "not_applicable": 15,
+        "gap": 10
+      },
+      "subscription_page": {
+        "adopted": 0,
+        "not_applicable": 22,
+        "gap": 3
+      }
+    },
+    "capabilities_with_gap": 25,
+    "gap_capability_ids": [
+      "numeric-user-lifecycle",
+      "connections-and-drop",
+      "stats-digest-http",
+      "hwid-concurrency",
+      "hosts-internal-squads-access",
+      "host-mapper",
+      "profiles-inbounds",
+      "squads-response-headers",
+      "root-snippets",
+      "tags",
+      "node-plugins-prestart",
+      "node-integrations",
+      "shared-lists",
+      "geocheck",
+      "response-rules",
+      "system-configuration",
+      "redis-stream-ingestion",
+      "browser-ssh",
+      "provider-openapi-nullability",
+      "credential-rotation-drop",
+      "scheduled-worker-lifecycle",
+      "stream-privacy-retention",
+      "subscription-protocol-compatibility",
+      "release-artifacts",
+      "node-3.4.1-runtime-dependencies"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "numeric-user-lifecycle",
+      "title": "Numeric user identity and complete lifecycle",
+      "sources": [
+        "backend 3.0.0 numeric user routes",
+        "CyberVPN expand/backfill migration"
+      ],
+      "production_owner": "backend",
+      "production_paths": [
+        "RemnawaveUserRef",
+        "provisioning/trial/renewal/grace/cancel/delete/webhook/worker jobs"
+      ],
+      "persisted_state_or_side_effect": "Unique numeric canonical mapping; legacy UUID is rollback-read-only.",
+      "retry_concurrency_contract": "Reads may retry boundedly; mutations reconcile exact numeric identity after ambiguous timeout.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Numeric implementation exists. Invite redemption creates only a suspended pending-provider identity for an unbound account and activates it only after exact numeric/legacy mappings commit. Gift onboarding reserves the global one-use gift and customer mutation latch atomically before provider I/O. Current-state/onboarding reuse the exact active service identity, synchronize only canonical active delivery channels under a bounded lock, and reject stale or ambiguous mappings. The public short-token gateway requires one exact active mapped service identity plus grant and performs no provider mutation on rejection. Target 3.4.3 production-like lifecycle evidence is still missing.",
+          "tests": [
+            "local: 21 invite/service-identity tests plus the formerly failing growth-code E2E pass; strict public service-identity foundation test seeds an exact mapping and passes",
+            "local: gift provisioning passes 73 focused tests, 75 independent security-review tests, 4 real-PostgreSQL migration/concurrency/ambiguity tests and 2 direct HTTP/E2E cases; concurrent or sequential cross-customer reuse emits one provider mutation",
+            "local: canonical service-access/URL synchronization passes 96 unit, 10 integration and 1 real-PostgreSQL onboarding test; the short-token gateway passes 45 unit and 14 integration/route tests",
+            "required: full numeric lifecycle integration against exact target"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Eight registered lifecycle/payment/webhook/bulk tasks are safety-disabled no-ops.",
+          "tests": [
+            "required: durable saga/outbox/idempotency and crash/replay tests for all jobs"
+          ],
+          "rollback": "Disable the affected job or consumer, preserve uncommitted/pending work without acknowledgment, then invoke the capability rollback."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Admin numeric user/cursor/lifecycle browser and direct API tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active workspace membership AND explicit remnawave_read role permission AND exact unrevoked object grant; foreign or revoked resources return 404.",
+          "tests": [
+            "required: scoped assigned-user/resource read plus cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "local: canonical current-state/URL synchronization and safe frontend API regressions pass; legacy-only cached URL does not make MiniApp/customer state ready",
+            "required: authenticated self-only subscription/usage/device/connection browser tests against the target stack"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "local: MiniApp canonical service-identity readiness, stale legacy conflict and URL non-exposure regressions pass",
+            "required: authenticated Telegram WebView lifecycle and foreign-identity rejection smoke against the target stack"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: numeric fixture and self-scope parser/API tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: numeric fixture and self-scope parser/API tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 image runtime smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore pre-upgrade DB and legacy adapter; never fabricate UUID."
+    },
+    {
+      "id": "connections-and-drop",
+      "title": "Connections API, status and scoped termination",
+      "sources": [
+        "backend 3.0.0 ip-control→connections",
+        "frontend 3.4.1 saved connections"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "connections routes",
+        "admin/customer connection status/drop"
+      ],
+      "persisted_state_or_side_effect": "Scoped connection observations, an actor-bound PostgreSQL idempotency receipt whose ambiguous tombstone never expires automatically, bounded-TTL terminal receipts, and deterministic database audit events for privileged drop/reconciliation outcomes.",
+      "retry_concurrency_contract": "Drop is sent upstream at most once. Transport/5xx ambiguity is recorded as outcome_unknown with retry_allowed=false because upstream exposes no idempotency or exact reconciliation key. A trusted global Admin may later commit an immutable accepted/rejected decision from independent provider or postcondition evidence without requiring the receipt HMAC key.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The exact 3.4.3 async read and single-attempt drop contract is implemented for Admin, Partner and Customer. Read jobs remain actor-bound in Redis, while drop receipts are committed to PostgreSQL before provider I/O with domain-separated HMAC key/scope/payload material. Customer identity is resolved through the exact reconciliation ledger; Partner requires exclusive exact node and service-identity grants. Unknown receipts have no automatic expiry; Admin-only exact-ID reconciliation uses SELECT FOR UPDATE, server-time TTL and a required sanitized audit in one transaction, remains available without the HMAC key, and never accepts raw key/scope/IP/provider payload. Downgrade retains receipt rows and re-upgrade validates the exact schema before grant DDL. The remaining gap is production-like provider/database runtime evidence.",
+          "tests": [
+            "local: original boundary passes 105 gateway/route/RBAC/IDOR/idempotency/ambiguous-outcome/audit tests plus 3 PostgreSQL concurrency/restart/audit integration tests",
+            "local: final receipt reconciliation passes 72 unit/HTTP/contract, 5 isolated PostgreSQL migration/reconciliation/race/audit and 6 clean-migration compatibility tests; binary downgrade preservation and zero-provider replay are proven",
+            "required: production-like provider/database integration and audit recovery smoke"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global reads require AdminRole.OPERATOR and global drops/reconciliation require AdminRole.ADMIN. The Admin UI provides user/node async reads, explicit drop confirmation, the exact 3.4.3 body, no blind retry and redacted error states. It also provides a bounded unresolved-receipt queue with paging, strict accepted/rejected reason compatibility, a bounded CASE/INC/REQ/TKT/RW reference and explicit reconciliation confirmation. It exposes no TTL, HMAC, scope or raw-provider-payload input, and blocks mutation retry after error until refresh or a different receipt is selected. Required deterministic audit persistence is implemented; authenticated production-like browser/database evidence remains missing.",
+          "tests": [
+            "local: Admin API/component tests cover loading, empty, 403/404/409/502/503, confirmation, controlled same-key audit replay and accepted/rejected reconciliation; targeted API/queue/console 41/41 and full Admin 125 files/813 tests plus 205-page build pass",
+            "required: authenticated production-like browser and database audit smoke"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership, explicit remnawave_read/remnawave_execute permission, an exclusive exact unrevoked node grant and an exclusive exact active service-identity grant are enforced server-side. Drop accepts only an opaque serviceIdentityUuid; numeric IDs and IP targets are rejected, and the path node is forced server-side. Partner UI selects only effective execute resources and preserves the same key for network/503 replay while outcome_unknown is never retried. Authenticated production-like browser/database proof remains missing.",
+          "tests": [
+            "local: assigned-node and service-identity read/execute, revoked-grant, schema rejection, cross-tenant 404 and sanitized immutable audit tests pass; Partner full 153 files/828 tests and 99-page build pass",
+            "required: authenticated production-like browser and database audit smoke"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The browser sends no user identifier or drop body; backend resolves the authenticated account's canonical numeric identity and returns only connection totals. The on-demand UI and one-shot idempotent own-session drop are implemented; production-like browser evidence remains missing.",
+          "tests": [
+            "local: API whitelist, malformed-payload fail-close, no-eager-fetch, aggregate rendering, own drop and secret non-exposure tests pass",
+            "required: authenticated production-like customer browser smoke"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "MiniApp uses the same no-identifier self-scope contract and displays only customer aggregates; IP, node identity and topology never enter the public model. Production-like Telegram WebView/session-restore evidence remains missing.",
+          "tests": [
+            "local: shared component/API privacy, one-shot drop and MiniApp page regression tests pass",
+            "required: authenticated production-like Telegram WebView smoke"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: own status/drop/reconnect tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: own status/drop/reconnect tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel connection smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Only authenticated panel commands with SNI verification may terminate exact captured IPs. The exact 3.4.1 source/runtime verifier proves old-IP capture before credential removal and scoped DropConnectionsEvent ordering; canary runtime proof is still absent.",
+          "tests": [
+            "local: node 3.4.1 source/runtime verifier and three credential-rotation tests pass",
+            "required: exact-image node canary with no broad/foreign drop"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel/node digests and reconcile connection state."
+    },
+    {
+      "id": "stats-digest-http",
+      "title": "Usage, bandwidth, digest and HTTP route statistics",
+      "sources": [
+        "backend 3.0.0 stats digest",
+        "backend 3.x node metrics"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "usage routes",
+        "system digest/http stats"
+      ],
+      "persisted_state_or_side_effect": "Read-only aggregates; no raw secrets or customer PII in operator payloads.",
+      "retry_concurrency_contract": "Safe reads use bounded retry; schema drift fails dependency-closed.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Full 3.4.3 digest/HTTP stats contracts are not exposed.",
+          "tests": [
+            "required: exact schema, pagination, empty/error and redaction tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: digest/HTTP stats authenticated browser states"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active workspace membership AND explicit remnawave_read role permission AND exact unrevoked object grant; foreign or revoked resources return 404.",
+          "tests": [
+            "required: workspace-scoped aggregates with no foreign/raw topology"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: self-only usage stats"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: self-only usage stats"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: self-only usage stats"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: self-only usage stats"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 stats smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Node exports only authenticated metrics to panel.",
+          "tests": [
+            "required: node metric schema/version and degraded tests"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest; no destructive state rollback."
+    },
+    {
+      "id": "hwid-concurrency",
+      "title": "Concurrent HWID registration and device limits",
+      "sources": [
+        "https://github.com/remnawave/backend/commit/2edf15c05dfb910cf123fdf4615d0ed8478e4d5c"
+      ],
+      "production_owner": "backend",
+      "production_paths": [
+        "subscription request HWID registration",
+        "device/HWID customer APIs"
+      ],
+      "persisted_state_or_side_effect": "Exactly one device row and one ADDED event for same user+HWID; limit remains atomic.",
+      "retry_concurrency_contract": "Per-user advisory transaction; concurrent duplicates become EXISTS, not 500; different tenants remain isolated.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "missing: real-PostgreSQL same/different-HWID concurrency and device-limit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: device list/error state and audit tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The capability is global/internal and must not be exposed to Partner; absence prevents cross-tenant privilege expansion.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: self-only device registration/list tests"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: self-only device registration/list tests"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: concurrent/replayed device header tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: concurrent/replayed device header tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 concurrent subscription smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Public subscription rendering may submit only validated bounded HWID headers through the token-protected path.",
+          "tests": [
+            "required: duplicate/concurrent subscription request smoke and header bounds"
+          ],
+          "rollback": "Restore the previous 7.2.6 digest and proxy settings, preserve legacy links, then invoke the capability rollback."
+        }
+      },
+      "rollback": "Restore prior panel digest; DB remains compatible because 3.4.3 adds no migration."
+    },
+    {
+      "id": "hosts-internal-squads-access",
+      "title": "Hosts, internalSquads modes and access overrides",
+      "sources": [
+        "backend 3.0.0/3.4.0 host schemas"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "hosts routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Host topology and access-mode configuration.",
+      "retry_concurrency_contract": "Create/update/delete use durable attempt and exact reconciliation.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Hosts, internalSquads modes and access overrides contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Hosts, internalSquads modes and access overrides loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "host-mapper",
+      "title": "Host mapper including sing-box operations",
+      "sources": [
+        "backend/frontend 3.3.0 host mapper"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "host mapper routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Mapper configuration attached to exact host.",
+      "retry_concurrency_contract": "Validate typed mapper; mutations reconcile exact host.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Host mapper including sing-box operations contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Host mapper including sing-box operations loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "profiles-inbounds",
+      "title": "Config profiles and inbound synchronization",
+      "sources": [
+        "backend 3.2.x profile validation",
+        "backend 3.3.0 inbound sync"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "profiles/inbounds routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Versioned profile and inbound associations.",
+      "retry_concurrency_contract": "Validation precedes side effects; sync is idempotent.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Config profiles and inbound synchronization contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Config profiles and inbound synchronization loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "squads-response-headers",
+      "title": "Internal/external squads and responseHeadersAdd/Remove",
+      "sources": [
+        "backend 3.0.0 response-header migration"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "squads routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Squad membership, template and response-header state.",
+      "retry_concurrency_contract": "Typed patch and exact squad reconciliation.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Internal/external squads and responseHeadersAdd/Remove contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Internal/external squads and responseHeadersAdd/Remove loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "root-snippets",
+      "title": "Root snippets and node synchronization",
+      "sources": [
+        "backend 3.2.3 root snippets"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "snippets routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Versioned snippet and synchronization status.",
+      "retry_concurrency_contract": "Ambiguous create requires durable attempt; update/delete reconcile.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Root snippets and node synchronization contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Root snippets and node synchronization loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "tags",
+      "title": "Entity tags across profiles/subpages/plugins/templates/squads",
+      "sources": [
+        "backend/frontend 3.4.0 tags"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "tags routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Tag definitions and exact entity associations.",
+      "retry_concurrency_contract": "Concurrent uniqueness and idempotent association updates.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Entity tags across profiles/subpages/plugins/templates/squads contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Entity tags across profiles/subpages/plugins/templates/squads loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "node-plugins-prestart",
+      "title": "Node plugins and preStart execution",
+      "sources": [
+        "node 3.0.0 pre-start",
+        "node 3.4.1 node-plugins 0.8.2"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "node plugin/preStart routes/UI",
+        "node runtime"
+      ],
+      "persisted_state_or_side_effect": "Validated plugin configuration and redacted execution status.",
+      "retry_concurrency_contract": "Execute requires explicit authority; bounded timeout; no secret output.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Node plugins and preStart execution contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Node plugins and preStart execution loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Only authenticated panel commands with valid SECRET_KEY/SNI may configure or execute plugins.",
+          "tests": [
+            "required: node-plugins 0.8.2/preStart valid/malformed/timeout/redaction tests"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "node-integrations",
+      "title": "Node integrations and integrationUuids",
+      "sources": [
+        "backend/node 3.2.x integrations",
+        "backend 3.3.0 node integrations"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "integrations routes/UI",
+        "node runtime"
+      ],
+      "persisted_state_or_side_effect": "Exact integration assignment and restart status.",
+      "retry_concurrency_contract": "Write/execute requires role+grant; restart is bounded and audited.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Node integrations and integrationUuids contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Node integrations and integrationUuids loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Panel-authenticated exact integration assignments only.",
+          "tests": [
+            "required: structured integration schema, update/restart and malformed tests"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "shared-lists",
+      "title": "Shared-list query/body routes and synchronization",
+      "sources": [
+        "backend/frontend 3.3.x shared lists"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "shared-list routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Versioned lists and associations.",
+      "retry_concurrency_contract": "Bound payload/page sizes; update/delete reconcile exact list.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Shared-list query/body routes and synchronization contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Shared-list query/body routes and synchronization loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "geocheck",
+      "title": "GeoCheck node execution and results",
+      "sources": [
+        "backend/frontend/node 3.3.x GeoCheck"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "GeoCheck routes/UI",
+        "node stats module"
+      ],
+      "persisted_state_or_side_effect": "Bounded job/result metadata; images/results exclude secrets.",
+      "retry_concurrency_contract": "Execute is explicit and bounded; retry safe status reads only.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: GeoCheck node execution and results contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: GeoCheck node execution and results loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Only panel-authorized bounded GeoCheck execution; results must be redacted.",
+          "tests": [
+            "required: node GeoCheck success/version/error/timeout tests"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "response-rules",
+      "title": "Subscription response rules and remarks",
+      "sources": [
+        "backend 3.3.0 respondWithRemarks"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "response rules routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Versioned response-rule configuration.",
+      "retry_concurrency_contract": "Validate before write; deterministic ordering and rollback.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: Subscription response rules and remarks contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: Subscription response rules and remarks loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active membership AND explicit remnawave_write/remnawave_execute role permission AND exact matching grant; frozen workspaces/MFA policy apply; foreign resources return 404.",
+          "tests": [
+            "required: Partner write role+grant and cross-tenant IDOR tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "system-configuration",
+      "title": "System settings/configuration, digest and protected docs",
+      "sources": [
+        "backend 3.2.0 system configuration",
+        "backend 3.4 settings"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "settings/system routes/UI"
+      ],
+      "persisted_state_or_side_effect": "Singleton configuration; secrets remain write-only/redacted.",
+      "retry_concurrency_contract": "PATCH reconciles singleton; reads fail closed on schema drift.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact 3.4.3 provider contract and safe mutation/reconciliation path are incomplete.",
+          "tests": [
+            "required: System settings/configuration, digest and protected docs contract, status-code, ambiguity and audit tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: System settings/configuration, digest and protected docs loading/empty/error/permission/mutation browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Global/platform capability is intentionally unavailable to partners; global settings, tokens and foreign topology must never be exposed.",
+          "tests": [
+            "required: Partner direct API/URL 403/404 and no UI"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Operator/control-plane functionality is intentionally unavailable to customers; direct API/URL and UI tests must prove absence.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior panel digest and authoritative configuration backup."
+    },
+    {
+      "id": "redis-stream-ingestion",
+      "title": "Redis Streams validation, receipts, reclaim and DLQ",
+      "sources": [
+        "backend 3.0.0 stream exports",
+        "CyberVPN stream consumer"
+      ],
+      "production_owner": "task_worker/backend",
+      "production_paths": [
+        "user_usage",
+        "subscription_requests",
+        "node_connections"
+      ],
+      "persisted_state_or_side_effect": "Idempotent receipts/projections; XACK only after DB commit; redacted DLQ/gap state.",
+      "retry_concurrency_contract": "Bounded retry/reclaim; ambiguous/lost Valkey data records gap then REST reconciliation.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Internal backend owns durable projections and reconciliation, but exact-target persistence and REST gap-reconciliation runtime evidence is missing.",
+          "tests": [
+            "present: task-worker stream integration and backend projection tests",
+            "missing: exact 3.4.3/3.4.1 production-like persistence and REST reconciliation runtime proof"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Dedicated internal consumer identity has no partner/customer authority, but exact-target consumer-group runtime evidence is missing.",
+          "tests": [
+            "present: task-worker Ruff/mypy plus 460 tests including reclaim/idempotency/DLQ",
+            "missing: exact-target Valkey consumer-group lag, reclaim, crash/replay and DLQ runtime proof"
+          ],
+          "rollback": "Disable the affected job or consumer, preserve uncommitted/pending work without acknowledgment, then invoke the capability rollback."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "missing: real lag/pending/reclaim/parse/DLQ dashboard and alert states"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active workspace membership AND explicit remnawave_read role permission AND exact unrevoked object grant; foreign or revoked resources return 404.",
+          "tests": [
+            "required: workspace-scoped aggregate health without global stream topology"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: self-only derived usage/connections; never raw stream payload"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: self-only derived usage/connections; never raw stream payload"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: self-only derived status"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: self-only derived status"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The isolated emergency native panel is not assigned this CyberVPN-owned operation; exposure would bypass CyberVPN audit and tenant controls.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Disable ingestion without ACK loss; replay preserved entries after fix."
+    },
+    {
+      "id": "browser-ssh",
+      "title": "Trusted-admin browser SSH through CyberVPN proxy",
+      "sources": [
+        "frontend/backend 3.4.0 SSH",
+        "CyberVPN scoped broker"
+      ],
+      "production_owner": "backend/admin",
+      "production_paths": [
+        "admin SSH ticket",
+        "scoped node broker websocket"
+      ],
+      "persisted_state_or_side_effect": "Single-use short-lived ticket, continuous revoke and sanitized immutable audit.",
+      "retry_concurrency_contract": "No client retry of ticket/session creation; fresh MFA and origin checks mandatory.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Explicit trusted-admin and node allowlists, fresh MFA, origin/CSRF and server-side token are required.",
+          "tests": [
+            "missing: final exact-3.4.3 broker attestation and authenticated WebSocket smoke"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Trusted allowlisted Admin only; private panel boundary; full audit.",
+          "tests": [
+            "missing: authenticated browser terminal/revoke/degraded smoke"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Browser SSH is forbidden even with legacy remnawave_ssh role/grant.",
+          "tests": [
+            "backend direct API 403 and Partner UI absence tests"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Customers never receive SSH, topology or upstream credentials.",
+          "tests": [
+            "required: direct API/URL denial and no UI"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "MiniApp never receives SSH, topology or upstream credentials.",
+          "tests": [
+            "required: direct API/URL denial and no UI"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Mobile never receives operator SSH.",
+          "tests": [
+            "required: no SSH contract/surface"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Desktop customer client never receives operator SSH.",
+          "tests": [
+            "required: no SSH contract/surface"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface. In the custom panel image, native NodeSshController is unregistered, /api/node-ssh/ws is denied before credential parsing and the native rw subprotocol is not selected, so browser SSH can only cross the CyberVPN trusted-admin broker boundary.",
+          "tests": [
+            "missing: private-loopback/VPN/SSO/IP allowlist runtime proof"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Only scoped broker with server-side upstream credential may open exact node session.",
+          "tests": [
+            "missing: target-image broker ticket/WebSocket/revoke runtime tests"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Revoke tickets, disable broker, restore prior image; never expose upstream token."
+    },
+    {
+      "id": "provider-openapi-nullability",
+      "title": "Provider OpenAPI nullable anyOf normalization",
+      "sources": [
+        "https://github.com/remnawave/backend/commit/a98039a2f9a8ca27990f2e8b32d6328b1e1ef030"
+      ],
+      "production_owner": "contracts",
+      "production_paths": [
+        "exact upstream OpenAPI export",
+        "provider fixtures",
+        "generated clients"
+      ],
+      "persisted_state_or_side_effect": "Versioned schema snapshot and deterministic generated artifacts.",
+      "retry_concurrency_contract": "Generation is atomic and twice-idempotent; schema drift fails the gate.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Internal provider adapter validates the exact local 3.4.3 nullable schema; promoted runtime proof remains absent.",
+          "tests": [
+            "local: exact-tag anyOf/no-array-valued-type guard, strict response fixtures and RESULT:IDENTICAL OpenAPI export pass",
+            "missing: promoted panel OpenAPI runtime smoke"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Generated Admin client must represent nullable values, not arrays.",
+          "tests": [
+            "local: Admin client regenerated twice without diff; TypeScript/tests/build pass",
+            "missing: authenticated target-stack browser smoke for nullable responses"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Generated Partner client must represent nullable values, not arrays.",
+          "tests": [
+            "local: Partner client regenerated twice without diff; TypeScript/tests/build pass",
+            "missing: authenticated target-stack browser smoke for nullable responses"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Generated customer client must represent nullable values, not arrays.",
+          "tests": [
+            "local: customer client regenerated twice without diff; TypeScript/tests/build pass",
+            "missing: authenticated target-stack browser smoke for nullable responses"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "MiniApp backend contracts must retain correct nullability.",
+          "tests": [
+            "missing: MiniApp contract cases"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "missing: nullable fixture/parser cases"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "missing: nullable fixture/parser cases"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "local: exact 3.4.3 source/image schema checks pass",
+            "missing: private promoted-panel OpenAPI runtime check"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior provider-schema snapshot and panel digest."
+    },
+    {
+      "id": "credential-rotation-drop",
+      "title": "Credential regeneration terminates only old-user connections",
+      "sources": [
+        "https://github.com/remnawave/node/commit/5d993c8544f259ef1f3784e802b0820f660bed9a"
+      ],
+      "production_owner": "node/backend",
+      "production_paths": [
+        "credential regeneration",
+        "node add-user handler"
+      ],
+      "persisted_state_or_side_effect": "Capture exact user IPs before removing prevVlessUuid; publish one scoped drop event.",
+      "retry_concurrency_contract": "No broad retry/drop; lookup failure cannot terminate unrelated sessions.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "missing: regeneration→node command→reconcile integration test"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: audited regeneration result and degraded state"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The capability is global/internal and must not be exposed to Partner; absence prevents cross-tenant privilege expansion.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: own revoke/refresh/reconnect state"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: own revoke/refresh/reconnect state"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: credential refresh and reconnect tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "required: credential refresh and reconnect tests"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The isolated emergency native panel is not assigned this CyberVPN-owned operation; exposure would bypass CyberVPN audit and tenant controls.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Exact panel-authenticated user only; old IP set captured before removal.",
+          "tests": [
+            "missing: prevVlessUuid, single event, no-prev, lookup-failure and cross-user tests"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Restore prior node digest and reconcile credentials/sessions."
+    },
+    {
+      "id": "scheduled-worker-lifecycle",
+    "title": "Scheduled expiry/payment/webhook/bulk workflows and retired traffic reset",
+      "sources": [
+        "CyberVPN task-worker safety boundary"
+      ],
+      "production_owner": "backend/task_worker",
+      "production_paths": [
+      "seven fail-closed TaskIQ jobs plus one explicit NO_RESET compatibility task",
+        "backend saga endpoints"
+      ],
+      "persisted_state_or_side_effect": "Durable period/payment receipts, claims, reconciliation, notification outbox and audit.",
+      "retry_concurrency_contract": "Crash/replay/concurrency safe; no notification before commit; ambiguous mutation exact-GET reconciliation.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Backend must own selection, entitlement policy, mutation receipts and outbox.",
+          "tests": [
+            "missing: scheduled-operation/payment saga migrations and integration tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "gap",
+        "rbac_tenant_rationale": "Seven jobs currently return safety_disabled no-op and therefore cannot count as successful adoption. reset_monthly_traffic is separately proven not applicable because every authoritative paid/trial/manual/gift provisioning policy uses NO_RESET; its compatibility task is unscheduled and performs no I/O.",
+          "tests": [
+          "local: reset_monthly_traffic is absent from the scheduler, returns an explicit backend_subscription_traffic_policy_is_no_reset result and has replay/clean-process tests",
+          "missing: the seven applicable jobs call authenticated backend sagas with replay/crash tests"
+          ],
+          "rollback": "Disable the affected job or consumer, preserve uncommitted/pending work without acknowledgment, then invoke the capability rollback."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: backlog/reconciliation/terminal failure operations UI"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Partners cannot schedule global customer/payment/provider jobs.",
+          "tests": [
+            "required: direct API/URL 403 and no UI"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Customers cannot invoke scheduler or bulk operations.",
+          "tests": [
+            "required: direct API/URL denial"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "MiniApp cannot invoke scheduler or bulk operations.",
+          "tests": [
+            "required: direct API/URL denial"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Mobile cannot invoke scheduler or bulk operations.",
+          "tests": [
+            "required: no operation surface"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Desktop cannot invoke scheduler or bulk operations.",
+          "tests": [
+            "required: no operation surface"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The isolated emergency native panel is not assigned this CyberVPN-owned operation; exposure would bypass CyberVPN audit and tenant controls.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Disable scheduler, retain receipts and reconcile in-flight states before code rollback."
+    },
+    {
+      "id": "stream-privacy-retention",
+      "title": "Projection and source-stream privacy/retention",
+      "sources": [
+        "CyberVPN retention contract"
+      ],
+      "production_owner": "task_worker/backend",
+      "production_paths": [
+        "stream trim",
+        "projection retention jobs"
+      ],
+      "persisted_state_or_side_effect": "180d usage, 30d request metadata, 30d presence/counts, 14d receipt/DLQ; IP HMAC and UA family only in durable projections.",
+      "retry_concurrency_contract": "The sole supported subscription_requests consumer atomically XACKs and XDELs raw source data only after a durable projection or redacted terminal DLQ commit. Retries remain in the PEL; additional consumer groups are unsupported until durable fan-out exists.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Durable projection redaction exists but complete retention runtime proof is missing.",
+          "tests": [
+            "required: retention deletion and no-raw-PII persistence tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Raw subscription request IP/User-Agent is now removed with atomic XACK+XDEL after durable projection, or XADD(redacted DLQ)+XACK+XDEL after terminal handling. The remaining gap is production-like Valkey failover/retention proof and enforcement of the documented sole-consumer-group invariant.",
+          "tests": [
+            "local: 64 focused consumer/privacy tests cover post-commit deletion, PEL retry preservation and redacted terminal DLQ",
+            "required: production-like Valkey failover and exclusive consumer-group invariant smoke"
+          ],
+          "rollback": "Disable the affected job or consumer, preserve uncommitted/pending work without acknowledgment, then invoke the capability rollback."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: redacted retention/gap status without raw payload"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Partners never receive raw stream payload/IP/UA.",
+          "tests": [
+            "required: response/log redaction tests"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Customer UI never receives raw source-stream payload.",
+          "tests": [
+            "required: response/log redaction tests"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "MiniApp never receives raw source-stream payload.",
+          "tests": [
+            "required: response/log redaction tests"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Mobile never receives raw source-stream payload.",
+          "tests": [
+            "required: contract absence"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Desktop never receives raw source-stream payload.",
+          "tests": [
+            "required: contract absence"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The isolated emergency native panel is not assigned this CyberVPN-owned operation; exposure would bypass CyberVPN audit and tenant controls.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "node": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The node has no tenant or operator authority for this capability; exposure would broaden the node trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no operator/control-plane authority; exposure would violate token and tenant minimization.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Disable trim if unsafe, preserve PEL, reconcile gaps; never restore raw PII into projections."
+    },
+    {
+      "id": "subscription-protocol-compatibility",
+      "title": "RAW Vision, XHTTP and subscription/client compatibility",
+      "sources": [
+        "backend/frontend 3.4.3",
+        "node 3.4.1",
+        "subscription-page 8.0.0"
+      ],
+      "production_owner": "backend/node/client surfaces",
+      "production_paths": [
+        "subscription renderer",
+        "node runtime",
+        "mobile/desktop parsers"
+      ],
+      "persisted_state_or_side_effect": "Deterministic Base64/raw/Clash outputs; Vision only for RAW, never invalid XHTTP flow.",
+      "retry_concurrency_contract": "Safe refresh/revoke; bounded parser input; fail closed on unsupported config.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The 3.4.3 source patch and built-image preservation checks prove Vision only for RAW and XHTTP exclusion locally; executable multi-client runtime evidence remains absent.",
+          "tests": [
+            "local: 21 exact source/built-runtime patch, RAW Vision, XHTTP exclusion and scoped SSH broker compatibility tests pass",
+            "missing: executable Xray/Mihomo/sing-box Base64/raw/Clash/revoke/refresh matrix against the target stack"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has only scheduled/stream-processing service authority; unrelated tenant or operator operations would broaden its trust boundary.",
+          "tests": [
+            "required: negative no-access/no-exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Global AdminRole.ADMIN only; backend authorization and immutable sanitized audit are mandatory.",
+          "tests": [
+            "required: config/profile validation and degraded states"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Active workspace membership AND explicit remnawave_read role permission AND exact unrevoked object grant; foreign or revoked resources return 404.",
+          "tests": [
+            "required: assigned-resource compatibility status without secrets"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: safe own connection keys and subscription formats"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Authenticated customer may access only the account's exact service identity; foreign identifiers and topology are rejected.",
+          "tests": [
+            "required: safe own connection keys and subscription formats"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "missing: full parser/config gates and target fixtures"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "No operator privilege; client receives only self-scoped subscription/config status and must not receive topology, tokens or SSH.",
+          "tests": [
+            "missing: Xray 26.3.27/target, Mihomo and sing-box executable matrix"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "missing: exact 3.4.3 private-panel renderer smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "SNI_VERIFICATION=true; nftables flags and fail-closed routing preserved.",
+          "tests": [
+            "missing: target node 3.4.1 canary and executable protocol matrix"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Token/prefix/proxy trust and /internal/health only; legacy links preserved.",
+          "tests": [
+            "missing: target combined staging smoke and rollback to 7.2.6"
+          ],
+          "rollback": "Restore the previous 7.2.6 digest and proxy settings, preserve legacy links, then invoke the capability rollback."
+        }
+      },
+      "rollback": "Restore previous panel/node/subpage digests independently; retain legacy links."
+    },
+    {
+      "id": "release-artifacts",
+      "title": "Immutable promoted artifacts and rollback evidence",
+      "sources": [
+        "https://github.com/remnawave/backend/releases/tag/3.4.3",
+        "https://github.com/remnawave/backend/compare/3.4.2...3.4.3",
+        "https://github.com/remnawave/frontend/releases/tag/3.4.3",
+        "https://github.com/remnawave/frontend/compare/3.4.2...3.4.3",
+        "https://github.com/remnawave/node/releases/tag/3.4.1",
+        "https://github.com/remnawave/node/compare/3.4.0...3.4.1",
+        "subscription-page tag 8.0.0"
+      ],
+      "production_owner": "release-engineering",
+      "production_paths": [
+        "custom panel image",
+        "node",
+        "subscription page",
+        "SSH proxy",
+        "CyberVPN services"
+      ],
+      "persisted_state_or_side_effect": "Digest manifest, SBOM, provenance, signatures and scan decisions.",
+      "retry_concurrency_contract": "Promotion is immutable and idempotent; version/digest mismatch stops rollout.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The exact 3.4.3 source/frontend identities, local custom image digest, SHA-bound SPDX SBOM and local Scout scan are recorded. The owner explicitly accepted the reported Critical/High findings as non-blocking; registry signature, registry-bound SBOM/provenance attestations and promoted digest evidence remain missing.",
+          "tests": [
+            "local: exact source/frontend identity, HWID/nullability and RAW Vision/XHTTP patch-preservation tests pass",
+            "local: exact-digest SPDX 2.3 document hash/package count validation passes",
+            "required: registry signature, registry-bound SBOM/provenance attestations and promoted digest verification"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Worker release artifact must match final stream/saga code.",
+          "tests": [
+            "required: immutable digest/SBOM/provenance/scan"
+          ],
+          "rollback": "Disable the affected job or consumer, preserve uncommitted/pending work without acknowledgment, then invoke the capability rollback."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Admin release artifact must match generated contracts/i18n.",
+          "tests": [
+            "required: immutable digest/build provenance"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Partner artifact must match RBAC matrix/generated contracts/i18n.",
+          "tests": [
+            "required: immutable digest/build provenance"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Frontend artifact must match customer contracts/i18n.",
+          "tests": [
+            "required: immutable digest/build provenance"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped customer artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "miniapp": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "MiniApp deployment artifact must match backend/frontend contract.",
+          "tests": [
+            "required: immutable digest/build provenance"
+          ],
+          "rollback": "Keep the incomplete control unavailable, restore the prior self-scoped MiniApp artifact/client, and preserve existing subscriptions and credentials."
+        },
+        "mobile": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Automated compatibility artifact evidence is incomplete.",
+          "tests": [
+            "required: final format/analyze/tests and target fixtures"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous mobile release and preserve self-only API scope."
+        },
+        "desktop": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Automated compatibility artifact evidence is incomplete.",
+          "tests": [
+            "required: final fmt/clippy/tests/build and target fixtures"
+          ],
+          "rollback": "Do not promote the incompatible client/config fixture; retain the previous desktop release and preserve self-only API scope."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Emergency surface is private behind VPN/SSO/IP allowlist and never substitutes for a required CyberVPN Admin or Partner surface.",
+          "tests": [
+            "local: exact custom 3.4.3 image identity and digest are recorded",
+            "missing: staging private-ingress VPN/SSO/IP-allowlist proof"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The exact 3.4.1 source/runtime identity, local verified image digest, SHA-bound SPDX SBOM and local Scout scan are recorded. The owner explicitly accepted the reported Critical/High findings as non-blocking; registry signature, registry-bound SBOM/provenance attestations and promoted digest evidence remain missing.",
+          "tests": [
+            "local: source/runtime verifier, local digest, SPDX hash/package validation and diagnostic scan evidence pass",
+            "missing: registry signature, registry-bound SBOM/provenance attestations and promoted digest"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The exact 8.0.0 local digest, SHA-bound SPDX SBOM and Docker Scout counts are recorded; signed promotion and independent runtime rollback remain required.",
+          "tests": [
+            "local: digest identity, SPDX hash/package validation and diagnostic Docker Scout scan evidence are preserved",
+            "missing: registry signature, registry-bound SBOM/provenance attestations, promoted digest, /internal/health staging smoke and rollback to 7.2.6"
+          ],
+          "rollback": "Restore the previous 7.2.6 digest and proxy settings, preserve legacy links, then invoke the capability rollback."
+        }
+      },
+      "rollback": "Digest-based panel-first/node rollback plus DB restore where required."
+    },
+    {
+      "id": "node-3.4.1-runtime-dependencies",
+      "title": "Node 3.4.1 schema compiler and plugin-runtime compatibility",
+      "sources": [
+        "https://github.com/remnawave/node/commit/ad060a0c099680019ec6ce7e621b6a166af8dc16",
+        "https://github.com/remnawave/node/releases/tag/3.4.1"
+      ],
+      "production_owner": "node/runtime-contracts",
+      "production_paths": [
+        "zod/compile bootstrap import",
+        "zod 4.5.4 validation",
+        "@remnawave/node-contract 3.4.1",
+        "@remnawave/node-plugins 0.8.2"
+      ],
+      "persisted_state_or_side_effect": "No data migration; the exact node process must compile schemas and load the compatible plugin contract before becoming healthy.",
+      "retry_concurrency_contract": "Startup is deterministic and fail-closed; an incompatible schema or plugin must keep the node unhealthy and must not accept traffic.",
+      "surfaces": {
+        "backend": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Only the authenticated panel-to-node control channel may negotiate the node contract. Exact local source/bundle checks pass; a running 3.4.3 panel to 3.4.1 node pair is unproven.",
+          "tests": [
+            "local: exact node-contract 3.4.1 dependency and panel/node artifact identities are verified",
+            "missing: running exact-image pair registration and degraded-health integration tests"
+          ],
+          "rollback": "Stop provider mutations, reconcile ambiguous state, and invoke the capability rollback, including the prior adapter/image or data snapshot where specified."
+        },
+        "task_worker": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The task worker has no node bootstrap or plugin-loading authority; adding it would bypass the panel-to-node trust boundary.",
+          "tests": [
+            "required: negative no node-plugin token, module or control-route exposure assertion"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "admin": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Trusted global administrators may see redacted node compatibility and plugin health, but never plugin secrets or raw startup configuration.",
+          "tests": [
+            "missing: Admin node-version/plugin-health success, loading, degraded and redaction browser tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary tickets or grants, restore the prior Admin artifact/client, then invoke the capability rollback."
+        },
+        "partner": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "Partner may read only redacted compatibility status for an explicitly granted node with remnawave_read; global plugin controls and foreign nodes return 404.",
+          "tests": [
+            "missing: assigned-node status, revoked-grant and cross-tenant IDOR browser/direct-API tests"
+          ],
+          "rollback": "Keep the control unavailable, revoke temporary roles/object grants, restore the prior Partner artifact/client, and never widen tenant scope during rollback."
+        },
+        "customer_web": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Customers must not receive node package, plugin, schema or topology details because they are operator-only attack-surface metadata.",
+          "tests": [
+            "required: direct API/URL and rendered-payload non-exposure assertions"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "miniapp": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "MiniApp must not receive node package, plugin, schema or topology details because they are operator-only attack-surface metadata.",
+          "tests": [
+            "required: direct API/URL and rendered-payload non-exposure assertions"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "mobile": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Mobile is a customer client and must not receive node package, plugin, schema or topology details.",
+          "tests": [
+            "required: fixture and API payload non-exposure assertions"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "desktop": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "Desktop is a customer client and must not receive node package, plugin, schema or topology details.",
+          "tests": [
+            "required: fixture and API payload non-exposure assertions"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        },
+        "native_panel": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The private emergency panel must use the exact 3.4.3-to-3.4.1 contract and remain behind VPN/SSO/IP allowlist.",
+          "tests": [
+            "missing: exact image-pair node registration, plugin/preStart load and incompatible-contract degraded smoke"
+          ],
+          "rollback": "Keep private ingress enforced and restore the previous immutable panel digest before invoking the capability rollback."
+        },
+        "node": {
+          "disposition": "gap",
+          "rbac_tenant_rationale": "The immutable 3.4.1 dependency graph and bundle assertions are locally verified; schema/plugin load failures must still be proven redacted and fail-health-closed in a canary.",
+          "tests": [
+            "local: 3 verifier tests prove zod/compile-before-bootstrap, Zod 4.5.4, node-contract 3.4.1, node-plugins 0.8.2 and scoped credential-drop ordering; the Dockerfile validates the built bundle and the Ansible edge role accepts only remnawave/node:3.4.1@sha256",
+            "missing: exact-image startup/plugin load and incompatible-contract fail-closed canary"
+          ],
+          "rollback": "Stop the node canary, restore the previous immutable node digest, preserve SNI_VERIFICATION=true, and reconcile affected sessions."
+        },
+        "subscription_page": {
+          "disposition": "not_applicable",
+          "rbac_tenant_rationale": "The subscription page has no node package or plugin authority; exposure would leak operator topology and dependency metadata.",
+          "tests": [
+            "required: response, health and rendered-payload non-exposure assertions"
+          ],
+          "rollback": "No rollout is permitted on this surface; preserve and revalidate the stated deny/non-exposure trust boundary."
+        }
+      },
+      "rollback": "Stop the node canary and restore the previous immutable node digest while preserving SNI_VERIFICATION=true; do not downgrade the panel until node registration and contract compatibility are reconciled."
+    }
+  ]
+}

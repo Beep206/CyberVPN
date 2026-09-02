@@ -112,6 +112,7 @@ async def test_onboarding_apply_rejects_uuid_like_registration_access_token_with
     with pytest.raises(HTTPException) as exc_info:
         await routes.apply_customer_onboarding_growth_code(
             payload=CustomerOnboardingApplyRequest(code=str(uuid4())),
+            request=_request_with_device(),
             user_id=uuid4(),
             db=db,
         )
@@ -139,6 +140,7 @@ async def test_onboarding_apply_rejects_forged_flow_token_without_consuming(
                 flow_token="forged-flow-token-000",
                 idempotency_key="request-1",
             ),
+            request=_request_with_device(),
             user_id=uuid4(),
             db=db,
         )
@@ -166,6 +168,7 @@ async def test_onboarding_apply_rejects_non_ascii_forged_flow_token_without_500_
                 flow_token="cot1.éééééééééééé.sig",
                 idempotency_key="request-1",
             ),
+            request=_request_with_device(),
             user_id=uuid4(),
             db=db,
         )
@@ -247,6 +250,7 @@ async def test_onboarding_apply_rejects_flow_token_bound_to_different_user_witho
                 flow_token=flow_token,
                 idempotency_key="request-1",
             ),
+            request=_request_with_device(),
             user_id=uuid4(),
             db=db,
         )

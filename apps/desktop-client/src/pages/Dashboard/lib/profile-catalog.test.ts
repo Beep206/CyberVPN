@@ -29,7 +29,7 @@ function createProxyNode(overrides: Partial<ProxyNode>): ProxyNode {
 describe("buildDashboardProfileCollections", () => {
   it("groups proxies by group first, then subscription, then manual bucket", () => {
     const subscriptions: Subscription[] = [
-      { id: "sub-1", name: "Europe Fleet", url: "https://example.com/sub", autoUpdate: true },
+      { id: "sub-1", name: "Europe Fleet", autoUpdate: true },
     ];
     const groups: ProfileGroup[] = [{ id: "grp-1", name: "Streaming" }];
     const profiles: ProxyNode[] = [
@@ -74,7 +74,7 @@ describe("buildDashboardProfileCollections", () => {
 
     const collections = buildDashboardProfileCollections(
       profiles,
-      [{ id: "sub-1", name: "Europe Fleet", url: "https://example.com/sub", autoUpdate: true }],
+      [{ id: "sub-1", name: "Europe Fleet", autoUpdate: true }],
       []
     );
 
@@ -239,7 +239,7 @@ describe("resolveDashboardSelection", () => {
       createProxyNode({ id: "node-b", name: "B", subscriptionId: "sub-1" }),
       createProxyNode({ id: "node-c", name: "C" }),
     ],
-    [{ id: "sub-1", name: "Europe Fleet", url: "https://example.com/sub", autoUpdate: true }],
+    [{ id: "sub-1", name: "Europe Fleet", autoUpdate: true }],
     []
   );
 

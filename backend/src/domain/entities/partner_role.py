@@ -18,7 +18,23 @@ BUILTIN_PARTNER_ROLE_DEFINITIONS: tuple[PartnerRoleDefinition, ...] = (
         role_key="owner",
         display_name="Owner",
         description="Full workspace access including membership and revenue controls.",
-        permissions=tuple(PartnerPermission),
+        # Keep this explicit. Newly introduced high-risk capabilities must be
+        # granted deliberately and never appear through enum expansion.
+        permissions=(
+            PartnerPermission.WORKSPACE_READ,
+            PartnerPermission.OPERATIONS_WRITE,
+            PartnerPermission.MEMBERSHIP_READ,
+            PartnerPermission.MEMBERSHIP_WRITE,
+            PartnerPermission.CODES_READ,
+            PartnerPermission.CODES_WRITE,
+            PartnerPermission.EARNINGS_READ,
+            PartnerPermission.PAYOUTS_READ,
+            PartnerPermission.PAYOUTS_WRITE,
+            PartnerPermission.TRAFFIC_READ,
+            PartnerPermission.TRAFFIC_WRITE,
+            PartnerPermission.INTEGRATIONS_READ,
+            PartnerPermission.INTEGRATIONS_WRITE,
+        ),
     ),
     PartnerRoleDefinition(
         role_key="manager",

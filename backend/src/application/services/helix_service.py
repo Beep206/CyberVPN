@@ -7,7 +7,7 @@ from src.application.use_cases.subscriptions.get_active_subscription import (
     GetActiveSubscriptionUseCase,
 )
 from src.config.settings import settings
-from src.infrastructure.database.models.admin_user_model import AdminUserModel
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.helix.client import (
     AdapterClientCapabilityDefaults,
     AdapterDesktopRuntimeEventAck,
@@ -65,6 +65,20 @@ class RuntimeEventCommand:
     payload: AdapterDesktopRuntimeEventPayload | dict | None = None
 
 
+@dataclass(frozen=True)
+class HelixCustomerAccess:
+    """Exact local customer and reconciled Remnawave identity for Helix."""
+
+    customer_id: UUID
+    remnawave_user_ref: RemnawaveUserRef
+
+    @property
+    def id(self) -> UUID:
+        """Compatibility alias for adapter-facing customer identifiers."""
+
+        return self.customer_id
+
+
 class HelixService:
     def __init__(
         self,
@@ -82,30 +96,32 @@ class HelixService:
         if not settings.helix_admin_enabled:
             raise HelixDisabledError("Helix admin routes are disabled")
 
-    async def _ensure_entitled(self, user_id: UUID) -> str:
-        subscription = await GetActiveSubscriptionUseCase(self._subscription_client).execute(user_id)
+    async def _ensure_entitled(self, customer: HelixCustomerAccess) -> str:
+        subscription = await GetActiveSubscriptionUseCase(self._subscription_client).execute(
+            customer.remnawave_user_ref
+        )
         if subscription.status not in {
             SubscriptionStatus.ACTIVE,
             SubscriptionStatus.TRIAL,
         }:
             raise HelixAccessDeniedError("user is not entitled to Helix")
-        return f"subscription:{user_id}"
+        return f"subscription:{customer.customer_id}"
 
     async def get_capability_defaults_for_user(
         self,
-        current_user: AdminUserModel,
+        current_user: HelixCustomerAccess,
     ) -> AdapterClientCapabilityDefaults:
         self._ensure_user_feature_enabled()
-        await self._ensure_entitled(current_user.id)
+        await self._ensure_entitled(current_user)
         return await self._adapter_client.get_client_capability_defaults()
 
     async def resolve_manifest_for_user(
         self,
-        current_user: AdminUserModel,
+        current_user: HelixCustomerAccess,
         command: ResolveManifestCommand,
     ) -> AdapterResolveManifestResponse:
         self._ensure_user_feature_enabled()
-        entitlement_id = await self._ensure_entitled(current_user.id)
+        entitlement_id = await self._ensure_entitled(current_user)
 
         request = AdapterResolveManifestRequest(
             user_id=str(current_user.id),
@@ -124,11 +140,11 @@ class HelixService:
 
     async def report_runtime_event_for_user(
         self,
-        current_user: AdminUserModel,
+        current_user: HelixCustomerAccess,
         command: RuntimeEventCommand,
     ) -> AdapterDesktopRuntimeEventAck:
         self._ensure_user_feature_enabled()
-        await self._ensure_entitled(current_user.id)
+        await self._ensure_entitled(current_user)
 
         request = AdapterDesktopRuntimeEventRequest(
             event_id=str(uuid4()),

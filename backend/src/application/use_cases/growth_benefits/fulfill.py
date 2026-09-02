@@ -639,7 +639,7 @@ class FulfillGrowthBenefitsUseCase:
                     issued_count=len(invite_codes),
                     status="issued",
                 )
-            result_payload = {
+            result_payload: dict[str, Any] = {
                 "invite_batch_id": str(batch.id),
                 "requested_count": batch.requested_count,
                 "issued_count": batch.issued_count,
@@ -737,7 +737,7 @@ class FulfillGrowthBenefitsUseCase:
                 currency=config.currency,
                 description_key=config.description_key,
             )
-            result_payload = {
+            result_payload: dict[str, Any] = {
                 "benefit_type": benefit.benefit_type.value,
                 "side_effect_mode": "wallet_transaction",
                 "wallet_credit": {

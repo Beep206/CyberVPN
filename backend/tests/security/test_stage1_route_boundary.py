@@ -76,6 +76,10 @@ WEBSOCKET_AUTH_DEPENDENCIES = {
     "admin_messaging_ws_authenticate",
 }
 
+WEBSOCKET_AUTH_SOURCE_MARKERS = {
+    "_authenticate_websocket_admin_session",
+}
+
 
 @dataclass(frozen=True)
 class RouteBoundary:
@@ -89,6 +93,7 @@ class RouteBoundary:
 class WebSocketBoundary:
     path: str
     dependency_names: set[str]
+    source: str
 
 
 def _dependency_names(dependencies: Iterable[Dependant]) -> set[str]:
@@ -166,6 +171,7 @@ def _iter_websocket_boundaries() -> Iterable[WebSocketBoundary]:
             yield WebSocketBoundary(
                 path=route.path,
                 dependency_names=_websocket_dependency_names(route),
+                source=_endpoint_source(route.endpoint),
             )
             continue
 
@@ -181,6 +187,7 @@ def _iter_websocket_boundaries() -> Iterable[WebSocketBoundary]:
             yield WebSocketBoundary(
                 path=context_path,
                 dependency_names=_websocket_dependency_names(context_route),
+                source=_endpoint_source(context_route.endpoint),
             )
 
 
@@ -192,6 +199,8 @@ def classify_route_boundary(route: RouteBoundary) -> str:
         return "principal-protected"
     if "require_partner_reporting_token" in dependency_names:
         return "partner-reporting-token"
+    if "require_backend_internal_secret" in dependency_names:
+        return "header-secret-protected"
     if (
         "_require_telegram_bot_secret" in source
         or "_require_frontend_observability_secret" in source
@@ -261,6 +270,7 @@ def test_stage1_websocket_routes_depend_on_ws_authenticate():
         route.path
         for route in _iter_websocket_boundaries()
         if not (route.dependency_names & WEBSOCKET_AUTH_DEPENDENCIES)
+        and not any(marker in route.source for marker in WEBSOCKET_AUTH_SOURCE_MARKERS)
     ]
 
     assert unauthenticated_websockets == []

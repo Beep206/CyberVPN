@@ -11,17 +11,22 @@ import yaml
 
 REQUIRED_SOURCE_MAPPING = {
     "postgres_password": "vault_control_plane_postgres_password",
-    "remnawave.jwt_auth_secret": "vault_control_plane_remnawave_jwt_auth_secret",
-    "remnawave.jwt_api_tokens_secret": "vault_control_plane_remnawave_jwt_api_tokens_secret",
+    "remnawave.app_secret": "vault_control_plane_remnawave_app_secret",
     "remnawave.metrics_pass": "vault_control_plane_remnawave_metrics_pass",
     "shared.helix_internal_auth_token": "vault_control_plane_helix_internal_auth_token",
     "shared.helix_remnawave_token": "vault_control_plane_helix_remnawave_token",
     "backend.remnawave_token": "vault_control_plane_backend_remnawave_token",
     "backend.jwt_secret": "vault_control_plane_backend_jwt_secret",
+    "backend.webhook_log_fingerprint_secret": "vault_control_plane_backend_webhook_log_fingerprint_secret",
     "backend.internal_secret": "vault_control_plane_backend_internal_secret",
+    "backend.remnawave_stream_ip_hmac_secret": "vault_control_plane_backend_remnawave_stream_ip_hmac_secret",
+    "backend.remnawave_connection_drop_hmac_secret": "vault_control_plane_backend_remnawave_connection_drop_hmac_secret",
     "backend.totp_encryption_key": "vault_control_plane_backend_totp_encryption_key",
     "backend.oauth_token_encryption_key": "vault_control_plane_backend_oauth_token_encryption_key",
     "worker.remnawave_api_token": "vault_control_plane_worker_remnawave_api_token",
+    "subscription_page.remnawave_api_token": (
+        "vault_control_plane_subscription_page_remnawave_api_token"
+    ),
     "helix_adapter.remnawave_token": "vault_control_plane_helix_adapter_remnawave_token",
     "helix_adapter.manifest_signing_key": "vault_control_plane_manifest_signing_key",
 }
@@ -30,6 +35,10 @@ OPTIONAL_SOURCE_MAPPING = {
     "registry.username": ("vault_control_plane_registry_username", ""),
     "registry.password": ("vault_control_plane_registry_password", ""),
     "remnawave.metrics_user": ("vault_control_plane_remnawave_metrics_user", "metrics"),
+    "remnawave.node_ssh_broker_secret": (
+        "vault_control_plane_remnawave_node_ssh_broker_secret",
+        "",
+    ),
     "backend.cryptobot_token": ("vault_control_plane_backend_cryptobot_token", ""),
     "backend.telegram_bot_token": (
         "vault_control_plane_backend_telegram_bot_token",
@@ -43,12 +52,32 @@ OPTIONAL_SOURCE_MAPPING = {
         "vault_control_plane_backend_telegram_bot_internal_secret",
         "",
     ),
+    "backend.remnawave_node_ssh_trusted_admin_ids": (
+        "vault_control_plane_backend_remnawave_node_ssh_trusted_admin_ids",
+        "",
+    ),
+    "backend.remnawave_node_ssh_allowed_node_ids": (
+        "vault_control_plane_backend_remnawave_node_ssh_allowed_node_ids",
+        "",
+    ),
+    "backend.passkey_enabled": (
+        "vault_control_plane_backend_passkey_enabled",
+        "false",
+    ),
+    "backend.passkey_admin_enabled": (
+        "vault_control_plane_backend_passkey_admin_enabled",
+        "false",
+    ),
     "worker.telegram_bot_token": ("vault_control_plane_worker_telegram_bot_token", ""),
     "worker.cryptobot_token": ("vault_control_plane_worker_cryptobot_token", ""),
     "worker.admin_telegram_ids": ("vault_control_plane_worker_admin_telegram_ids", ""),
     "extras.remnawave": ("vault_control_plane_remnawave_env_extra", {}),
     "extras.backend": ("vault_control_plane_backend_env_extra", {}),
     "extras.worker": ("vault_control_plane_worker_env_extra", {}),
+    "extras.subscription_page": (
+        "vault_control_plane_subscription_page_env_extra",
+        {},
+    ),
     "extras.helix_adapter": ("vault_control_plane_helix_adapter_env_extra", {}),
 }
 

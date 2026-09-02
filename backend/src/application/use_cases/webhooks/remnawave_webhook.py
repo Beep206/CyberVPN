@@ -1,4 +1,3 @@
-import hashlib
 import math
 from typing import Any
 
@@ -10,6 +9,7 @@ from src.application.use_cases.webhooks.webhook_log_redaction import (
     build_remnawave_webhook_log_payload,
     remnawave_event_type,
     signature_fingerprint,
+    webhook_log_fingerprint,
 )
 from src.config.settings import settings
 from src.infrastructure.database.models.webhook_log_model import WebhookLog
@@ -101,14 +101,15 @@ class ProcessRemnawaveWebhookUseCase:
             self._session.add(log)
             return {"status": "invalid_payload"}
 
-        body_sha256 = hashlib.sha256(body).hexdigest()
+        body_fingerprint = webhook_log_fingerprint(body, namespace="remnawave_body")
         log_payload = build_remnawave_webhook_log_payload(
             payload,
             signature=signature,
             is_valid=validation.is_valid,
             validation_reason=validation.reason,
         )
-        log_payload["body_sha256"] = body_sha256
+        if body_fingerprint is not None:
+            log_payload["body_fingerprint"] = body_fingerprint
         log = WebhookLog(
             source="remnawave",
             event_type=remnawave_event_type(payload),
@@ -131,7 +132,9 @@ class ProcessRemnawaveWebhookUseCase:
             log.error_message = "invalid_torrent_blocker_report"
             return {"status": "invalid_payload"}
         if await _has_seen_remnawave_webhook(
-            self._session, event=remnawave_event_type(payload), body_sha256=body_sha256
+            self._session,
+            event=remnawave_event_type(payload),
+            body_fingerprint=body_fingerprint,
         ):
             log.error_message = "duplicate_webhook"
             return {"status": "duplicate", "event": remnawave_event_type(payload) or ""}
@@ -165,9 +168,9 @@ async def _has_seen_remnawave_webhook(
     session: AsyncSession,
     *,
     event: str | None,
-    body_sha256: str,
+    body_fingerprint: str | None,
 ) -> bool:
-    if event is None or not hasattr(session, "execute"):
+    if event is None or body_fingerprint is None or not hasattr(session, "execute"):
         return False
 
     statement = (
@@ -176,7 +179,7 @@ async def _has_seen_remnawave_webhook(
             WebhookLog.source == "remnawave",
             WebhookLog.event_type == event,
             WebhookLog.is_valid.is_(True),
-            WebhookLog.payload["body_sha256"].as_string() == body_sha256,
+            WebhookLog.payload["body_fingerprint"].as_string() == body_fingerprint,
         )
         .limit(1)
     )

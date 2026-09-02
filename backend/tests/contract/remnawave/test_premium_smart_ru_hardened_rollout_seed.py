@@ -328,6 +328,23 @@ def test_premium_smart_ru_seed_validates_inbounds_before_transaction_and_mutatio
         assert validation_start < validation_end < transaction_begin < seed_sql.index(marker)
 
 
+def test_premium_smart_ru_seed_requires_reality_min_client_version_for_every_used_inbound() -> None:
+    validation = _compact(_validation_block(_read(SEED_SQL)))
+
+    assert "raw_inbound #>> '{streamSettings,realitySettings,minClientVer}'" in validation
+    assert "is distinct from '26.3.27'" in validation
+    assert "CyberVPN Reality inbounds must use minClientVer=26.3.27" in validation
+    for inbound_tag in (
+        "VLESS_REALITY_443",
+        "VLESS_XHTTP_REALITY_8443",
+        "DE_SMART_REALITY_443",
+        "DE_SMART_XHTTP_REALITY_8443",
+        "MSK_SMART_REALITY_443",
+        "MSK_SMART_XHTTP_REALITY_8443",
+    ):
+        assert f"'{inbound_tag}'" in validation
+
+
 def test_premium_smart_ru_seed_requires_full_raw_tcp_reality_contract() -> None:
     validation = _compact(_validation_block(_read(SEED_SQL)))
 
@@ -421,6 +438,7 @@ def test_premium_smart_ru_inbound_diagnostic_sql_is_safe_and_contract_focused() 
         "as settings_flow_is_xtls_rprx_vision",
         "as stream_network",
         "as stream_security",
+        "as reality_min_client_ver_is_26_3_27",
         "as server_names_count",
         "as short_ids_count",
         "as reality_private_key_present",

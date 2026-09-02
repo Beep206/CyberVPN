@@ -570,7 +570,17 @@
     "serverStatus": "حالَة الخادِم",
     "statusLabel": "حالَة النِّظام:",
     "statusValue": "مِثالِيَّة",
-    "title": "مَرْكَز قِيادَة VPN"
+    "title": "مَرْكَز قِيادَة VPN",
+    "vpnServiceStatus": {
+      "available": "متاح",
+      "connections": "الاتصالات",
+      "degraded": "متدهور جزئيًا",
+      "devices": "الأجهزة",
+      "loading": "جارٍ تحميل حالة خدمة VPN",
+      "title": "توفر خدمة VPN",
+      "unavailable": "غير متاح",
+      "usage": "الاستخدام"
+    }
   },
   "DeleteAccount": {
     "contact": {

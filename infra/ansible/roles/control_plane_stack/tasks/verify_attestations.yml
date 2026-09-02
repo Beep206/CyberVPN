@@ -1,0 +1,40 @@
+---
+- name: Control plane | Verify release attestations on the deployment controller
+  ansible.builtin.command:
+    argv:
+      - python3
+      - "{{ playbook_dir }}/../scripts/verify_control_plane_attestations.py"
+      - --source-commit
+      - "{{ control_plane_stack_release_source_commit }}"
+      - --source-run-url
+      - "{{ control_plane_stack_release_source_run_url }}"
+      - --image
+      - "remnawave={{ control_plane_stack_remnawave_image }}"
+      - --image
+      - "backend={{ control_plane_stack_backend_image }}"
+      - --image
+      - "worker={{ control_plane_stack_worker_image }}"
+      - --image
+      - "helix_adapter={{ control_plane_stack_helix_adapter_image }}"
+      - --image
+      - "node={{ control_plane_stack_node_image }}"
+      - --image
+      - "subscription_page={{ control_plane_stack_subscription_page_image }}"
+      - --image
+      - "node_ssh_proxy={{ control_plane_stack_node_ssh_proxy_image }}"
+      - --accepted-risk-decision
+      - "-"
+    stdin: >-
+      {{
+        control_plane_stack_release_supply_chain.accepted_risk
+        | default(none, true)
+        | to_json
+      }}
+  delegate_to: localhost
+  run_once: true
+  become: false
+  changed_when: false
+  no_log: true
+  when:
+    - control_plane_stack_action == 'deploy'
+    - control_plane_stack_enforce_immutable_images

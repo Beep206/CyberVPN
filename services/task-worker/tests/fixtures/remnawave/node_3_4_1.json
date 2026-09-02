@@ -1,0 +1,25 @@
+{
+  "id": 17,
+  "uuid": "550e8400-e29b-41d4-a716-446655440020",
+  "name": "fra-01",
+  "address": "fra-01.example.com",
+  "isConnected": true,
+  "isDisabled": false,
+  "isConnecting": false,
+  "countryCode": "DE",
+  "trafficUp": 10,
+  "trafficDown": 20,
+  "currentBandwidth": 30,
+  "versions": {
+    "node": "3.4.1",
+    "xray": "26.7.31"
+  },
+  "activePluginUuid": "550e8400-e29b-41d4-a716-446655440021",
+  "integrationUuids": [
+    "550e8400-e29b-41d4-a716-446655440022"
+  ],
+  "ips": [
+    {"ip": "203.0.113.17", "status": "INBOUND"},
+    {"ip": "2001:db8::17", "status": "MANAGEMENT"}
+  ]
+}

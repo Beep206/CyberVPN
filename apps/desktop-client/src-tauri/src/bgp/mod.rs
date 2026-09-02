@@ -87,7 +87,7 @@ pub async fn check_is_admin() -> Result<bool, String> {
         if let Ok(output) = output {
             return Ok(output.status.success());
         }
-        return Ok(false);
+        Ok(false)
     }
 
     #[cfg(not(any(unix, windows)))]

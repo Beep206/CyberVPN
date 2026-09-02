@@ -460,7 +460,17 @@
     "serverStatus": "SERVERSTATUS",
     "statusLabel": "SYSTEEMSTATUS:",
     "statusValue": "OPTIMAAL",
-    "title": "VPN COMMANDOCENTRUM"
+    "title": "VPN COMMANDOCENTRUM",
+    "vpnServiceStatus": {
+      "available": "Beschikbaar",
+      "connections": "Verbindingen",
+      "degraded": "Gedeeltelijk beperkt",
+      "devices": "Apparaten",
+      "loading": "VPN-dienststatus laden",
+      "title": "Beschikbaarheid van de VPN-dienst",
+      "unavailable": "Niet beschikbaar",
+      "usage": "Gebruik"
+    }
   },
   "DeleteAccount": {
     "contact": {

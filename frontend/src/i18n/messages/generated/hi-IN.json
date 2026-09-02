@@ -460,7 +460,17 @@
     "serverStatus": "सर्वर स्थिति",
     "statusLabel": "सिस्टम स्थिति:",
     "statusValue": "इष्टतम",
-    "title": "VPN कमांड सेंटर"
+    "title": "VPN कमांड सेंटर",
+    "vpnServiceStatus": {
+      "available": "उपलब्ध",
+      "connections": "कनेक्शन",
+      "degraded": "आंशिक रूप से बाधित",
+      "devices": "डिवाइस",
+      "loading": "VPN सेवा स्थिति लोड हो रही है",
+      "title": "VPN सेवा उपलब्धता",
+      "unavailable": "अनुपलब्ध",
+      "usage": "उपयोग"
+    }
   },
   "DeleteAccount": {
     "contact": {

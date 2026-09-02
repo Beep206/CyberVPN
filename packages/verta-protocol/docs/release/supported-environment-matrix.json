@@ -9,7 +9,8 @@
       "environment_kind": "local_supported_staging",
       "support_status": "verified",
       "upstream_support": [
-        "remnawave_2.7.x"
+        "remnawave_3.4.1_automated_contract_passed_live_pending",
+        "remnawave_2.8_explicit_rollback"
       ],
       "configuration_refs": [
         "infra/docker-compose.yml",
@@ -26,7 +27,8 @@
       "environment_kind": "operator_managed_staging",
       "support_status": "documented",
       "upstream_support": [
-        "remnawave_2.7.x"
+        "remnawave_3.4.1_rollout_pending",
+        "remnawave_2.8_explicit_rollback"
       ],
       "configuration_refs": [
         "infra/ansible/inventories/staging/group_vars/control_plane_staging/main.yml"
@@ -42,7 +44,8 @@
       "environment_kind": "operator_managed_production",
       "support_status": "documented",
       "upstream_support": [
-        "remnawave_2.7.x"
+        "remnawave_3.4.1_not_deployed_by_this_change",
+        "remnawave_2.8_explicit_rollback"
       ],
       "configuration_refs": [
         "infra/ansible/inventories/production/group_vars/control_plane_production/main.yml"

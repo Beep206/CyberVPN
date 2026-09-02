@@ -30,7 +30,7 @@ def _serialize_provisioning_profile(model) -> ProvisioningProfileResponse:
         profile_status=model.profile_status,
         provider_name=model.provider_name,
         provider_profile_ref=model.provider_profile_ref,
-        provisioning_payload=dict(model.provisioning_payload or {}),
+        provisioning_payload={},
         created_at=model.created_at,
         updated_at=model.updated_at,
     )

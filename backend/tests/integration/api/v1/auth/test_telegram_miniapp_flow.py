@@ -215,8 +215,8 @@ class TestMiniAppAutoLoginFlow:
             await use_case.execute(expired_init_data)
 
     @pytest.mark.integration
-    async def test_remnawave_creation_for_new_user(self):
-        """New user registration calls Remnawave gateway (best-effort)."""
+    async def test_remnawave_creation_is_not_attempted_from_auth_flow(self):
+        """Authentication never performs the non-idempotent Remnawave create mutation."""
         new_user = _make_user_model()
 
         user_repo = AsyncMock()
@@ -249,7 +249,7 @@ class TestMiniAppAutoLoginFlow:
         init_data = _build_init_data(BOT_TOKEN)
         await use_case.execute(init_data)
 
-        remnawave.create_user.assert_called_once()
+        remnawave.create_user.assert_not_called()
 
     @pytest.mark.integration
     async def test_remnawave_failure_does_not_block_auth(self):
@@ -287,8 +287,10 @@ class TestMiniAppAutoLoginFlow:
         init_data = _build_init_data(BOT_TOKEN)
         result = await use_case.execute(init_data)
 
-        # Auth succeeds despite Remnawave failure
+        # Auth succeeds because provider creation is owned by the durable
+        # provisioning workflow, not this authentication boundary.
         assert result.access_token == "access_tok"
+        remnawave.create_user.assert_not_called()
         assert result.is_new_user is True
 
 

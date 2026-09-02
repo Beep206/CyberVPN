@@ -8,7 +8,7 @@ type HostResponse =
 type CreateHostRequest =
   operations['create_host_api_v1_hosts__post']['requestBody']['content']['application/json'];
 type CreateHostResponse =
-  operations['create_host_api_v1_hosts__post']['responses'][200]['content']['application/json'];
+  operations['create_host_api_v1_hosts__post']['responses'][201]['content']['application/json'];
 type UpdateHostRequest =
   operations['update_host_api_v1_hosts__uuid__put']['requestBody']['content']['application/json'];
 type UpdateHostResponse =
@@ -62,13 +62,6 @@ type CreateSquadRequest =
 type CreateSquadResponse =
   operations['create_squad_api_v1_squads__post']['responses'][200]['content']['application/json'];
 
-type SnippetsResponse =
-  operations['list_snippets_api_v1_snippets__get']['responses'][200]['content']['application/json'];
-type CreateSnippetRequest =
-  operations['create_snippet_api_v1_snippets__post']['requestBody']['content']['application/json'];
-type CreateSnippetResponse =
-  operations['create_snippet_api_v1_snippets__post']['responses'][200]['content']['application/json'];
-
 type XrayConfigResponse =
   operations['get_xray_config_api_v1_xray_config_get']['responses'][200]['content']['application/json'];
 type UpdateXrayConfigRequest =
@@ -105,7 +98,7 @@ export const hostsApi = {
   update: (uuid: string, data: UpdateHostRequest) =>
     apiClient.put<UpdateHostResponse>(`/hosts/${uuid}`, data),
   remove: (uuid: string) =>
-    apiClient.delete(`/hosts/${uuid}`),
+    apiClient.delete<void>(`/hosts/${uuid}`),
 };
 
 export const configProfilesApi = {
@@ -148,13 +141,6 @@ export const squadsApi = {
     apiClient.get<ExternalSquadsResponse>('/squads/external'),
   create: (data: CreateSquadRequest) =>
     apiClient.post<CreateSquadResponse>('/squads/', data),
-};
-
-export const snippetsApi = {
-  list: () =>
-    apiClient.get<SnippetsResponse>('/snippets/'),
-  create: (data: CreateSnippetRequest) =>
-    apiClient.post<CreateSnippetResponse>('/snippets/', data),
 };
 
 export const xrayApi = {

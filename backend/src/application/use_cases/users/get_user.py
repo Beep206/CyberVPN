@@ -1,7 +1,5 @@
 """Get user use case."""
 
-from uuid import UUID
-
 from src.domain.entities.user import User
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
@@ -17,16 +15,18 @@ class GetUserUseCase:
         """
         self.gateway = gateway
 
-    async def execute(self, uuid: UUID) -> User | None:
-        """Execute the get user by UUID use case.
+    async def execute(self, user_id: int) -> User | None:
+        """Execute the get user by numeric Remnawave id use case.
 
         Args:
-            uuid: The UUID of the user to retrieve
+            user_id: The positive numeric Remnawave user id to retrieve
 
         Returns:
             The User entity if found, None otherwise
         """
-        return await self.gateway.get_by_uuid(uuid)
+        if isinstance(user_id, bool) or user_id <= 0:
+            raise ValueError("Remnawave numeric user id must be positive")
+        return await self.gateway.get_by_id(user_id)
 
     async def execute_by_username(self, username: str) -> User | None:
         """Execute the get user by username use case.

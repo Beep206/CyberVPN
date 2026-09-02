@@ -46,6 +46,11 @@ class _FakeVpnConnectionNotifier extends AsyncNotifier<VpnConnectionState>
   Future<void> connectFromCustomServer(ImportedConfig customServer) async {}
 
   @override
+  Future<void> connectBySubscriptionPolicy({
+    String trigger = 'auto_connect',
+  }) async {}
+
+  @override
   Future<void> connectToLastOrRecommended() async {}
 
   @override
@@ -101,114 +106,124 @@ void main() {
         configImportProvider.overrideWith(() => configImportNotifier),
         profileListProvider.overrideWithValue(AsyncData(profiles)),
         vpnProfileRepositoryProvider.overrideWithValue(repository),
-        if (pingService != null) pingServiceProvider.overrideWithValue(pingService),
+        if (pingService != null)
+          pingServiceProvider.overrideWithValue(pingService),
       ],
     );
   }
 
   group('ProfileUpdateNotifier', () {
-    test('refreshes due provider profiles and imported sources on app open', () async {
-      final repository = _MockProfileRepository();
-      final configImportNotifier = _FakeConfigImportNotifier([
-        ImportedConfig(
-          id: 'cfg-1',
-          name: 'Imported',
-          rawUri: 'vless://imported',
-          protocol: 'vless',
-          serverAddress: 'imported.example.com',
-          port: 443,
-          source: ImportSource.subscriptionUrl,
-          subscriptionUrl: 'https://provider.example/sub',
-          importedAt: DateTime.now().subtract(const Duration(hours: 2)),
-        ),
-      ]);
-      when(() => repository.updateSubscription('remote-1')).thenAnswer(
-        (_) async => const Success(null),
-      );
-
-      final container = createContainer(
-        settings: const AppSettings(subscriptionAutoUpdateIntervalHours: 1),
-        profiles: [
-          VpnProfile.remote(
-            id: 'remote-1',
-            name: 'Provider',
-            subscriptionUrl: 'encrypted',
-            isActive: false,
-            sortOrder: 0,
-            createdAt: DateTime(2026, 4, 17, 10),
-            lastUpdatedAt: DateTime.now().subtract(const Duration(hours: 2)),
-            servers: const [],
+    test(
+      'refreshes due provider profiles and imported sources on app open',
+      () async {
+        final repository = _MockProfileRepository();
+        final configImportNotifier = _FakeConfigImportNotifier([
+          ImportedConfig(
+            id: 'cfg-1',
+            name: 'Imported',
+            rawUri: 'vless://imported',
+            protocol: 'vless',
+            serverAddress: 'imported.example.com',
+            port: 443,
+            source: ImportSource.subscriptionUrl,
+            subscriptionUrl: 'https://provider.example/sub',
+            importedAt: DateTime.now().subtract(const Duration(hours: 2)),
           ),
-        ],
-        repository: repository,
-        configImportNotifier: configImportNotifier,
-      );
-      addTearDown(container.dispose);
-      final sub = container.listen(
-        profileUpdateNotifierProvider,
-        (previous, next) {},
-      );
-      addTearDown(sub.close);
-      await container.read(settingsProvider.future);
-      await container.read(configImportProvider.future);
-      await container.read(profileListProvider.future);
+        ]);
+        when(
+          () => repository.updateSubscription('remote-1'),
+        ).thenAnswer((_) async => const Success(null));
 
-      await container
-          .read(profileUpdateNotifierProvider.notifier)
-          .handleAppOpen(trigger: SubscriptionLifecycleTrigger.startup);
+        final container = createContainer(
+          settings: const AppSettings(subscriptionAutoUpdateIntervalHours: 1),
+          profiles: [
+            VpnProfile.remote(
+              id: 'remote-1',
+              name: 'Provider',
+              subscriptionUrl: 'encrypted',
+              isActive: false,
+              sortOrder: 0,
+              createdAt: DateTime(2026, 4, 17, 10),
+              lastUpdatedAt: DateTime.now().subtract(const Duration(hours: 2)),
+              servers: const [],
+            ),
+          ],
+          repository: repository,
+          configImportNotifier: configImportNotifier,
+        );
+        addTearDown(container.dispose);
+        final sub = container.listen(
+          profileUpdateNotifierProvider,
+          (previous, next) {},
+        );
+        addTearDown(sub.close);
+        await container.read(settingsProvider.future);
+        await container.read(configImportProvider.future);
+        await container.read(profileListProvider.future);
 
-      final state = container.read(profileUpdateNotifierProvider);
-      expect(state.lastUpdateCount, 1);
-      expect(state.lastImportRefreshCount, 1);
-      expect(state.lastLifecycleTrigger, SubscriptionLifecycleTrigger.startup);
-      expect(
-        configImportNotifier.refreshedUrls,
-        contains('https://provider.example/sub'),
-      );
-      verify(() => repository.updateSubscription('remote-1')).called(1);
-    });
+        await container
+            .read(profileUpdateNotifierProvider.notifier)
+            .handleAppOpen(trigger: SubscriptionLifecycleTrigger.startup);
 
-    test('skips lifecycle refresh when on-open automation is disabled', () async {
-      final repository = _MockProfileRepository();
-      final configImportNotifier = _FakeConfigImportNotifier(const []);
-      final container = createContainer(
-        settings: const AppSettings(
-          subscriptionAutoUpdateOnOpen: false,
-          subscriptionPingOnOpenEnabled: false,
-        ),
-        profiles: const [],
-        repository: repository,
-        configImportNotifier: configImportNotifier,
-      );
-      addTearDown(container.dispose);
-      final sub = container.listen(
-        profileUpdateNotifierProvider,
-        (previous, next) {},
-      );
-      addTearDown(sub.close);
-      await container.read(settingsProvider.future);
-      await container.read(configImportProvider.future);
-      await container.read(profileListProvider.future);
+        final state = container.read(profileUpdateNotifierProvider);
+        expect(state.lastUpdateCount, 1);
+        expect(state.lastImportRefreshCount, 1);
+        expect(
+          state.lastLifecycleTrigger,
+          SubscriptionLifecycleTrigger.startup,
+        );
+        expect(
+          configImportNotifier.refreshedUrls,
+          contains('https://provider.example/sub'),
+        );
+        verify(() => repository.updateSubscription('remote-1')).called(1);
+      },
+    );
 
-      await container
-          .read(profileUpdateNotifierProvider.notifier)
-          .handleAppOpen(trigger: SubscriptionLifecycleTrigger.resume);
+    test(
+      'skips lifecycle refresh when on-open automation is disabled',
+      () async {
+        final repository = _MockProfileRepository();
+        final configImportNotifier = _FakeConfigImportNotifier(const []);
+        final container = createContainer(
+          settings: const AppSettings(
+            subscriptionAutoUpdateOnOpen: false,
+            subscriptionPingOnOpenEnabled: false,
+          ),
+          profiles: const [],
+          repository: repository,
+          configImportNotifier: configImportNotifier,
+        );
+        addTearDown(container.dispose);
+        final sub = container.listen(
+          profileUpdateNotifierProvider,
+          (previous, next) {},
+        );
+        addTearDown(sub.close);
+        await container.read(settingsProvider.future);
+        await container.read(configImportProvider.future);
+        await container.read(profileListProvider.future);
 
-      verifyNever(() => repository.updateSubscription(any()));
-      verifyNever(
-        () => repository.updateProfileServerLatencies(any(), any()),
-      );
-      expect(container.read(profileUpdateNotifierProvider).lastUpdatedAt, isNull);
-    });
+        await container
+            .read(profileUpdateNotifierProvider.notifier)
+            .handleAppOpen(trigger: SubscriptionLifecycleTrigger.resume);
+
+        verifyNever(() => repository.updateSubscription(any()));
+        verifyNever(
+          () => repository.updateProfileServerLatencies(any(), any()),
+        );
+        expect(
+          container.read(profileUpdateNotifierProvider).lastUpdatedAt,
+          isNull,
+        );
+      },
+    );
 
     test('updates latency cache on app open when ping is enabled', () async {
       final repository = _MockProfileRepository();
       final configImportNotifier = _FakeConfigImportNotifier(const []);
       when(
-        () => repository.updateProfileServerLatencies(
-          'remote-1',
-          any(),
-        ),
+        () => repository.updateProfileServerLatencies('remote-1', any()),
       ).thenAnswer((_) async => const Success(null));
 
       final container = createContainer(
@@ -261,10 +276,8 @@ void main() {
       final state = container.read(profileUpdateNotifierProvider);
       expect(state.lastPingedProfileCount, 1);
       verify(
-        () => repository.updateProfileServerLatencies(
-          'remote-1',
-          {'srv-1': 42},
-        ),
+        () =>
+            repository.updateProfileServerLatencies('remote-1', {'srv-1': 42}),
       ).called(1);
     });
   });

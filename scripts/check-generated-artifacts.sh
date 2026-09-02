@@ -82,8 +82,12 @@ cp -a "${PARTNER_DIR}/src/i18n/messages/generated" "${SNAPSHOT_DIR}/partner/src/
 info "Regenerating backend OpenAPI spec..."
 export REMNAWAVE_TOKEN="${REMNAWAVE_TOKEN:-dummy_token_for_generated_artifact_check}"
 export REMNAWAVE_WEBHOOK_SECRET="${REMNAWAVE_WEBHOOK_SECRET:-dummy_webhook_secret_for_generated_artifact_check}"
+export APP_SECRET="${APP_SECRET:-generated_artifact_check_dummy_app_secret_that_is_at_least_32_chars_long}"
 export JWT_SECRET="${JWT_SECRET:-generated_artifact_check_dummy_secret_that_is_at_least_32_chars_long}"
 export CRYPTOBOT_TOKEN="${CRYPTOBOT_TOKEN:-dummy_cryptobot_token}"
+export CYBERVPN_DEVICE_COOKIE_PEPPER="${CYBERVPN_DEVICE_COOKIE_PEPPER:-generated_artifact_check_dummy_device_cookie_pepper_that_is_at_least_32_chars}"
+export TOTP_ENCRYPTION_KEY="${TOTP_ENCRYPTION_KEY:-generated_artifact_check_dummy_totp_encryption_key_that_is_at_least_32_chars}"
+export OAUTH_TOKEN_ENCRYPTION_KEY="${OAUTH_TOKEN_ENCRYPTION_KEY:-generated_artifact_check_dummy_oauth_encryption_key_that_is_at_least_32_chars}"
 export SWAGGER_ENABLED="${SWAGGER_ENABLED:-true}"
 export DATABASE_URL="${DATABASE_URL:-postgresql+asyncpg://x:x@localhost:5432/x}"
 export REDIS_URL="${REDIS_URL:-redis://localhost:6379/0}"
@@ -91,8 +95,10 @@ if [[ "${PYTHON_BIN}" == *.exe ]] && is_wsl; then
     append_wslenv_entries \
         REMNAWAVE_TOKEN \
         REMNAWAVE_WEBHOOK_SECRET \
+        APP_SECRET \
         JWT_SECRET \
         CRYPTOBOT_TOKEN \
+        CYBERVPN_DEVICE_COOKIE_PEPPER \
         SWAGGER_ENABLED \
         DATABASE_URL \
         REDIS_URL \

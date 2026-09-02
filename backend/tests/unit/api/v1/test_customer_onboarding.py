@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException, Response
+from fastapi import HTTPException, Request, Response
 from prometheus_client import REGISTRY, generate_latest
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.config_service import CustomerOnboardingRuntimeConfig
 from src.application.use_cases.customer_onboarding import (
@@ -60,8 +63,49 @@ def _flow_token_service() -> CustomerOnboardingFlowTokenService:
     return CustomerOnboardingFlowTokenService(secret="unit-flow-token-placeholder", clock=lambda: 1_000_000)
 
 
+class _ScalarResult:
+    def __init__(self, value: object | None) -> None:
+        self._value = value
+
+    def scalar_one_or_none(self) -> object | None:
+        return self._value
+
+    def scalars(self):
+        return self
+
+    def all(self) -> list[object]:
+        return [] if self._value is None else [self._value]
+
+
+class _IdentityDb:
+    def __init__(self, reconciliation: object | None) -> None:
+        self._reconciliation = reconciliation
+
+    async def execute(self, _statement) -> _ScalarResult:
+        return _ScalarResult(self._reconciliation)
+
+
 def _patch_flow_tokens(monkeypatch: pytest.MonkeyPatch, service: CustomerOnboardingFlowTokenService) -> None:
     monkeypatch.setattr(routes, "CustomerOnboardingFlowTokenService", lambda: service)
+
+
+def _request() -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/customer/onboarding/growth-code/apply",
+            "headers": [(b"x-device-id", b"customer-onboarding-unit")],
+            "client": ("198.51.100.10", 443),
+            "server": ("testserver", 443),
+            "scheme": "https",
+        }
+    )
+
+
+@asynccontextmanager
+async def _nested_transaction():
+    yield
 
 
 class MissingOnboardingStateRepository:
@@ -102,6 +146,7 @@ async def test_apply_onboarding_code_is_noop_when_onboarding_is_disabled(
 
     response = await routes.apply_customer_onboarding_growth_code(
         payload=CustomerOnboardingApplyRequest(code="SAVE20", idempotency_key="request-1"),
+        request=_request(),
         user_id=uuid4(),
         db=db,
     )
@@ -133,6 +178,7 @@ async def test_apply_onboarding_code_fails_closed_when_state_store_is_unavailabl
     with pytest.raises(HTTPException) as exc_info:
         await routes.apply_customer_onboarding_growth_code(
             payload=CustomerOnboardingApplyRequest(code="SAVE20", idempotency_key="request-1"),
+            request=_request(),
             user_id=uuid4(),
             db=db,
         )
@@ -266,19 +312,32 @@ async def test_onboarding_code_applier_redeems_gift_with_canonical_use_case(
     monkeypatch.setattr(routes, "ResolveGrowthCodeUseCase", FakeResolver)
     monkeypatch.setattr(routes, "RedeemInviteUseCase", UnexpectedInviteRedeemer)
     monkeypatch.setattr(routes, "RedeemGiftCodeUseCase", FakeGiftRedeemer)
+    gift_provisioning_gateway = object()
+
+    async def provision_gift(*, db, user_id, result, provisioning_gateway):
+        assert db is session
+        assert result.entitlement_grant_id == entitlement_grant_id
+        assert provisioning_gateway is gift_provisioning_gateway
+        calls.append(("provision", str(user_id)))
+
+    monkeypatch.setattr(routes, "provision_redeemed_gift_access", provision_gift)
+    session = AsyncMock()
+    session.begin_nested = _nested_transaction
+    user_id = uuid4()
 
     result = await routes.CustomerOnboardingGrowthCodeApplier(
-        AsyncMock(),
+        session,
         current_realm=SimpleNamespace(realm_id=str(uuid4())),
+        gift_provisioning_gateway=gift_provisioning_gateway,
     ).apply_code(
         code="GIFT7",
-        user_id=uuid4(),
+        user_id=user_id,
         idempotency_key="request-1",
         normalized_code_hash="hash",
         masked_code="GIFT...T7",
     )
 
-    assert calls == [("resolve", "GIFT7"), ("gift", "GIFT7")]
+    assert calls == [("resolve", "GIFT7"), ("gift", "GIFT7"), ("provision", str(user_id))]
     assert result.result == "accepted"
     assert result.code_type == "gift"
     assert result.message_key == "growth_codes.gift.accepted"
@@ -287,6 +346,221 @@ async def test_onboarding_code_applier_redeems_gift_with_canonical_use_case(
     assert result.redemption_id == redemption_id
     assert result.entitlement_grant_id == entitlement_grant_id
     assert result.entitlement_snapshot == {"plan_family": "premium"}
+
+
+@pytest.mark.asyncio
+async def test_onboarding_gift_fails_before_redeem_without_provisioning_gateway(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResolver:
+        def __init__(self, _session) -> None:
+            pass
+
+        async def execute(self, **_kwargs):
+            return GrowthCodeResolutionOutcome(
+                accepted=True,
+                code_type=GrowthCodeType.GIFT,
+                action_context=GrowthCodeActionContext.REDEEM,
+                result=GrowthCodeResolutionStatus.ACCEPTED,
+                user_message_key="growth_codes.gift.accepted",
+                resolved_code_id=uuid4(),
+                growth_code_id=uuid4(),
+            )
+
+    class UnexpectedGiftRedeemer:
+        def __init__(self, _session) -> None:
+            pass
+
+        async def execute(self, **_kwargs):
+            raise AssertionError("disabled provisioning must be rejected before gift redemption")
+
+    monkeypatch.setattr(routes, "ResolveGrowthCodeUseCase", FakeResolver)
+    monkeypatch.setattr(routes, "RedeemGiftCodeUseCase", UnexpectedGiftRedeemer)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await routes.CustomerOnboardingGrowthCodeApplier(
+            AsyncMock(),
+            current_realm=SimpleNamespace(realm_id=str(uuid4())),
+            gift_provisioning_gateway=None,
+        ).apply_code(
+            code="GIFT-NO-PROVISIONING",
+            user_id=uuid4(),
+            idempotency_key="request-1",
+            normalized_code_hash="hash",
+            masked_code="GIFT...ING",
+        )
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Gift VPN provisioning is unavailable"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_gift_business_error_rolls_back_redeemer_savepoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class SavepointDb:
+        def __init__(self) -> None:
+            self.working: list[str] = []
+
+        def begin_nested(self):
+            @asynccontextmanager
+            async def savepoint():
+                snapshot = list(self.working)
+                try:
+                    yield
+                except Exception:
+                    self.working = snapshot
+                    raise
+
+            return savepoint()
+
+    db = SavepointDb()
+
+    class FakeResolver:
+        def __init__(self, _session) -> None:
+            pass
+
+        async def execute(self, **_kwargs):
+            return GrowthCodeResolutionOutcome(
+                accepted=True,
+                code_type=GrowthCodeType.GIFT,
+                action_context=GrowthCodeActionContext.REDEEM,
+                result=GrowthCodeResolutionStatus.ACCEPTED,
+                user_message_key="growth_codes.gift.accepted",
+                resolved_code_id=uuid4(),
+                growth_code_id=uuid4(),
+            )
+
+    class FailingGiftRedeemer:
+        def __init__(self, session) -> None:
+            self._session = session
+
+        async def execute(self, **_kwargs):
+            self._session.working.extend(["redemption", "grant", "outbox", "pending_identity"])
+            raise ValueError("Gift code already redeemed")
+
+    monkeypatch.setattr(routes, "ResolveGrowthCodeUseCase", FakeResolver)
+    monkeypatch.setattr(routes, "RedeemGiftCodeUseCase", FailingGiftRedeemer)
+
+    with pytest.raises(CustomerOnboardingUnavailableError) as exc_info:
+        await routes.CustomerOnboardingGrowthCodeApplier(
+            cast(AsyncSession, db),
+            current_realm=SimpleNamespace(realm_id=str(uuid4())),
+            gift_provisioning_gateway=object(),
+        ).apply_code(
+            code="GIFT-BUSINESS-ERROR",
+            user_id=uuid4(),
+            idempotency_key="request-1",
+            normalized_code_hash="hash",
+            masked_code="GIFT...ROR",
+        )
+
+    assert exc_info.value.code == "CUSTOMER_ONBOARDING_CODE_ALREADY_REDEEMED"
+    assert db.working == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_stage", ["pre_io_target_rejected", "post_io_mapping_failed"])
+async def test_onboarding_gift_provisioning_failure_rolls_back_local_redemption_state(
+    monkeypatch: pytest.MonkeyPatch,
+    failure_stage: str,
+) -> None:
+    user_id = uuid4()
+    realm = SimpleNamespace(realm_id=str(uuid4()))
+    provider_calls = 0
+
+    class TransactionDb:
+        def __init__(self) -> None:
+            self.working: list[str] = []
+            self.committed: list[str] = []
+            self.rollback_calls = 0
+            self.commit_calls = 0
+
+        async def rollback(self) -> None:
+            self.rollback_calls += 1
+            self.working.clear()
+
+        async def commit(self) -> None:
+            self.commit_calls += 1
+            self.committed.extend(self.working)
+            self.working.clear()
+
+        def begin_nested(self):
+            return _nested_transaction()
+
+    db = TransactionDb()
+
+    class FakeResolver:
+        def __init__(self, _session) -> None:
+            pass
+
+        async def execute(self, **_kwargs):
+            return GrowthCodeResolutionOutcome(
+                accepted=True,
+                code_type=GrowthCodeType.GIFT,
+                action_context=GrowthCodeActionContext.REDEEM,
+                result=GrowthCodeResolutionStatus.ACCEPTED,
+                user_message_key="growth_codes.gift.accepted",
+                resolved_code_id=uuid4(),
+                growth_code_id=uuid4(),
+            )
+
+    class StagingGiftRedeemer:
+        def __init__(self, session) -> None:
+            self._session = session
+
+        async def execute(self, **_kwargs):
+            self._session.working.extend(["redemption", "grant", "outbox", "pending_identity"])
+            return SimpleNamespace(
+                redemption=SimpleNamespace(id=uuid4()),
+                entitlement_grant_id=uuid4(),
+                entitlement_snapshot={"plan_family": "premium"},
+            )
+
+    class PassthroughApplyUseCase:
+        def __init__(self, **_kwargs) -> None:
+            pass
+
+        async def execute(self, *, code_applier, code, user_id, **_kwargs):
+            return await code_applier.apply_code(
+                code=code,
+                user_id=user_id,
+                idempotency_key="request-1",
+                normalized_code_hash="hash",
+                masked_code="GIFT...URE",
+            )
+
+    async def resolve_actor(**_kwargs):
+        return user_id, realm
+
+    async def fail_provisioning(**_kwargs):
+        nonlocal provider_calls
+        if failure_stage == "post_io_mapping_failed":
+            provider_calls += 1
+        raise ValueError(failure_stage)
+
+    _patch_config(monkeypatch, _enabled_runtime())
+    monkeypatch.setattr(routes, "_resolve_customer_onboarding_actor", resolve_actor)
+    monkeypatch.setattr(routes, "ApplyCustomerOnboardingGrowthCodeUseCase", PassthroughApplyUseCase)
+    monkeypatch.setattr(routes, "ResolveGrowthCodeUseCase", FakeResolver)
+    monkeypatch.setattr(routes, "RedeemGiftCodeUseCase", StagingGiftRedeemer)
+    monkeypatch.setattr(routes, "provision_redeemed_gift_access", fail_provisioning)
+
+    with pytest.raises(ValueError, match=failure_stage):
+        await routes.apply_customer_onboarding_growth_code(
+            payload=CustomerOnboardingApplyRequest(code="GIFT-FAILURE", idempotency_key="request-1"),
+            request=_request(),
+            user_id=user_id,
+            current_realm=realm,
+            db=cast(AsyncSession, db),
+            gift_provisioning_gateway=object(),
+        )
+
+    assert provider_calls == (1 if failure_stage == "post_io_mapping_failed" else 0)
+    assert db.rollback_calls == 1
+    assert db.commit_calls == 0
+    assert db.working == []
+    assert db.committed == []
 
 
 @pytest.mark.asyncio
@@ -564,6 +838,7 @@ async def test_apply_onboarding_code_requires_flow_token_when_runtime_enabled(
     with pytest.raises(HTTPException) as exc_info:
         await routes.apply_customer_onboarding_growth_code(
             payload=CustomerOnboardingApplyRequest(code="SAVE20", idempotency_key="request-1"),
+            request=_request(),
             user_id=uuid4(),
             db=db,
         )
@@ -632,6 +907,7 @@ async def test_telegram_bot_growth_code_apply_matches_backend_contract(
             source_surface="telegram_bot",
             telegram_id=123456,
         ),
+        request=_request(),
         user_id=None,
         telegram_bot_secret="telegram-internal-secret",
         current_realm=SimpleNamespace(auth_realm=SimpleNamespace(id=uuid4()), source="web"),
@@ -669,6 +945,7 @@ async def test_apply_onboarding_code_does_not_succeed_without_state_repo_even_wi
                 flow_token=flow_token,
                 idempotency_key="request-1",
             ),
+            request=_request(),
             user_id=user_id,
             db=db,
         )
@@ -863,6 +1140,190 @@ async def test_connection_bootstrap_returns_config_and_persists_only_hash_metada
     assert "customer_onboarding_connection_bootstrap_total" in metric_payload
     assert 'status="available"' in metric_payload
     assert 'surface="web"' in metric_payload
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("state", "mapped_numeric_id"),
+    [
+        (None, None),
+        ("pending", 42),
+        ("mapped", 99),
+    ],
+)
+async def test_connection_config_rejects_unmapped_or_stale_numeric_identity(
+    state: str | None,
+    mapped_numeric_id: int | None,
+) -> None:
+    user_id = uuid4()
+    legacy_uuid = uuid4()
+    reconciliation = (
+        SimpleNamespace(
+            subject_type="mobile_user",
+            subject_id=user_id,
+            reconciliation_state=state,
+            numeric_user_id=mapped_numeric_id,
+            legacy_uuid=str(legacy_uuid),
+        )
+        if state is not None
+        else None
+    )
+    mobile_user = SimpleNamespace(
+        id=user_id,
+        remnawave_user_id=42,
+        remnawave_uuid=str(legacy_uuid),
+        telegram_id=123456,
+        subscription_url="https://sub.example/must-not-be-returned",
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await routes._resolve_connection_config(
+            db=_IdentityDb(reconciliation),
+            mobile_user=mobile_user,
+            user_id=user_id,
+            auth_realm_id=uuid4(),
+            remnawave_client=AsyncMock(),
+        )
+
+    assert exc_info.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_connection_config_uses_only_exact_numeric_identity(monkeypatch: pytest.MonkeyPatch) -> None:
+    user_id = uuid4()
+    legacy_uuid = uuid4()
+    captured: dict[str, object] = {}
+    reconciliation = SimpleNamespace(
+        subject_type="mobile_user",
+        subject_id=user_id,
+        reconciliation_state="mapped",
+        numeric_user_id=42,
+        legacy_uuid=str(legacy_uuid),
+    )
+
+    class FakeGenerateConfigUseCase:
+        def __init__(self, _client) -> None:
+            pass
+
+        async def execute(self, user_ref):
+            captured["user_ref"] = user_ref
+            return {"subscription_url": "https://sub.example/exact-user"}
+
+    class FakeServiceAccessUseCase:
+        def __init__(self, db) -> None:
+            captured["sync_db"] = db
+
+        async def sync_current_remnawave_subscription_url(self, **kwargs) -> None:
+            captured["sync_kwargs"] = kwargs
+
+    monkeypatch.setattr(routes, "GenerateConfigUseCase", FakeGenerateConfigUseCase)
+    monkeypatch.setattr(routes, "CustomerSubscriptionServiceAccessUseCase", FakeServiceAccessUseCase)
+
+    auth_realm_id = uuid4()
+    result = await routes._resolve_connection_config(
+        db=_IdentityDb(reconciliation),
+        mobile_user=SimpleNamespace(
+            id=user_id,
+            remnawave_user_id=42,
+            remnawave_uuid=str(legacy_uuid),
+            telegram_id=123456,
+            subscription_url=None,
+        ),
+        user_id=user_id,
+        auth_realm_id=auth_realm_id,
+        remnawave_client=AsyncMock(),
+    )
+
+    assert captured["user_ref"].id == 42
+    assert captured["user_ref"].legacy_uuid == legacy_uuid
+    assert captured["sync_kwargs"] == {
+        "customer_account_id": user_id,
+        "auth_realm_id": auth_realm_id,
+        "remnawave_ref": captured["user_ref"],
+        "subscription_url": "https://sub.example/exact-user",
+    }
+    assert result.subscription_url == "https://sub.example/exact-user"
+    assert result.config_profile_name == "remnawave_subscription"
+
+
+@pytest.mark.asyncio
+async def test_connection_config_does_not_fallback_after_numeric_upstream_404(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user_id = uuid4()
+    legacy_uuid = uuid4()
+    reconciliation = SimpleNamespace(
+        subject_type="mobile_user",
+        subject_id=user_id,
+        reconciliation_state="mapped",
+        numeric_user_id=42,
+        legacy_uuid=str(legacy_uuid),
+    )
+
+    class MissingGenerateConfigUseCase:
+        def __init__(self, _client) -> None:
+            pass
+
+        async def execute(self, _user_ref):
+            raise HTTPException(status_code=404, detail="not found")
+
+    class ForbiddenSubscriptionFallback:
+        def __init__(self, _db) -> None:
+            raise AssertionError("entitlement fallback must not run after exact numeric lookup fails")
+
+    monkeypatch.setattr(routes, "GenerateConfigUseCase", MissingGenerateConfigUseCase)
+    monkeypatch.setattr(routes, "ListCustomerSubscriptionsUseCase", ForbiddenSubscriptionFallback)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await routes._resolve_connection_config(
+            db=_IdentityDb(reconciliation),
+            mobile_user=SimpleNamespace(
+                id=user_id,
+                remnawave_user_id=42,
+                remnawave_uuid=str(legacy_uuid),
+                telegram_id=123456,
+                subscription_url="https://sub.example/stale-url",
+            ),
+            user_id=user_id,
+            auth_realm_id=uuid4(),
+            remnawave_client=AsyncMock(),
+        )
+
+    assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_connection_config_does_not_return_unmapped_legacy_subscription_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user_id = uuid4()
+
+    class EmptySubscriptionListUseCase:
+        def __init__(self, _db) -> None:
+            pass
+
+        async def execute(self, **_kwargs):
+            return SimpleNamespace(default_subscription_key=None)
+
+    monkeypatch.setattr(routes, "ListCustomerSubscriptionsUseCase", EmptySubscriptionListUseCase)
+
+    result = await routes._resolve_connection_config(
+        db=_IdentityDb(None),
+        mobile_user=SimpleNamespace(
+            id=user_id,
+            remnawave_user_id=None,
+            remnawave_uuid=None,
+            telegram_id=123456,
+            subscription_url="https://sub.example/legacy-must-not-leak",
+        ),
+        user_id=user_id,
+        auth_realm_id=uuid4(),
+        remnawave_client=AsyncMock(),
+    )
+
+    assert result.subscription_url is None
+    assert result.config_profile_name is None
+    assert result.service_identity_ready is False
 
 
 @pytest.mark.asyncio

@@ -460,7 +460,17 @@
     "serverStatus": "STATUS PELAYAN",
     "statusLabel": "STATUS SISTEM:",
     "statusValue": "OPTIMUM",
-    "title": "PUSAT KAWALAN VPN"
+    "title": "PUSAT KAWALAN VPN",
+    "vpnServiceStatus": {
+      "available": "Tersedia",
+      "connections": "Sambungan",
+      "degraded": "Terjejas sebahagian",
+      "devices": "Peranti",
+      "loading": "Memuatkan status perkhidmatan VPN",
+      "title": "Ketersediaan perkhidmatan VPN",
+      "unavailable": "Tidak tersedia",
+      "usage": "Penggunaan"
+    }
   },
   "DeleteAccount": {
     "contact": {

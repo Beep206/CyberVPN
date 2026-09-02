@@ -47,6 +47,28 @@ def get_redis_client() -> Redis:
     return Redis.from_pool(get_redis_pool())
 
 
+def create_remnawave_stream_redis_client() -> Redis:
+    """Create a dedicated client for Remnawave's isolated export Valkey.
+
+    The export streams are not stored in the TaskIQ/cache Redis. There is
+    intentionally no fallback to ``REDIS_URL`` because that would make a
+    successfully started consumer silently read the wrong datastore.
+    """
+    stream_url_secret = get_settings().remnawave_stream_redis_url
+    stream_url = stream_url_secret.get_secret_value().strip() if stream_url_secret is not None else ""
+    if not stream_url:
+        raise RuntimeError("REMNAWAVE_STREAM_REDIS_URL is not configured")
+    return Redis.from_url(
+        stream_url,
+        max_connections=20,
+        decode_responses=True,
+        encoding="utf-8",
+        socket_keepalive=True,
+        socket_connect_timeout=5,
+        retry_on_timeout=True,
+    )
+
+
 async def check_redis() -> bool:
     """Check Redis connectivity by executing PING.
 

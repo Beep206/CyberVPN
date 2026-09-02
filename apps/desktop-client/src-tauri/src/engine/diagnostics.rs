@@ -163,7 +163,6 @@ struct RedactedProfileSummary {
 struct RedactedSubscriptionSummary {
     id: String,
     name: String,
-    host: Option<String>,
     auto_update: bool,
     last_updated: Option<u64>,
 }
@@ -698,9 +697,6 @@ fn redact_subscriptions(subscriptions: &[Subscription]) -> Vec<RedactedSubscript
         .map(|subscription| RedactedSubscriptionSummary {
             id: subscription.id.clone(),
             name: subscription.name.clone(),
-            host: url::Url::parse(&subscription.url)
-                .ok()
-                .and_then(|parsed| parsed.host_str().map(|host| host.to_string())),
             auto_update: subscription.auto_update,
             last_updated: subscription.last_updated,
         })

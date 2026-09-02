@@ -460,7 +460,17 @@
     "serverStatus": "SERVER HOLATI",
     "statusLabel": "TIZIM HOLATI:",
     "statusValue": "OPTIMAL",
-    "title": "VPN BOSHQARUV MARKAZI"
+    "title": "VPN BOSHQARUV MARKAZI",
+    "vpnServiceStatus": {
+      "available": "Mavjud",
+      "connections": "Ulanishlar",
+      "degraded": "Qisman cheklangan",
+      "devices": "Qurilmalar",
+      "loading": "VPN xizmati holati yuklanmoqda",
+      "title": "VPN xizmati mavjudligi",
+      "unavailable": "Mavjud emas",
+      "usage": "Foydalanish"
+    }
   },
   "DeleteAccount": {
     "contact": {

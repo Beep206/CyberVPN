@@ -1,0 +1,5 @@
+services:
+  cybervpn-remnawave-subscription-page:
+    # Component-only emergency rollback. Use together with the main stage1
+    # compose file; panel, node and CyberVPN workloads remain on their release.
+    image: ${REMNAWAVE_SUBSCRIPTION_PAGE_ROLLBACK_IMAGE:-remnawave/subscription-page:7.2.6@sha256:da5ee26ec70ecd81e57303993e8bfb74c8e52f2fa74644b84aad53324cde2e8c}

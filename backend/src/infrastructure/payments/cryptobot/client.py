@@ -93,6 +93,19 @@ class CryptoBotClient:
         items = data.get("result", {}).get("items", [])
         return items[0] if items else {}
 
+    async def find_invoice_by_payload(self, payload: str, *, count: int = 100) -> dict:
+        """Reconcile a possibly-created invoice after an ambiguous mutation timeout."""
+
+        client = await self._get_client()
+        response = await client.get("/getInvoices", params={"count": max(1, min(count, 1000))})
+        response.raise_for_status()
+        data = response.json()
+        items = data.get("result", {}).get("items", [])
+        matches = [item for item in items if isinstance(item, dict) and item.get("payload") == payload]
+        if not matches:
+            return {}
+        return max(matches, key=lambda item: int(item.get("invoice_id") or 0))
+
     async def close(self) -> None:
         if self._client and not self._client.is_closed:
             await self._client.aclose()

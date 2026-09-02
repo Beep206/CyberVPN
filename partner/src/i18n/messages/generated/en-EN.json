@@ -844,25 +844,29 @@
       "createTitle": "Create template",
       "deleteConfirm": "Delete this subscription template?",
       "deleteTitle": "Delete template",
-      "description": "Manage Remnawave template definitions, host bindings, flows, and config payloads used for delivery.",
+      "description": "Manage Remnawave 3.4 template definitions and their JSON or encoded YAML payloads.",
       "editTitle": "Edit template",
       "empty": "No subscription templates found.",
+      "encodedYaml": "Encoded YAML",
       "eyebrow": "DELIVERY TEMPLATES",
       "form": {
-        "configPlaceholder": "{\n  \"security\": \"reality\"\n}",
+        "configPlaceholder": "{\n  \"outbounds\": []\n}",
+        "encodedYaml": "Encoded YAML",
+        "encodedYamlPlaceholder": "Paste the encoded YAML template",
         "namePlaceholder": "VLESS Vision Template"
       },
       "metaTitle": "Subscription Templates - Ozoxy Admin",
       "metrics": {
-        "hostBound": "Host bound",
-        "hostBoundHint": "templates attached to a host",
+        "hostBound": "Encoded YAML",
+        "hostBoundHint": "templates with an encoded YAML payload",
         "jsonConfig": "JSON config",
         "jsonConfigHint": "templates with config payload",
         "total": "Templates",
         "totalHint": "template records",
-        "withFlow": "Flow enabled",
-        "withFlowHint": "templates with flow control"
+        "withFlow": "Tagged",
+        "withFlowHint": "templates with at least one tag"
       },
+      "tags": "Tags",
       "title": "Subscription Templates"
     },
     "wallets": {
@@ -1394,7 +1398,230 @@
       "openCases": "Open support & cases",
       "title": "Pending tasks"
     },
-    "title": "OZOXY PARTNER PORTAL"
+    "title": "OZOXY PARTNER PORTAL",
+    "vpnServiceStatus": {
+      "assignedResources": "Assigned resources",
+      "assignedResourcesHint": "Aggregate resources assigned to this workspace; infrastructure topology remains private.",
+      "available": "Available",
+      "capabilities": {
+        "connections": "Connections",
+        "devices": "Device support",
+        "usage": "Usage reporting"
+      },
+      "capabilitiesLabel": "Workspace VPN capabilities",
+      "connections": {
+        "activeAddresses": "Active addresses",
+        "capabilityUnavailable": "Connection snapshots are unavailable in the current workspace service status. Refresh the status before trying this control.",
+        "connectedUsers": "Connected users",
+        "description": "Request a fresh aggregate for this exact assigned node. Individual addresses, users, topology, integration identifiers, tokens, and credentials are never returned to this view.",
+        "drop": {
+          "accepted": {
+            "description": "Remnawave accepted the single scoped command. Request a new aggregate snapshot to verify the resulting connection state.",
+            "title": "Drop accepted"
+          },
+          "clientOutcomeUnknown": {
+            "description": "The request may have reached CyberVPN. Only a replay with the same idempotency key is safe; a new key could disconnect twice.",
+            "title": "Browser could not confirm the drop receipt"
+          },
+          "description": "Disconnect one opaque CyberVPN service identity from this exact assigned node. Numeric provider user IDs and IP-address targets are never accepted or shown here.",
+          "outcomeUnknown": {
+            "description": "The command may already have reached Remnawave. It will not be retried, and this receipt forbids another send. Reconcile with a new aggregate snapshot.",
+            "title": "Drop outcome is unknown"
+          },
+          "permissionRequired": "This action requires remnawave_execute in both the active workspace role and this exact node grant.",
+          "reset": "Start a new action",
+          "retrySameKey": "Retry with the same key",
+          "serviceIdentityManualHint": "If the grant is on another inventory page, enter its exact UUID. The backend rechecks the workspace and both object grants before any provider call.",
+          "serviceIdentityRequirement": "The backend also requires an exact remnawave_execute grant for the chosen service identity and resolves its provider mapping server-side.",
+          "serviceIdentitySelectLabel": "Loaded executable service identity",
+          "serviceIdentitySelectPlaceholder": "Select an assigned service identity",
+          "serviceIdentityUuidError": "Select or enter a valid service-identity UUID.",
+          "serviceIdentityUuidLabel": "Service-identity grant UUID",
+          "snapshotRequired": "Request a fresh snapshot before using execute controls so the server capability is explicit.",
+          "submit": "Drop connections",
+          "submitting": "Submitting once",
+          "title": "Drop service-identity connections"
+        },
+        "empty": "No connection snapshot has been requested for this node.",
+        "errors": {
+          "conflict": {
+            "description": "The server rejected conflicting request state. Start a new action instead of replaying a different payload.",
+            "title": "Request conflict"
+          },
+          "forbidden": {
+            "description": "The active role or exact node grant no longer includes the required Remnawave permission.",
+            "title": "Connection access denied"
+          },
+          "invalidProvider": {
+            "description": "CyberVPN did not accept an invalid or rejected provider response. No provider details are shown here.",
+            "title": "Remnawave response was rejected"
+          },
+          "notFound": {
+            "description": "The opaque request expired, the assignment was revoked, or the node is unavailable. Request a new snapshot after confirming the grant.",
+            "title": "Connection request is no longer available"
+          },
+          "unavailable": {
+            "description": "The scoped request registry or Remnawave connection service is unavailable. Retry without changing the target.",
+            "title": "Connections service is temporarily unavailable"
+          },
+          "unknown": {
+            "description": "The browser could not confirm the safe read request. Retry the same workspace and node.",
+            "title": "Connection request failed"
+          }
+        },
+        "jobFailed": {
+          "description": "Remnawave did not complete this read job. Request a new scoped snapshot; no mutation was performed.",
+          "title": "Connection snapshot failed"
+        },
+        "lastSeen": "Last seen",
+        "neverSeen": "No activity reported",
+        "noActiveConnections": "No active connections were reported for this node.",
+        "polling": "The snapshot is processing. This view will poll only its opaque request receipt.",
+        "privacy": "Only aggregate connection counts and the latest activity time are displayed. Browser SSH is never available to partners.",
+        "requestAgain": "Request a new snapshot",
+        "requesting": "Requesting",
+        "requestingStatus": "Creating a scoped connection snapshot request",
+        "requestSnapshot": "Request snapshot",
+        "retry": "Retry safe request",
+        "title": "Scoped node connections"
+      },
+      "degraded": {
+        "description": "One or more workspace-safe capabilities are delayed or unavailable. Customer entitlements and control-plane telemetry are evaluated separately.",
+        "title": "VPN service is partially degraded"
+      },
+      "description": "Workspace-scoped availability, an inspectable grant inventory, and narrowly allowlisted controls for exact assigned VPN resources. Node topology, SSH, provider config, and customer credentials are never exposed here.",
+      "empty": "Select an active partner workspace to view its VPN service status.",
+      "error": {
+        "description": "Other partner workflows remain available. Retry this read-only workspace snapshot.",
+        "title": "VPN service status is unavailable"
+      },
+      "eyebrow": "WORKSPACE VPN SERVICE",
+      "forbidden": {
+        "description": "The server rejected this workspace-scoped status request. Ask a workspace owner to review your role or object grants.",
+        "title": "Workspace access denied"
+      },
+      "loading": "Loading workspace VPN service status",
+      "permission": {
+        "description": "Your current workspace role does not include remnawave_read. No service-status request was sent.",
+        "title": "VPN status permission required"
+      },
+      "readOnly": "Read only",
+      "resources": {
+        "count": "{count, plural, one {# assigned resource} other {# assigned resources}}",
+        "description": "Inspect only active object grants for this workspace. Exact profile and integration grants can advertise narrow audited writes; all other provider mutations remain unavailable.",
+        "detailError": {
+          "description": "The resource may have been revoked or moved. Refresh the inventory before trying again.",
+          "title": "Assignment is no longer available"
+        },
+        "detailLoading": "Loading the scoped assignment",
+        "detailTitle": "Verified workspace assignment",
+        "effectivePermissions": "Effective grant permissions: {permissions}",
+        "empty": "No readable Remnawave resources are assigned to this workspace.",
+        "error": {
+          "description": "The workspace status remains visible. Retry the bounded, grant-scoped inventory request.",
+          "title": "Resource inventory is unavailable"
+        },
+        "inspect": "Inspect assignment",
+        "listLabel": "Assigned Remnawave resource inventory",
+        "loading": "Loading assigned Remnawave resources",
+        "mutationsUnavailable": "Generic provider mutations are unavailable. A node assignment can expose the separately audited connections control below.",
+        "next": "Next",
+        "previous": "Previous",
+        "providerDetailsPrivate": "Provider payloads, topology, tokens, credentials, and integration identifiers remain private.",
+        "safeMutationsAvailable": "This exact assignment advertises a narrow audited write. Inspect it to verify the effective role and object grant before editing.",
+        "sshForbidden": "Browser SSH prohibited",
+        "title": "Assigned Remnawave resources",
+        "types": {
+          "host": "Host assignment",
+          "integration": "Integration assignment",
+          "node": "Node assignment",
+          "profile": "Profile assignment",
+          "service_identity": "Service-identity assignment",
+          "shared_list": "Shared-list assignment",
+          "squad": "Squad assignment",
+          "tag": "Tag assignment"
+        }
+      },
+      "retry": "Retry",
+      "safeMutations": {
+        "errors": {
+          "conflict": {
+            "description": "The server rejected conflicting idempotency state. Do not send a different payload with this attempt.",
+            "title": "Mutation attempt conflict"
+          },
+          "forbidden": {
+            "description": "The active role or exact object grant no longer permits this mutation. Refresh the assignment after an owner reviews access.",
+            "title": "Scoped write access was denied"
+          },
+          "invalid": {
+            "description": "CyberVPN rejected the bounded metadata or tag payload before a safe provider result was confirmed.",
+            "title": "Mutation input was rejected"
+          },
+          "notFound": {
+            "description": "The grant or provider resource may have been revoked. Refresh the inventory before taking another action.",
+            "title": "The assignment is no longer available"
+          },
+          "provider": {
+            "description": "The request may already have reached CyberVPN or Remnawave. Only a manual replay with the same idempotency key is safe.",
+            "title": "Provider outcome was not confirmed"
+          },
+          "unknown": {
+            "description": "The request may already have reached CyberVPN. No automatic retry occurred; only a manual replay with the same idempotency key is safe.",
+            "title": "Browser did not receive a mutation result"
+          }
+        },
+        "integration": {
+          "clearDescription": "Clear the description explicitly",
+          "description": "Change only the display name or description for this exact granted integration. Credentials, config, restart controls, nodes, and topology remain unavailable.",
+          "descriptionLabel": "Replacement description",
+          "help": "Omitted fields remain unchanged. Name must contain 2-30 characters; description is limited to 255 characters.",
+          "nameLabel": "Replacement display name",
+          "submit": "Save integration metadata",
+          "title": "Update integration metadata",
+          "validation": {
+            "description": "The description cannot exceed 255 characters.",
+            "name": "The name must contain 2-30 characters.",
+            "required": "Enter a name, a description, or explicitly clear the description."
+          }
+        },
+        "permission": {
+          "description": "No mutation control is exposed unless remnawave_write is active in the workspace role and this exact object grant advertises the matching safe mutation.",
+          "title": "Scoped write permission required"
+        },
+        "profile": {
+          "description": "Set the complete tag list for this exact granted profile. This control cannot change the profile body, topology, squads, snippets, or provider config.",
+          "help": "Use up to 10 unique comma-separated tags containing only A-Z, 0-9, underscore, or colon. Leave empty only when you intend to clear every tag.",
+          "label": "Complete tag list",
+          "placeholder": "EDGE:RU, VISION",
+          "submit": "Save profile tags",
+          "title": "Replace profile tags",
+          "validation": {
+            "duplicate": "Each tag must be unique.",
+            "format": "Every tag must contain 1-36 characters using only A-Z, 0-9, underscore, or colon.",
+            "tooMany": "A profile can receive at most 10 tags in this operation."
+          }
+        },
+        "reconciliation": {
+          "description": "The provider outcome could not be proven. The form is locked and CyberVPN will not send a new mutation; an administrator must reconcile the durable attempt.",
+          "title": "Mutation requires reconciliation"
+        },
+        "retrySameKey": "Replay with the same key",
+        "secureUuidUnavailable": "This browser cannot create the secure one-time request identifier, so no mutation was sent.",
+        "submitting": "Submitting this exact mutation once",
+        "success": {
+          "accepted": "This idempotent attempt was already accepted. CyberVPN refreshed the authoritative workspace assignment without issuing a different mutation.",
+          "completed": "CyberVPN verified the exact provider response and refreshed the authoritative workspace assignment.",
+          "title": "Scoped mutation confirmed"
+        }
+      },
+      "scopedControls": "Scoped controls",
+      "title": "Remnawave service status",
+      "unavailable": "Unavailable",
+      "workspaceError": {
+        "description": "The service status cannot be scoped until the active workspace is loaded.",
+        "title": "Workspace list is unavailable"
+      }
+    }
   },
   "DeleteAccount": {
     "contact": {
@@ -1806,7 +2033,7 @@
     },
     "policy": {
       "createSuccess": "Setting created.",
-      "description": "Current governance visibility across Remnawave settings and the backend role-permission matrix.",
+      "description": "Workspace-safe governance visibility without exposing Remnawave global settings or provider credentials.",
       "descriptionPlaceholder": "Short operator-facing explanation",
       "detailDescription": "Current JSON payload for the selected setting entry.",
       "detailTitle": "Selected Setting",
@@ -1815,10 +2042,10 @@
         "update": "Update the selected setting while preserving its existing key."
       },
       "editorTitle": "Setting Editor",
-      "empty": "No settings match the current view.",
+      "empty": "No global provider settings are exposed to this workspace.",
       "eyebrow": "POLICY VISIBILITY",
-      "gapDescription": "This workspace currently reflects `/settings` and static permission policy only. Dedicated `system_config` governance APIs and a true admin directory are still missing on the backend.",
-      "gapTitle": "Known Gap",
+      "gapDescription": "Remnawave global settings are intentionally unavailable in the partner portal. Use the workspace-scoped settings surface for partner preferences.",
+      "gapTitle": "Workspace boundary",
       "keyPlaceholder": "registration_mode",
       "metaTitle": "Policy Surface - Ozoxy Admin",
       "metrics": {

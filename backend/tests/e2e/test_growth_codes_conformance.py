@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from httpx import AsyncClient
 
 from src.application.services.auth_service import AuthService
+from src.application.use_cases.gifts.provisioning import (
+    GiftProvisioningRequest,
+    GiftProvisioningResult,
+)
 from src.application.use_cases.growth_codes.registry import GrowthCodeRegistryService
 from src.application.use_cases.invites.generate_invites import GenerateInvitesForPaymentUseCase
 from src.application.use_cases.payments.post_payment import PostPaymentProcessingUseCase
@@ -18,22 +24,29 @@ from src.infrastructure.database.models.auth_realm_model import AuthRealmModel
 from src.infrastructure.database.models.customer_commercial_binding_model import (
     CustomerCommercialBindingModel,
 )
+from src.infrastructure.database.models.entitlement_grant_model import EntitlementGrantModel
 from src.infrastructure.database.models.growth_code_model import (
+    GrowthCodeModel,
+    GrowthCodeRedemptionModel,
     GrowthCodeTouchpointModel,
     GrowthSignupAttributionModel,
 )
 from src.infrastructure.database.models.mobile_user_model import MobileUserModel
 from src.infrastructure.database.models.offer_model import OfferModel
+from src.infrastructure.database.models.outbox_event_model import OutboxEventModel
 from src.infrastructure.database.models.partner_model import PartnerEarningModel
 from src.infrastructure.database.models.payment_model import PaymentModel
 from src.infrastructure.database.models.promo_code_model import PromoCodeModel
 from src.infrastructure.database.models.referral_commission_model import ReferralCommissionModel
+from src.infrastructure.database.models.service_identity_model import ServiceIdentityModel
 from src.infrastructure.database.models.subscription_plan_model import SubscriptionPlanModel
 from src.infrastructure.database.repositories.auth_realm_repo import AuthRealmRepository
 from src.infrastructure.database.repositories.growth_code_repo import GrowthCodeRepository
 from src.infrastructure.database.repositories.invite_code_repo import InviteCodeRepository
 from src.infrastructure.database.repositories.subscription_plan_repo import SubscriptionPlanRepository
 from src.main import app
+from src.presentation.api.v1.gifts import routes as gift_routes
+from src.presentation.api.v1.gifts.routes import get_gift_provisioning_gateway
 from src.presentation.dependencies.services import get_crypto_client
 from tests.helpers.realm_auth import (
     FakeRedis,
@@ -71,6 +84,54 @@ class FakeCryptoBotClient:
             "status": "pending",
             "expiration_date": "2030-01-01T00:00:00+00:00",
         }
+
+
+class FakeGiftProvisioningGateway:
+    def __init__(self) -> None:
+        self.calls = 0
+        self.remnawave_user_id = 9_420_001
+        self.remnawave_uuid = uuid.uuid5(uuid.NAMESPACE_URL, "cybervpn:e2e:growth-gift-recipient")
+
+    async def provision_gift_access(self, request: GiftProvisioningRequest) -> GiftProvisioningResult:
+        self.calls += 1
+        return GiftProvisioningResult(
+            customer_account_id=request.customer_account_id,
+            gift_code_id=request.gift_code_id,
+            remnawave_uuid=str(self.remnawave_uuid),
+            remnawave_user_id=self.remnawave_user_id,
+            profile_id=request.profile_id,
+            status="active",
+            expires_at=request.access_expires_at,
+            subscription_url="https://subscription.example.test/gift-e2e",
+            created=True,
+        )
+
+
+class FakeGiftProvisioningAttempts:
+    def __init__(self) -> None:
+        self.record = None
+
+    async def begin(self, **kwargs):
+        if self.record is None:
+            self.record = SimpleNamespace(status="pending", request_hash=kwargs["request_hash"])
+            return SimpleNamespace(
+                gift_record=self.record,
+                customer_record=self.record,
+                should_mutate=True,
+            )
+        assert self.record.request_hash == kwargs["request_hash"]
+        return SimpleNamespace(
+            gift_record=self.record,
+            customer_record=self.record,
+            should_mutate=False,
+        )
+
+    async def mark_reconciliation_required(self, decision) -> None:
+        decision.gift_record.status = "reconciliation_required"
+
+    async def mark_completed(self, decision, *, user_ref) -> None:
+        user_ref.require_numeric_id()
+        decision.gift_record.status = "completed"
 
 
 def _make_admin_access_token(auth_service: AuthService, *, user_id, admin_realm: AuthRealmModel) -> str:
@@ -437,6 +498,7 @@ async def test_growth_codes_promo_conformance_accepts_rejects_and_conflicts_with
 @pytest.mark.asyncio
 async def test_growth_codes_gift_conformance_purchase_and_redeem_do_not_create_partner_or_referral_payouts(
     async_client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     auth_service = AuthService()
     fake_redis = FakeRedis()
@@ -452,6 +514,14 @@ async def test_growth_codes_gift_conformance_purchase_and_redeem_do_not_create_p
 
     app.dependency_overrides[get_redis] = _override_redis
     app.dependency_overrides[get_crypto_client] = _override_crypto
+
+    @asynccontextmanager
+    async def _marker_session():
+        yield object()
+
+    monkeypatch.setattr(gift_routes, "AsyncSessionLocal", _marker_session)
+    gift_attempts = FakeGiftProvisioningAttempts()
+    monkeypatch.setattr(gift_routes, "_gift_provisioning_attempts", lambda _db, *, is_create: gift_attempts)
 
     try:
         async with override_realm_test_db(sessionmaker):
@@ -544,6 +614,41 @@ async def test_growth_codes_gift_conformance_purchase_and_redeem_do_not_create_p
             assert gift_items[0]["raw_code"] is not None
             assert gift_items[0]["status"] == "active"
 
+            gift_code_id = uuid.UUID(gift_items[0]["id"])
+            with sessionmaker() as db:
+                before_failed_redeem = {
+                    "redemptions": db.query(GrowthCodeRedemptionModel).count(),
+                    "grants": db.query(EntitlementGrantModel).count(),
+                    "outbox": db.query(OutboxEventModel).count(),
+                    "identities": db.query(ServiceIdentityModel).count(),
+                }
+
+            unavailable_response = await async_client.post(
+                "/api/v1/gifts/redeem",
+                headers=recipient_headers,
+                json={"code": gift_items[0]["raw_code"]},
+            )
+            assert unavailable_response.status_code == 503
+            assert unavailable_response.json()["detail"] == "Gift VPN provisioning is unavailable"
+
+            with sessionmaker() as db:
+                gift_after_failed_redeem = db.get(GrowthCodeModel, gift_code_id)
+                assert gift_after_failed_redeem is not None
+                assert gift_after_failed_redeem.status == "active"
+                assert {
+                    "redemptions": db.query(GrowthCodeRedemptionModel).count(),
+                    "grants": db.query(EntitlementGrantModel).count(),
+                    "outbox": db.query(OutboxEventModel).count(),
+                    "identities": db.query(ServiceIdentityModel).count(),
+                } == before_failed_redeem
+
+            gift_provisioning_gateway = FakeGiftProvisioningGateway()
+
+            async def _override_gift_provisioning_gateway():
+                return gift_provisioning_gateway
+
+            app.dependency_overrides[get_gift_provisioning_gateway] = _override_gift_provisioning_gateway
+
             redeem_response = await async_client.post(
                 "/api/v1/gifts/redeem",
                 headers=recipient_headers,
@@ -567,10 +672,26 @@ async def test_growth_codes_gift_conformance_purchase_and_redeem_do_not_create_p
             with sessionmaker() as db:
                 referral_commissions = db.query(ReferralCommissionModel).all()
                 partner_earnings = db.query(PartnerEarningModel).all()
+                recipient_identity = (
+                    db.query(ServiceIdentityModel)
+                    .filter(
+                        ServiceIdentityModel.customer_account_id == recipient_id,
+                        ServiceIdentityModel.auth_realm_id == customer_realm.id,
+                        ServiceIdentityModel.provider_name == "remnawave",
+                        ServiceIdentityModel.identity_scope == "account",
+                    )
+                    .one()
+                )
                 assert referral_commissions == []
                 assert partner_earnings == []
+                assert gift_provisioning_gateway.calls == 1
+                assert recipient_identity.identity_status == "active"
+                assert recipient_identity.provider_numeric_subject_id == gift_provisioning_gateway.remnawave_user_id
+                assert recipient_identity.provider_subject_ref == str(gift_provisioning_gateway.remnawave_uuid)
+                assert recipient_identity.service_context["remnawave_binding_state"] == "mapped"
     finally:
         app.dependency_overrides.pop(get_redis, None)
         app.dependency_overrides.pop(get_crypto_client, None)
+        app.dependency_overrides.pop(get_gift_provisioning_gateway, None)
         engine.dispose()
         cleanup_sqlite_file(sqlite_path)

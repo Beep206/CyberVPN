@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from uuid import UUID, uuid4
 
 import pytest
@@ -19,6 +20,7 @@ from src.application.use_cases.subscriptions.stage1_expiry_grace_disable import 
 )
 from src.domain.entities.user import User
 from src.domain.enums import UserStatus
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.stage1_expiry_grace_gateway import RemnawaveStage1ExpiryGraceGateway
 from src.presentation.api.shared.stage1_contract import (
     Stage1AccessState,
@@ -41,23 +43,56 @@ class RecordingExpiryGateway:
         self.disabled.append((record, disabled_at))
         if self.fail:
             raise TimeoutError("remnawave timeout token=should-not-leak")
-        assert record.remnawave_uuid is not None
+        assert isinstance(record.remnawave_user_id, int)
+        assert not isinstance(record.remnawave_user_id, bool)
+        assert record.remnawave_user_id > 0
         return Stage1ExpiryGraceDisableResult(
             customer_account_id=record.customer_account_id,
             remnawave_uuid=record.remnawave_uuid,
             status=UserStatus.DISABLED,
             disabled_at=disabled_at,
+            remnawave_user_id=record.remnawave_user_id,
         )
 
 
 class FakeRemnawaveUserGateway:
     def __init__(self, user: User) -> None:
         self.user = user
-        self.updated: list[tuple[UUID, dict]] = []
+        self.updated: list[tuple[RemnawaveUserRef, dict]] = []
 
-    async def update(self, uuid: UUID, **kwargs) -> User:
-        self.updated.append((uuid, kwargs))
+    async def update(self, user_ref: RemnawaveUserRef, **kwargs) -> User:
+        self.updated.append((user_ref, kwargs))
         return self.user
+
+
+class _ScalarRows:
+    def __init__(self, values):
+        self.values = values
+
+    def all(self):
+        return self.values
+
+
+class _Result:
+    def __init__(self, values):
+        self.values = values
+
+    def scalars(self):
+        return _ScalarRows(self.values)
+
+
+class FakeIdentitySession:
+    def __init__(self, record, *, state="mapped", numeric_id=None, legacy_uuid=None):
+        self.mapping = SimpleNamespace(
+            subject_type="mobile_user",
+            subject_id=record.customer_account_id,
+            reconciliation_state=state,
+            numeric_user_id=numeric_id if numeric_id is not None else record.remnawave_user_id,
+            legacy_uuid=legacy_uuid if legacy_uuid is not None else record.remnawave_uuid,
+        )
+
+    async def execute(self, _statement):
+        return _Result([self.mapping])
 
 
 def test_paid_access_before_expiry_is_not_disabled() -> None:
@@ -88,10 +123,14 @@ def test_paid_access_in_72h_grace_is_not_disabled() -> None:
 
 
 @pytest.mark.asyncio
-async def test_paid_access_disables_at_grace_boundary_only() -> None:
+@pytest.mark.parametrize(
+    "remnawave_uuid",
+    ["33333333-3333-4333-8333-333333333333", None],
+)
+async def test_paid_access_disables_at_grace_boundary_only(remnawave_uuid) -> None:
     expires_at = datetime(2026, 5, 1, 9, 30, tzinfo=UTC)
     now = expires_at + timedelta(hours=STAGE1_PAID_GRACE_PERIOD_HOURS)
-    record = _paid_record(access_expires_at=expires_at)
+    record = _paid_record(access_expires_at=expires_at, remnawave_uuid=remnawave_uuid)
     gateway = RecordingExpiryGateway()
 
     decision = await Stage1ExpiryGraceWorker(gateway=gateway, now=lambda: now).process_record(record)
@@ -112,6 +151,7 @@ async def test_trial_access_has_no_paid_grace_and_disables_at_expiry() -> None:
         access_kind=Stage1ExpiryAccessKind.TRIAL,
         access_expires_at=expires_at,
         remnawave_uuid=str(uuid4()),
+        remnawave_user_id=73,
     )
     gateway = RecordingExpiryGateway()
 
@@ -136,10 +176,13 @@ async def test_already_disabled_access_is_not_disabled_again() -> None:
     assert gateway.disabled == []
 
 
-def test_missing_remnawave_uuid_after_grace_requires_reconciliation() -> None:
+@pytest.mark.parametrize("invalid_numeric_id", [None, 0, -1, True])
+def test_missing_or_invalid_remnawave_numeric_id_after_grace_requires_reconciliation(
+    invalid_numeric_id,
+) -> None:
     expires_at = datetime(2026, 5, 1, 9, 30, tzinfo=UTC)
     now = expires_at + timedelta(hours=73)
-    record = _paid_record(access_expires_at=expires_at, remnawave_uuid=None)
+    record = _paid_record(access_expires_at=expires_at, remnawave_user_id=invalid_numeric_id)
 
     decision = evaluate_stage1_expiry_grace(record, now=now)
 
@@ -207,13 +250,18 @@ def test_flow_status_uses_grace_and_disable_details_without_secrets() -> None:
 
 
 @pytest.mark.asyncio
-async def test_remnawave_expiry_gateway_updates_user_to_disabled() -> None:
-    remnawave_uuid = uuid4()
+@pytest.mark.parametrize("with_legacy_uuid", [True, False])
+async def test_remnawave_expiry_gateway_updates_user_to_disabled(with_legacy_uuid) -> None:
+    remnawave_uuid = uuid4() if with_legacy_uuid else None
     disabled_at = datetime(2026, 5, 4, 9, 30, tzinfo=UTC)
-    record = _paid_record(access_expires_at=disabled_at - timedelta(hours=73), remnawave_uuid=str(remnawave_uuid))
+    record = _paid_record(
+        access_expires_at=disabled_at - timedelta(hours=73),
+        remnawave_uuid=str(remnawave_uuid) if remnawave_uuid is not None else None,
+    )
     user_gateway = FakeRemnawaveUserGateway(
         User(
             uuid=remnawave_uuid,
+            remnawave_id=73,
             username="cvpn_paid_user",
             status=UserStatus.DISABLED,
             short_uuid="redacted",
@@ -222,19 +270,56 @@ async def test_remnawave_expiry_gateway_updates_user_to_disabled() -> None:
         )
     )
 
-    result = await RemnawaveStage1ExpiryGraceGateway(user_gateway).disable_expired_access(
+    result = await RemnawaveStage1ExpiryGraceGateway(
+        user_gateway,
+        session=FakeIdentitySession(record),
+    ).disable_expired_access(
         record,
         disabled_at=disabled_at,
     )
 
     assert result.status == UserStatus.DISABLED
-    assert user_gateway.updated == [(remnawave_uuid, {"status": UserStatus.DISABLED})]
+    assert user_gateway.updated == [
+        (RemnawaveUserRef(id=73, legacy_uuid=remnawave_uuid), {"status": UserStatus.DISABLED})
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("state", "mapped_numeric_id"),
+    [("pending", 73), ("mapped", 74)],
+)
+async def test_remnawave_expiry_gateway_rejects_pending_or_wrong_mapping_before_mutation(
+    state: str,
+    mapped_numeric_id: int,
+) -> None:
+    record = _paid_record(access_expires_at=datetime(2026, 5, 1, tzinfo=UTC))
+    user_gateway = FakeRemnawaveUserGateway(
+        User(
+            uuid=UUID(record.remnawave_uuid or ""),
+            remnawave_id=73,
+            username="cvpn_paid_user",
+            status=UserStatus.DISABLED,
+            short_uuid="redacted",
+            created_at=datetime(2026, 5, 1, tzinfo=UTC),
+            updated_at=datetime(2026, 5, 2, tzinfo=UTC),
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="exact mapped identity"):
+        await RemnawaveStage1ExpiryGraceGateway(
+            user_gateway,
+            session=FakeIdentitySession(record, state=state, numeric_id=mapped_numeric_id),
+        ).disable_expired_access(record, disabled_at=datetime(2026, 5, 4, tzinfo=UTC))
+
+    assert user_gateway.updated == []
 
 
 def _paid_record(
     *,
     access_expires_at: datetime,
     remnawave_uuid: str | None = "33333333-3333-4333-8333-333333333333",
+    remnawave_user_id: int | None = 73,
     current_user_status: UserStatus = UserStatus.ACTIVE,
 ) -> Stage1ExpiryGraceAccessRecord:
     return Stage1ExpiryGraceAccessRecord(
@@ -242,5 +327,6 @@ def _paid_record(
         access_kind=Stage1ExpiryAccessKind.PAID_SUBSCRIPTION,
         access_expires_at=access_expires_at,
         remnawave_uuid=remnawave_uuid,
+        remnawave_user_id=remnawave_user_id,
         current_user_status=current_user_status,
     )

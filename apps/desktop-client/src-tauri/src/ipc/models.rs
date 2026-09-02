@@ -16,14 +16,64 @@ impl PqcAlgorithm {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Subscription {
     pub id: String,
     pub name: String,
-    pub url: String,
+    /// One-time compatibility input for pre-keyring stores. This field is
+    /// intentionally never serialized: callers must migrate it to the OS
+    /// secure store before returning or persisting the containing store.
+    #[serde(default, rename = "url", skip_serializing)]
+    pub(crate) legacy_url: Option<String>,
     pub auto_update: bool,
     pub last_updated: Option<u64>, // Unix timestamp
+}
+
+/// Browser-safe read model. Subscription URLs are bearer credentials and must
+/// remain in native storage instead of being round-tripped through React.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionSummary {
+    pub id: String,
+    pub name: String,
+    pub auto_update: bool,
+    pub last_updated: Option<u64>,
+}
+
+impl From<&Subscription> for SubscriptionSummary {
+    fn from(subscription: &Subscription) -> Self {
+        Self {
+            id: subscription.id.clone(),
+            name: subscription.name.clone(),
+            auto_update: subscription.auto_update,
+            last_updated: subscription.last_updated,
+        }
+    }
+}
+
+/// Transient IPC create payload. The URL is accepted once and persisted only
+/// by the native layer; it is never part of the subscription read model.
+#[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateSubscription {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub auto_update: bool,
+}
+
+impl CreateSubscription {
+    pub(crate) fn into_metadata_and_url(self) -> (Subscription, String) {
+        let metadata = Subscription {
+            id: self.id,
+            name: self.name,
+            legacy_url: None,
+            auto_update: self.auto_update,
+            last_updated: None,
+        };
+        (metadata, self.url)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -45,6 +95,12 @@ pub struct ProxyNode {
     pub password: Option<String>,
     pub flow: Option<String>,
     pub network: Option<String>,
+    /// Transport path from VLESS/XHTTP subscription metadata.
+    pub transport_path: Option<String>,
+    /// HTTP Host override used by XHTTP and other HTTP-based transports.
+    pub transport_host: Option<String>,
+    /// XHTTP upload mode (`auto`, `packet-up`, `stream-up`, or `stream-one`).
+    pub xhttp_mode: Option<String>,
     pub tls: Option<String>, // tls, reality
     pub sni: Option<String>,
     pub fingerprint: Option<String>,
@@ -283,4 +339,31 @@ pub struct AuditResult {
     pub name: String,
     pub protocol: String,
     pub status: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn subscription_summary_serialization_never_contains_the_url() {
+        let stored = Subscription {
+            id: "sub-1".to_string(),
+            name: "Primary".to_string(),
+            legacy_url: Some("https://subscription.example/bearer-token".to_string()),
+            auto_update: true,
+            last_updated: Some(42),
+        };
+
+        let summary = serde_json::to_value(SubscriptionSummary::from(&stored))
+            .expect("summary must serialize");
+        let persisted_metadata = serde_json::to_value(&stored).expect("metadata must serialize");
+
+        assert_eq!(summary["id"], "sub-1");
+        assert_eq!(summary["name"], "Primary");
+        assert!(summary.get("url").is_none());
+        assert!(persisted_metadata.get("url").is_none());
+        assert!(!summary.to_string().contains("bearer-token"));
+        assert!(!persisted_metadata.to_string().contains("bearer-token"));
+    }
 }

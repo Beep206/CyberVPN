@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 // ---------------------------------------------------------------------------
 // Mock repository
 // ---------------------------------------------------------------------------
@@ -28,10 +29,7 @@ class MockConfigImportRepository implements ConfigImportRepository {
   }
 
   @override
-  Future<ImportedConfig> importFromUri(
-    String uri,
-    ImportSource source,
-  ) async {
+  Future<ImportedConfig> importFromUri(String uri, ImportSource source) async {
     final config = ImportedConfig(
       id: 'test-id-${_configs.length + 1}',
       name: 'Test Server',
@@ -143,6 +141,9 @@ void main() {
           configImportRepositoryProvider.overrideWithValue(mockRepository),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('en'),
           home: SubscriptionUrlScreen(),
         ),
       );
@@ -167,10 +168,7 @@ void main() {
       expect(find.text('Import'), findsOneWidget);
 
       // Check empty state
-      expect(
-        find.text('No subscription URLs imported yet'),
-        findsOneWidget,
-      );
+      expect(find.text('No subscription URLs imported yet'), findsOneWidget);
     });
 
     testWidgets('import button calls provider method', (tester) async {
@@ -196,10 +194,12 @@ void main() {
       );
 
       // Verify success message
-      expect(find.text('Imported 1 servers'), findsOneWidget);
+      expect(find.text('Imported 1 server'), findsOneWidget);
 
       // Verify URL field is cleared
-      final textField = tester.widget<TextFormField>(find.byType(TextFormField));
+      final textField = tester.widget<TextFormField>(
+        find.byType(TextFormField),
+      );
       expect(textField.controller?.text, isEmpty);
     });
 
@@ -253,10 +253,7 @@ void main() {
 
       // Verify confirmation dialog
       expect(find.text('Delete Subscription'), findsOneWidget);
-      expect(
-        find.textContaining('Delete all 2 servers'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Delete all 2 servers'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
       expect(find.text('Delete'), findsOneWidget);
     });

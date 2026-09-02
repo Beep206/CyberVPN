@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/profile.dart';
 import 'package:cybervpn_mobile/features/profile/domain/entities/setup_2fa_result.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/providers/profile_provider.dart';
 import 'package:cybervpn_mobile/features/profile/presentation/screens/two_factor_screen.dart';
+
+Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+}
 
 void main() {
   /// Helper to build the screen with necessary providers
@@ -20,14 +27,18 @@ void main() {
         }),
       ],
       child: const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: Locale('en'),
         home: TwoFactorScreen(),
       ),
     );
   }
 
   group('TwoFactorScreen - Not Enabled State', () {
-    testWidgets('displays not enabled UI with Enable button',
-        (WidgetTester tester) async {
+    testWidgets('displays not enabled UI with Enable button', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -45,14 +56,12 @@ void main() {
       expect(find.text('2FA Disabled'), findsOneWidget);
       expect(find.text('Enable 2FA to secure your account'), findsOneWidget);
       expect(find.text('Enable 2FA'), findsOneWidget);
-      expect(
-        find.text('What is Two-Factor Authentication?'),
-        findsOneWidget,
-      );
+      expect(find.text('What is Two-Factor Authentication?'), findsOneWidget);
     });
 
-    testWidgets('calls setup2FA when Enable button is tapped',
-        (WidgetTester tester) async {
+    testWidgets('calls setup2FA when Enable button is tapped', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -65,14 +74,13 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
       // Tap Enable button
-      await tester.tap(find.text('Enable 2FA'));
+      await _tapVisible(tester, find.text('Enable 2FA'));
       await tester.pumpAndSettle();
 
       // Assert
@@ -81,8 +89,9 @@ void main() {
   });
 
   group('TwoFactorScreen - Setup State', () {
-    testWidgets('displays QR code and code input after enabling',
-        (WidgetTester tester) async {
+    testWidgets('displays QR code and code input after enabling', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -95,14 +104,13 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
       // Tap Enable button
-      await tester.tap(find.text('Enable 2FA'));
+      await _tapVisible(tester, find.text('Enable 2FA'));
       await tester.pumpAndSettle();
 
       // Assert - QR code section
@@ -122,8 +130,9 @@ void main() {
       expect(find.text('Verify and Enable'), findsOneWidget);
     });
 
-    testWidgets('verify button is disabled until 6-digit code is entered',
-        (WidgetTester tester) async {
+    testWidgets('verify button is disabled until 6-digit code is entered', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -136,18 +145,19 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Enable 2FA'));
+      await _tapVisible(tester, find.text('Enable 2FA'));
       await tester.pumpAndSettle();
 
       // Assert - button disabled initially
-      final verifyButton =
-          find.widgetWithText(FilledButton, 'Verify and Enable');
+      final verifyButton = find.widgetWithText(
+        FilledButton,
+        'Verify and Enable',
+      );
       expect(tester.widget<FilledButton>(verifyButton).onPressed, isNull);
 
       // Enter partial code
@@ -165,8 +175,9 @@ void main() {
       expect(tester.widget<FilledButton>(verifyButton).onPressed, isNotNull);
     });
 
-    testWidgets('calls verify2FA with entered code when Verify is tapped',
-        (WidgetTester tester) async {
+    testWidgets('calls verify2FA with entered code when Verify is tapped', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -179,13 +190,12 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Enable 2FA'));
+      await _tapVisible(tester, find.text('Enable 2FA'));
       await tester.pumpAndSettle();
 
       // Enter code
@@ -193,7 +203,7 @@ void main() {
       await tester.pump();
 
       // Tap verify (skip scrolling for this test as the button might be partially visible)
-      await tester.tap(find.text('Verify and Enable'));
+      await _tapVisible(tester, find.text('Verify and Enable'));
       await tester.pumpAndSettle();
 
       // Assert
@@ -201,8 +211,9 @@ void main() {
       expect(notifier.lastVerifyCode, '123456');
     });
 
-    testWidgets('shows backup codes dialog after successful verification',
-        (WidgetTester tester) async {
+    testWidgets('shows backup codes dialog after successful verification', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -215,19 +226,18 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Enable 2FA'));
+      await _tapVisible(tester, find.text('Enable 2FA'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '123456');
       await tester.pump();
 
-      await tester.tap(find.text('Verify and Enable'));
+      await _tapVisible(tester, find.text('Verify and Enable'));
       await tester.pumpAndSettle();
 
       // Assert - backup codes dialog shown
@@ -243,8 +253,9 @@ void main() {
       expect(find.text('Copy All'), findsOneWidget);
     });
 
-    testWidgets('cancel button returns to not enabled state',
-        (WidgetTester tester) async {
+    testWidgets('cancel button returns to not enabled state', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -257,17 +268,16 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Enable 2FA'));
+      await _tapVisible(tester, find.text('Enable 2FA'));
       await tester.pumpAndSettle();
 
       // Tap cancel
-      await tester.tap(find.text('Cancel'));
+      await _tapVisible(tester, find.text('Cancel'));
       await tester.pumpAndSettle();
 
       // Assert - back to not enabled state
@@ -277,8 +287,9 @@ void main() {
   });
 
   group('TwoFactorScreen - Enabled State', () {
-    testWidgets('displays enabled UI with Disable button',
-        (WidgetTester tester) async {
+    testWidgets('displays enabled UI with Disable button', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -298,15 +309,13 @@ void main() {
         find.text('Your account is protected with two-factor authentication'),
         findsOneWidget,
       );
-      expect(
-        find.text('Two-Factor Authentication is Active'),
-        findsOneWidget,
-      );
+      expect(find.text('Two-Factor Authentication is Active'), findsOneWidget);
       expect(find.text('Disable 2FA'), findsOneWidget);
     });
 
-    testWidgets('shows confirmation dialog when Disable is tapped',
-        (WidgetTester tester) async {
+    testWidgets('shows confirmation dialog when Disable is tapped', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -321,14 +330,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap Disable button
-      await tester.tap(find.text('Disable 2FA'));
+      await _tapVisible(tester, find.text('Disable 2FA'));
       await tester.pumpAndSettle();
 
       // Assert - confirmation dialog shown
-      expect(
-        find.text('Disable Two-Factor Authentication?'),
-        findsOneWidget,
-      );
+      expect(find.text('Disable Two-Factor Authentication?'), findsOneWidget);
       expect(
         find.text(
           'Disabling 2FA will make your account less secure. '
@@ -338,8 +344,9 @@ void main() {
       );
     });
 
-    testWidgets('shows code input dialog after confirming disable',
-        (WidgetTester tester) async {
+    testWidgets('shows code input dialog after confirming disable', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -353,7 +360,7 @@ void main() {
       await tester.pumpWidget(buildScreen(initialState: profileState));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Disable 2FA'));
+      await _tapVisible(tester, find.text('Disable 2FA'));
       await tester.pumpAndSettle();
 
       // Confirm disable
@@ -368,8 +375,9 @@ void main() {
       );
     });
 
-    testWidgets('calls disable2FA with code when confirmed',
-        (WidgetTester tester) async {
+    testWidgets('calls disable2FA with code when confirmed', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -382,13 +390,12 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Disable 2FA'));
+      await _tapVisible(tester, find.text('Disable 2FA'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Disable'));
@@ -407,8 +414,9 @@ void main() {
       expect(notifier.lastDisableCode, '654321');
     });
 
-    testWidgets('transitions to not enabled state after successful disable',
-        (WidgetTester tester) async {
+    testWidgets('transitions to not enabled state after successful disable', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -421,16 +429,15 @@ void main() {
       final notifier = TestProfileNotifier(profileState);
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
       // Scroll to Disable button and tap
       await tester.ensureVisible(find.text('Disable 2FA'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Disable 2FA'));
+      await _tapVisible(tester, find.text('Disable 2FA'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Disable'));
@@ -447,8 +454,9 @@ void main() {
       expect(find.text('Enable 2FA'), findsOneWidget);
     });
 
-    testWidgets('shows error snackbar on disable failure',
-        (WidgetTester tester) async {
+    testWidgets('shows error snackbar on disable failure', (
+      WidgetTester tester,
+    ) async {
       // Arrange
       const profileState = ProfileState(
         profile: Profile(
@@ -458,19 +466,21 @@ void main() {
         ),
       );
 
-      final notifier = TestProfileNotifier(profileState, shouldFailDisable: true);
+      final notifier = TestProfileNotifier(
+        profileState,
+        shouldFailDisable: true,
+      );
 
       // Act
-      await tester.pumpWidget(buildScreen(
-        initialState: profileState,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        buildScreen(initialState: profileState, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
       // Scroll to Disable button and tap
       await tester.ensureVisible(find.text('Disable 2FA'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Disable 2FA'));
+      await _tapVisible(tester, find.text('Disable 2FA'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(FilledButton, 'Disable'));
@@ -497,10 +507,7 @@ void main() {
 
 /// Test implementation of ProfileNotifier for widget testing
 class TestProfileNotifier extends ProfileNotifier {
-  TestProfileNotifier(
-    this._initialState, {
-    this.shouldFailDisable = false,
-  });
+  TestProfileNotifier(this._initialState, {this.shouldFailDisable = false});
 
   final ProfileState _initialState;
   final bool shouldFailDisable;

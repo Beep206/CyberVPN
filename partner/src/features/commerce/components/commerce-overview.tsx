@@ -262,7 +262,11 @@ export function CommerceOverview() {
                     </div>
 
                     <StatusChip
-                      label={template.flow ?? t('overview.noFlow')}
+                      label={
+                        template.tags.length > 0
+                          ? template.tags.join(', ')
+                          : t('overview.noFlow')
+                      }
                       tone="info"
                     />
                   </div>

@@ -124,5 +124,15 @@
         }
       }
     }
+  },
+  "vpnServiceStatus": {
+    "title": "זמינות שירות ה-VPN",
+    "connections": "חיבורים",
+    "usage": "שימוש",
+    "devices": "מכשירים",
+    "available": "זמין",
+    "unavailable": "לא זמין",
+    "loading": "מצב שירות ה-VPN נטען",
+    "degraded": "פגיעה חלקית"
   }
 }

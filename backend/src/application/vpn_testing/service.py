@@ -3007,6 +3007,7 @@ def _safe_reality_contract(reality: Mapping[str, Any]) -> dict[str, bool]:
         str(server_names[0]).strip().lower() if isinstance(server_names, list) and server_names else ""
     )
     return {
+        "min_client_ver_26_3_27": str(reality.get("minClientVer") or "") == "26.3.27",
         "server_names_present": isinstance(server_names, list) and bool(server_names),
         "server_name_matches_target": bool(target_hostname) and primary_server_name == target_hostname,
         "short_ids_present": isinstance(short_ids, list) and bool(short_ids),

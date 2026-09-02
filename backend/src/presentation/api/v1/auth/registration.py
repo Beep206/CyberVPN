@@ -54,6 +54,10 @@ REGISTRATION_ACCESS_COOKIE_NAME = "__Host-cvpn_registration_access"
 REGISTRATION_ACCESS_COOKIE_PATH = "/"
 
 
+def _sanitize_optional_email(email: str | None) -> str | None:
+    return sanitize_email(email) if email is not None else None
+
+
 async def _release_invite_registration_reservation(
     invite_service: InviteTokenService,
     *,
@@ -173,7 +177,7 @@ async def _log_registration_attempt(
             resource_id=None,
             details={
                 "success": success,
-                "email": sanitize_email(email),  # SEC-007: Sanitize PII
+                "email": _sanitize_optional_email(email),  # SEC-007: Sanitize PII
                 "login": sanitize_username(login),  # SEC-007: Sanitize PII
                 "reason": reason,
                 "invite_token_used": bool(invite_token),
@@ -342,7 +346,7 @@ async def register(
             logger.warning(
                 "Registration attempt blocked - invalid/expired invite token",
                 extra={
-                    "email": sanitize_email(request.email),
+                    "email": _sanitize_optional_email(request.email),
                     "login": sanitize_username(request.login),
                 },
             )
@@ -364,8 +368,8 @@ async def register(
             logger.warning(
                 "Registration attempt blocked - email mismatch",
                 extra={
-                    "email": sanitize_email(request.email),
-                    "expected_email": sanitize_email(invite_data.get("email_hint")),
+                    "email": _sanitize_optional_email(request.email),
+                    "expected_email": _sanitize_optional_email(invite_data.get("email_hint")),
                 },
             )
             await _log_registration_attempt(
@@ -392,9 +396,10 @@ async def register(
 
     # Determine role from invite or default to VIEWER
     role = AdminRole.VIEWER
-    if invite_data and invite_data.get("role"):
+    invite_role = invite_data.get("role") if invite_data else None
+    if invite_role:
         try:
-            role = AdminRole(invite_data["role"])
+            role = AdminRole(invite_role)
         except ValueError:
             role = AdminRole.VIEWER
 
@@ -549,7 +554,7 @@ async def register(
         extra={
             "user_id": str(result.user.id),
             "login": sanitize_username(result.user.login),
-            "email": sanitize_email(result.user.email),
+            "email": _sanitize_optional_email(result.user.email),
             "role": role.value,
             "invite_used": bool(invite_token),
             "resumed_unverified_registration": result.resumed_unverified_registration,

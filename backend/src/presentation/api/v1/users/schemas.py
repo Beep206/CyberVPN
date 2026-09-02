@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from src.domain.enums import UserStatus
 
@@ -33,7 +33,8 @@ class UserResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-    uuid: UUID
+    id: int = Field(..., ge=1)
+    uuid: UUID | None = None
     username: str
     status: UserStatus
     short_uuid: str
@@ -61,4 +62,15 @@ class UserListResponse(BaseModel):
 class BulkUserActionRequest(BaseModel):
     """Request schema for bulk user actions."""
 
-    user_ids: list[UUID] = Field(..., min_length=1, max_length=100)
+    user_ids: list[int] = Field(..., min_length=1, max_length=100)
+
+    @field_validator("user_ids", mode="before")
+    @classmethod
+    def validate_numeric_user_ids(cls, values: object) -> object:
+        if not isinstance(values, list):
+            return values
+        if any(isinstance(value, bool) or not isinstance(value, int) or value <= 0 for value in values):
+            raise ValueError("user_ids must contain positive numeric Remnawave ids")
+        if len(set(values)) != len(values):
+            raise ValueError("user_ids must not contain duplicates")
+        return values

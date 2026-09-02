@@ -1,7 +1,6 @@
 """Delete user use case."""
 
-from uuid import UUID
-
+from src.domain.value_objects.remnawave_user_ref import RemnawaveUserRef
 from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
 
 
@@ -16,13 +15,14 @@ class DeleteUserUseCase:
         """
         self.gateway = gateway
 
-    async def execute(self, uuid: UUID) -> None:
+    async def execute(self, user_ref: RemnawaveUserRef) -> None:
         """Execute the delete user use case.
 
         Args:
-            uuid: The UUID of the user to delete
+            user_ref: Reconciled numeric Remnawave user reference
 
         Raises:
             Exception: If user deletion fails or user not found
         """
-        await self.gateway.delete(uuid)
+        user_ref.require_numeric_id()
+        await self.gateway.delete(user_ref)

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cybervpn_mobile/core/l10n/generated/app_localizations.dart';
 // ---------------------------------------------------------------------------
 // Mock repository
 // ---------------------------------------------------------------------------
@@ -22,10 +23,7 @@ class MockConfigImportRepository implements ConfigImportRepository {
   }
 
   @override
-  Future<ImportedConfig> importFromUri(
-    String uri,
-    ImportSource source,
-  ) async {
+  Future<ImportedConfig> importFromUri(String uri, ImportSource source) async {
     importCalled = true;
     lastImportedUri = uri;
     final config = ImportedConfig(
@@ -70,10 +68,11 @@ class MockConfigImportRepository implements ConfigImportRepository {
 /// Wraps [QrScannerScreen] in a testable widget tree with required providers.
 Widget _buildTestWidget({required MockConfigImportRepository repository}) {
   return ProviderScope(
-    overrides: [
-      configImportRepositoryProvider.overrideWithValue(repository),
-    ],
+    overrides: [configImportRepositoryProvider.overrideWithValue(repository)],
     child: const MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: Locale('en'),
       home: QrScannerScreen(),
     ),
   );
@@ -120,10 +119,7 @@ void main() {
       await tester.pumpWidget(_buildTestWidget(repository: mockRepository));
       await tester.pump();
 
-      expect(
-        find.text('Point your camera at a VPN QR code'),
-        findsOneWidget,
-      );
+      expect(find.text('Point your camera at a VPN QR code'), findsOneWidget);
     });
 
     testWidgets('renders MobileScanner widget', (tester) async {

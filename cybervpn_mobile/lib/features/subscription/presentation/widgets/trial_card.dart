@@ -53,11 +53,13 @@ class _TrialCardState extends ConsumerState<TrialCard> {
           _isEligible = data['is_eligible'] as bool? ?? false;
           _daysRemaining = data['days_remaining'] as int?;
           _isLoading = false;
+          _isActivating = false;
         });
       case Failure(:final failure):
         setState(() {
           _errorMessage = failure.message;
           _isLoading = false;
+          _isActivating = false;
         });
     }
   }
@@ -79,7 +81,9 @@ class _TrialCardState extends ConsumerState<TrialCard> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context).subscriptionTrialActivated),
+              content: Text(
+                AppLocalizations.of(context).subscriptionTrialActivated,
+              ),
               backgroundColor: CyberColors.matrixGreen,
             ),
           );

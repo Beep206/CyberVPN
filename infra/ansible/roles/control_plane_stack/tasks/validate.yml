@@ -17,7 +17,17 @@
         or control_plane_stack_enable_worker
         or control_plane_stack_enable_scheduler
         or control_plane_stack_enable_helix_adapter
+        or control_plane_stack_enable_subscription_page
     fail_msg: "Enable at least one control-plane service before running the role."
+
+- name: Control plane | Assert this release runs only on the scanned architecture
+  ansible.builtin.assert:
+    that:
+      - ansible_architecture == 'x86_64'
+    fail_msg: >-
+      Control-plane release images are gated only for linux/amd64. Exact arm64
+      child-digest scans, SBOMs, attestations, and staging evidence are required
+      before deploying this release to arm64 hosts.
 
 - name: Control plane | Assert service dependency graph is coherent
   ansible.builtin.assert:
@@ -27,6 +37,7 @@
       - not control_plane_stack_enable_worker or (control_plane_stack_enable_remnawave and control_plane_stack_enable_postgres and control_plane_stack_enable_valkey)
       - not control_plane_stack_enable_scheduler or (control_plane_stack_enable_worker and control_plane_stack_enable_valkey)
       - not control_plane_stack_enable_helix_adapter or (control_plane_stack_enable_remnawave and control_plane_stack_enable_postgres)
+      - not control_plane_stack_enable_subscription_page or control_plane_stack_enable_remnawave
     fail_msg: >-
       The requested control-plane service combination is inconsistent. Keep
       dependent services enabled together.
@@ -51,15 +62,93 @@
             'POSTGRES_USER',
             'POSTGRES_PASSWORD',
             'POSTGRES_DB',
-            'JWT_AUTH_SECRET',
-            'JWT_API_TOKENS_SECRET',
+            'APP_SECRET',
             'FRONT_END_DOMAIN',
-            'PANEL_DOMAIN'
+            'PANEL_DOMAIN',
+            'EXPORT_TO_STREAM_ENABLED',
+            'EXPORT_TO_STREAM_MAXLEN',
+            'SHORT_UUID_METHOD',
+            'SHORT_UUID_LENGTH',
+            'CYBERVPN_NODE_SSH_BROKER_ENABLED',
+            'CYBERVPN_NODE_SSH_BROKER_SECRET',
+            'CYBERVPN_NODE_SSH_BROKER_TRUSTED_PROXY_RANGES'
           ] | difference(control_plane_stack_remnawave_env.keys() | list)
         ) | length == 0
     fail_msg: >-
       Set control_plane_stack_remnawave_image and the required Remnawave env keys
       before deploying the control plane.
+  when: control_plane_stack_enable_remnawave
+  no_log: true
+
+- name: Control plane | Assert subscription-page 8.0 private deployment contract
+  vars:
+    subscription_page_token_placeholder_pattern: 'replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_|todo'
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_subscription_page_image | length > 0
+      - control_plane_stack_subscription_page_rollback_image is match('^.+:7[.]2[.]6@sha256:[a-f0-9]{64}$')
+      - control_plane_stack_subscription_page_bind_host == '127.0.0.1'
+      - control_plane_stack_subscription_page_app_port | int == 3010
+      - control_plane_stack_subscription_page_port | int > 1024
+      - control_plane_stack_subscription_page_subnet is match('^[0-9.]+/[0-9]{1,2}$')
+      - control_plane_stack_subscription_page_remnawave_ipv4 is match('^[0-9.]+$')
+      - control_plane_stack_subscription_page_ipv4 is match('^[0-9.]+$')
+      - control_plane_stack_subscription_page_remnawave_ipv4 != control_plane_stack_subscription_page_ipv4
+      - >
+        (
+          [
+            'APP_PORT',
+            'REMNAWAVE_PANEL_URL',
+            'REMNAWAVE_API_TOKEN',
+            'CUSTOM_SUB_PREFIX',
+            'TRUST_PROXY',
+            'PM2_HOME',
+            'MARZBAN_LEGACY_LINK_ENABLED'
+          ] | difference(control_plane_stack_subscription_page_env.keys() | list)
+        ) | length == 0
+      - control_plane_stack_subscription_page_env.APP_PORT | string == control_plane_stack_subscription_page_app_port | string
+      - control_plane_stack_subscription_page_env.REMNAWAVE_PANEL_URL == 'http://remnawave:3000'
+      - control_plane_stack_subscription_page_env.CUSTOM_SUB_PREFIX == 'api/sub'
+      - control_plane_stack_subscription_page_env.TRUST_PROXY == control_plane_stack_subscription_page_subnet
+      - control_plane_stack_subscription_page_env.PM2_HOME == '/tmp/pm2'
+      - not (control_plane_stack_subscription_page_env.MARZBAN_LEGACY_LINK_ENABLED | bool)
+      - control_plane_stack_subscription_page_env.REMNAWAVE_API_TOKEN | length >= 32
+      - (control_plane_stack_subscription_page_env.REMNAWAVE_API_TOKEN | lower) is not search(subscription_page_token_placeholder_pattern)
+      - control_plane_stack_subscription_page_env.REMNAWAVE_API_TOKEN != (control_plane_stack_backend_env.REMNAWAVE_TOKEN | default(''))
+      - control_plane_stack_subscription_page_env.REMNAWAVE_API_TOKEN != (control_plane_stack_worker_env.REMNAWAVE_API_TOKEN | default(''))
+      - control_plane_stack_subscription_page_env.REMNAWAVE_API_TOKEN != (control_plane_stack_helix_adapter_env.REMNAWAVE_TOKEN | default(''))
+      - control_plane_stack_subscription_page_env.REMNAWAVE_API_TOKEN != (control_plane_stack_remnawave_env.APP_SECRET | default(''))
+    fail_msg: >-
+      subscription-page must use a dedicated non-placeholder API token, the
+      api/sub legacy-link prefix, exact private panel URL/proxy CIDR, loopback
+      host bind, hardened PM2 tmpfs, and the separately pinned 7.2.6 rollback.
+  when: control_plane_stack_enable_subscription_page
+  no_log: true
+
+- name: Control plane | Assert native Remnawave panel stays host-private
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_remnawave_bind_host == '127.0.0.1'
+    fail_msg: >-
+      Bind the native Remnawave panel and metrics ports to 127.0.0.1. Operator
+      access must traverse a separately reviewed VPN/SSO/IP-allowlisted proxy;
+      never publish the native panel socket directly.
+  when: control_plane_stack_enable_remnawave
+
+- name: Control plane | Assert Remnawave APP_SECRET is strong and preserves the 2.x auth secret
+  vars:
+    remnawave_app_secret_placeholder_pattern: 'replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_|todo'
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_remnawave_env.APP_SECRET is match('^[0-9a-fA-F]{128}$')
+      - (control_plane_stack_remnawave_env.APP_SECRET | lower) is not search(remnawave_app_secret_placeholder_pattern)
+      - control_plane_stack_remnawave_preupgrade_auth_secret_sha256 is match('^[0-9a-f]{64}$')
+      - (control_plane_stack_remnawave_env.APP_SECRET | hash('sha256')) == control_plane_stack_remnawave_preupgrade_auth_secret_sha256
+    fail_msg: >-
+      APP_SECRET must be the exact former JWT_AUTH_SECRET, encoded as 64 random
+      bytes (128 hex characters). Supply the SHA-256 fingerprint collected by
+      the read-only baseline inventory; a mismatch is an unauthorized auth
+      secret rotation and blocks the upgrade.
   when: control_plane_stack_enable_remnawave
   no_log: true
 
@@ -75,6 +164,25 @@
             'REMNAWAVE_URL',
             'REMNAWAVE_TOKEN',
             'REMNAWAVE_WEBHOOK_SECRET',
+            'WEBHOOK_LOG_FINGERPRINT_SECRET',
+            'REMNAWAVE_STREAM_INGESTION_ENABLED',
+            'REMNAWAVE_STREAM_IP_HMAC_SECRET',
+            'REMNAWAVE_CONNECTION_DROP_HMAC_SECRET',
+            'REMNAWAVE_STREAM_CONSUMER_GROUP',
+            'REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS',
+            'REMNAWAVE_USER_USAGE_RETENTION_DAYS',
+            'REMNAWAVE_SUBSCRIPTION_REQUEST_RETENTION_DAYS',
+            'REMNAWAVE_NODE_CONNECTIONS_RETENTION_DAYS',
+            'REMNAWAVE_NODE_SSH_ENABLED',
+            'REMNAWAVE_NODE_SSH_BROKER_URL',
+            'REMNAWAVE_NODE_SSH_BROKER_SECRET',
+            'REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS',
+            'REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS',
+            'REMNAWAVE_NODE_SSH_TICKET_TTL_SECONDS',
+            'REMNAWAVE_NODE_SSH_SESSION_MAX_SECONDS',
+            'REMNAWAVE_NODE_SSH_REVOCATION_POLL_SECONDS',
+            'PASSKEY_ENABLED',
+            'PASSKEY_ADMIN_ENABLED',
             'JWT_SECRET',
             'CRYPTOBOT_TOKEN',
             'TELEGRAM_BOT_TOKEN',
@@ -89,6 +197,139 @@
     fail_msg: >-
       Set control_plane_stack_backend_image and the required backend env keys
       before deploying the control plane backend.
+  when: control_plane_stack_enable_backend
+  no_log: true
+
+- name: Control plane | Assert webhook log fingerprint key is dedicated
+  vars:
+    webhook_log_fingerprint_placeholder_pattern: 'replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_'
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET | length >= 32
+      - (control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET | lower) is not search(webhook_log_fingerprint_placeholder_pattern)
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.JWT_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.REMNAWAVE_TOKEN
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.REMNAWAVE_WEBHOOK_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.CRYPTOBOT_TOKEN
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.TELEGRAM_BOT_TOKEN
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.PAYMENT_SETTLEMENT_WORKER_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.TOTP_ENCRYPTION_KEY
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.OAUTH_TOKEN_ENCRYPTION_KEY
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_backend_env.HELIX_ADAPTER_TOKEN
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_stack_remnawave_env.APP_SECRET
+      - control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET != control_plane_postgres_password
+    fail_msg: >-
+      WEBHOOK_LOG_FINGERPRINT_SECRET must be a unique, non-placeholder random
+      value of at least 32 characters and must not reuse authentication,
+      provider, database, Remnawave APP_SECRET, or stream credentials.
+  when: control_plane_stack_enable_backend
+  no_log: true
+
+- name: Control plane | Assert Remnawave stream ingestion contract is safe
+  vars:
+    remnawave_stream_secret_placeholder_pattern: 'replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_'
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_INGESTION_ENABLED | bool
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET | length >= 32
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.JWT_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.REMNAWAVE_TOKEN
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.REMNAWAVE_WEBHOOK_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.PAYMENT_SETTLEMENT_WORKER_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.TOTP_ENCRYPTION_KEY
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.OAUTH_TOKEN_ENCRYPTION_KEY
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET != control_plane_stack_remnawave_env.APP_SECRET
+      - (control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET | lower) is not search(remnawave_stream_secret_placeholder_pattern)
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_CONSUMER_GROUP == 'cybervpn-remnawave-v1'
+      - control_plane_stack_backend_env.REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS | int == 14
+      - control_plane_stack_backend_env.REMNAWAVE_USER_USAGE_RETENTION_DAYS | int == 180
+      - control_plane_stack_backend_env.REMNAWAVE_SUBSCRIPTION_REQUEST_RETENTION_DAYS | int == 30
+      - control_plane_stack_backend_env.REMNAWAVE_NODE_CONNECTIONS_RETENTION_DAYS | int == 30
+    fail_msg: >-
+      Enable the versioned Remnawave stream consumer with group
+      cybervpn-remnawave-v1, the reviewed retention periods, and a dedicated
+      non-placeholder HMAC secret of at least 32 characters that differs from
+      BACKEND_INTERNAL_SECRET.
+  when: control_plane_stack_enable_backend
+  no_log: true
+
+- name: Control plane | Assert connection-drop receipt HMAC key is dedicated
+  vars:
+    remnawave_connection_drop_secret_placeholder_pattern: 'replace|example|test|placeholder|changeme|dummy|local|development|dev-|redacted|your_'
+  ansible.builtin.assert:
+    that:
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET | length >= 32
+      - (control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET | lower) is not search(remnawave_connection_drop_secret_placeholder_pattern)
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.JWT_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.REMNAWAVE_TOKEN
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.REMNAWAVE_WEBHOOK_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.WEBHOOK_LOG_FINGERPRINT_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_BROKER_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.CRYPTOBOT_TOKEN
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.TELEGRAM_BOT_TOKEN
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.TELEGRAM_BOT_INTERNAL_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.PAYMENT_SETTLEMENT_WORKER_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.TOTP_ENCRYPTION_KEY
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.OAUTH_TOKEN_ENCRYPTION_KEY
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_backend_env.HELIX_ADAPTER_TOKEN
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_stack_remnawave_env.APP_SECRET
+      - control_plane_stack_backend_env.REMNAWAVE_CONNECTION_DROP_HMAC_SECRET != control_plane_postgres_password
+    fail_msg: >-
+      REMNAWAVE_CONNECTION_DROP_HMAC_SECRET must be a dedicated,
+      non-placeholder random value of at least 32 characters. Keep it stable
+      across deployments and do not rotate it until every outcome_unknown
+      connection-drop receipt is reconciled; credential reuse is forbidden.
+  when: control_plane_stack_enable_backend
+  no_log: true
+
+- name: Control plane | Assert Remnawave Node SSH policy is fail-closed
+  vars:
+    remnawave_node_ssh_uuid_list_pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})*$'
+  ansible.builtin.assert:
+    that:
+      - (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | string | lower) in ['true', 'false']
+      - (control_plane_stack_remnawave_env.CYBERVPN_NODE_SSH_BROKER_ENABLED | string | lower) in ['true', 'false']
+      - (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) == (control_plane_stack_enable_node_ssh_proxy | bool)
+      - (control_plane_stack_remnawave_env.CYBERVPN_NODE_SSH_BROKER_ENABLED | bool) == (control_plane_stack_enable_node_ssh_proxy | bool)
+      - not (control_plane_stack_enable_node_ssh_proxy | bool) or control_plane_stack_enable_backend | bool
+      - not (control_plane_stack_enable_node_ssh_proxy | bool) or control_plane_stack_enable_remnawave | bool
+      - control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_TICKET_TTL_SECONDS | int >= 5
+      - control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_TICKET_TTL_SECONDS | int <= 15
+      - control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_SESSION_MAX_SECONDS | int >= 60
+      - control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_SESSION_MAX_SECONDS | int <= 3600
+      - control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_REVOCATION_POLL_SECONDS | float >= 0.1
+      - control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_REVOCATION_POLL_SECONDS | float <= 5
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or (control_plane_stack_backend_env.PASSKEY_ENABLED | bool)
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or (control_plane_stack_backend_env.PASSKEY_ADMIN_ENABLED | bool)
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_TRUSTED_ADMIN_IDS is match(remnawave_node_ssh_uuid_list_pattern))
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ALLOWED_NODE_IDS is match(remnawave_node_ssh_uuid_list_pattern))
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_BROKER_SECRET is match('^[a-f0-9]{128}$'))
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_BROKER_SECRET == control_plane_stack_remnawave_env.CYBERVPN_NODE_SSH_BROKER_SECRET
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_BROKER_SECRET != control_plane_stack_remnawave_env.APP_SECRET
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_BROKER_SECRET != control_plane_stack_backend_env.JWT_SECRET
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_BROKER_SECRET != control_plane_stack_backend_env.BACKEND_INTERNAL_SECRET
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_BROKER_URL == 'http://' ~ control_plane_stack_node_ssh_proxy_container_name ~ ':' ~ (control_plane_stack_node_ssh_proxy_port | string)
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_remnawave_env.CYBERVPN_NODE_SSH_BROKER_TRUSTED_PROXY_RANGES == control_plane_stack_node_ssh_proxy_ipv4
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_node_ssh_proxy_image is match('^ghcr[.]io/beep206/cybervpn/node-ssh-proxy@sha256:[a-f0-9]{64}$')
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_node_ssh_proxy_subnet is match('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/29$')
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_node_ssh_remnawave_ipv4 != control_plane_stack_node_ssh_proxy_ipv4
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_node_ssh_proxy_ipv4 != control_plane_stack_node_ssh_backend_ipv4
+      - not (control_plane_stack_backend_env.REMNAWAVE_NODE_SSH_ENABLED | bool) or control_plane_stack_node_ssh_remnawave_ipv4 != control_plane_stack_node_ssh_backend_ipv4
+    fail_msg: >-
+      Keep Remnawave Node SSH disabled by default. Enabling it requires both
+      passkey flags plus non-empty comma-separated UUID allowlists for trusted
+      admins and nodes, a separate 128-hex broker secret, the digest-pinned
+      private proxy with an exact trusted peer, and bounded timing. Direct
+      backend-to-panel broker traffic is never accepted.
   when: control_plane_stack_enable_backend
   no_log: true
 
@@ -170,6 +411,12 @@
           [
             'DATABASE_URL',
             'REDIS_URL',
+            'REMNAWAVE_STREAM_CONSUMER_ENABLED',
+            'REMNAWAVE_STREAM_REDIS_URL',
+            'REMNAWAVE_STREAM_CONSUMER_GROUP',
+            'REMNAWAVE_STREAM_IP_HMAC_SECRET',
+            'REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS',
+            'REMNAWAVE_STREAM_CHECKPOINT_OBSERVE_INTERVAL_SECONDS',
             'REMNAWAVE_URL',
             'REMNAWAVE_API_TOKEN',
             'BACKEND_API_URL',
@@ -186,6 +433,83 @@
       Set control_plane_stack_worker_image and the required worker env keys
       before deploying worker or scheduler services.
   when: control_plane_stack_enable_worker or control_plane_stack_enable_scheduler
+  no_log: true
+
+- name: Control plane | Assert worker Remnawave stream transport is fail closed
+  ansible.builtin.assert:
+    that:
+      - (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | string | lower) in ['true', 'false']
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_REDIS_URL | length > 0
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_REDIS_URL
+           is match('^rediss?://(?:[^/@:]+(?::[^/@]*)?@)?[A-Za-z0-9.-]+:[0-9]{1,5}/[0-9]+$')
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_GROUP == 'cybervpn-remnawave-v1'
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET | length >= 32
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+           == control_plane_stack_backend_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+           != control_plane_stack_worker_env.BACKEND_INTERNAL_SECRET
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+           != control_plane_stack_worker_env.REMNAWAVE_API_TOKEN
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+           != control_plane_stack_worker_env.TELEGRAM_BOT_INTERNAL_SECRET
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+           != control_plane_stack_worker_env.PAYMENT_SETTLEMENT_WORKER_SECRET
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+           != control_plane_stack_worker_env.TELEGRAM_BOT_TOKEN
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or control_plane_stack_worker_env.REMNAWAVE_STREAM_IP_HMAC_SECRET
+           != control_plane_stack_worker_env.CRYPTOBOT_TOKEN
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or (
+          control_plane_stack_worker_env.REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS | int == 14
+          and control_plane_stack_worker_env.REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS
+              == control_plane_stack_backend_env.REMNAWAVE_STREAM_RECEIPT_RETENTION_DAYS
+        )
+      - >-
+        not (control_plane_stack_worker_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+        or (
+          control_plane_stack_worker_env.REMNAWAVE_STREAM_CHECKPOINT_OBSERVE_INTERVAL_SECONDS | float >= 5
+          and control_plane_stack_worker_env.REMNAWAVE_STREAM_CHECKPOINT_OBSERVE_INTERVAL_SECONDS | float <= 300
+        )
+    fail_msg: >-
+      When the Remnawave stream consumer is enabled, configure an explicit
+      redis:// or rediss:// REMNAWAVE_STREAM_REDIS_URL and the reviewed
+      cybervpn-remnawave-v1 consumer group and the backend-owned stream HMAC
+      secret. REDIS_URL remains the Taskiq/cache transport and is not an
+      implicit stream fallback.
+  when: control_plane_stack_enable_worker
+  no_log: true
+
+- name: Control plane | Assert scheduler cannot start a duplicate Remnawave stream consumer
+  ansible.builtin.assert:
+    that:
+      - not (control_plane_stack_effective_scheduler_env.REMNAWAVE_STREAM_CONSUMER_ENABLED | bool)
+    fail_msg: >-
+      REMNAWAVE_STREAM_CONSUMER_ENABLED must be false for the scheduler; only
+      the worker deployment owns the Redis Streams consumer group.
+  when: control_plane_stack_enable_scheduler
   no_log: true
 
 - name: Control plane | Assert Helix adapter config is complete
@@ -238,20 +562,133 @@
   loop: >-
     {{
       {
+        'remnawave': control_plane_stack_remnawave_image,
         'backend': control_plane_stack_backend_image,
         'worker': control_plane_stack_worker_image,
-        'helix_adapter': control_plane_stack_helix_adapter_image
+        'helix_adapter': control_plane_stack_helix_adapter_image,
+        'subscription_page': control_plane_stack_subscription_page_image,
+        'node_ssh_proxy': control_plane_stack_node_ssh_proxy_image
       } | dict2items
     }}
   when:
     - control_plane_stack_enforce_immutable_images
     - >-
       (
+        item.key == 'remnawave' and control_plane_stack_enable_remnawave
+      ) or (
         item.key == 'backend' and control_plane_stack_enable_backend
       ) or (
         item.key == 'worker' and
         (control_plane_stack_enable_worker or control_plane_stack_enable_scheduler)
       ) or (
         item.key == 'helix_adapter' and control_plane_stack_enable_helix_adapter
+      ) or (
+        item.key == 'subscription_page' and control_plane_stack_enable_subscription_page
+      ) or (
+        item.key == 'node_ssh_proxy' and control_plane_stack_enable_node_ssh_proxy
       )
+  no_log: true
+
+- name: Control plane | Assert unified release supply-chain evidence is complete
+  vars:
+    control_plane_release_all_images:
+      remnawave: "{{ control_plane_stack_remnawave_image }}"
+      backend: "{{ control_plane_stack_backend_image }}"
+      worker: "{{ control_plane_stack_worker_image }}"
+      helix_adapter: "{{ control_plane_stack_helix_adapter_image }}"
+      node: "{{ control_plane_stack_node_image }}"
+      subscription_page: "{{ control_plane_stack_subscription_page_image }}"
+      node_ssh_proxy: "{{ control_plane_stack_node_ssh_proxy_image }}"
+    control_plane_release_scan: >-
+      {{
+        control_plane_stack_release_supply_chain
+        .components[item.key].vulnerability_scan
+      }}
+    control_plane_release_accepted_risk: >-
+      {{
+        control_plane_stack_release_supply_chain.accepted_risk
+        | default({}, true)
+      }}
+  ansible.builtin.assert:
+    that:
+      - item.value is match('^.+@sha256:[a-f0-9]{64}$')
+      - control_plane_stack_release_source_commit is match('^[a-f0-9]{40}$')
+      - control_plane_stack_release_source_run_url is match('^https://github[.]com/Beep206/CyberVPN/actions/runs/[0-9]+$')
+      - control_plane_stack_release_supply_chain.policy_version | int == 2
+      - control_plane_stack_release_supply_chain.policy_id == 'cybervpn-control-plane-supply-chain/v2'
+      - control_plane_stack_release_supply_chain.evidence_sha256 is match('^[a-f0-9]{64}$')
+      - control_plane_stack_release_supply_chain.signer_workflow == 'github.com/Beep206/CyberVPN/.github/workflows/control-plane-images.yml'
+      - control_plane_stack_release_supply_chain.source_ref == 'refs/heads/main'
+      - control_plane_stack_release_supply_chain.components.keys() | list | sort == control_plane_release_all_images.keys() | list | sort
+      - control_plane_stack_release_supply_chain.components[item.key].image == item.value
+      - control_plane_stack_release_supply_chain.components[item.key].provenance.verified | bool
+      - control_plane_stack_release_supply_chain.components[item.key].provenance.verification_method == 'gh-attestation-verify'
+      - control_plane_stack_release_supply_chain.components[item.key].provenance.predicate_type == 'https://slsa.dev/provenance/v1'
+      - control_plane_stack_release_supply_chain.components[item.key].provenance.signer_workflow == control_plane_stack_release_supply_chain.signer_workflow
+      - control_plane_stack_release_supply_chain.components[item.key].provenance.verification_output_sha256 is match('^[a-f0-9]{64}$')
+      - control_plane_stack_release_supply_chain.components[item.key].provenance.attestation_count | int >= 1
+      - control_plane_stack_release_supply_chain.components[item.key].sbom.verified | bool
+      - control_plane_stack_release_supply_chain.components[item.key].sbom.verification_method == 'gh-attestation-verify'
+      - control_plane_stack_release_supply_chain.components[item.key].sbom.predicate_type == 'https://spdx.dev/Document/v2.3'
+      - control_plane_stack_release_supply_chain.components[item.key].sbom.signer_workflow == control_plane_stack_release_supply_chain.signer_workflow
+      - control_plane_stack_release_supply_chain.components[item.key].sbom.verification_output_sha256 is match('^[a-f0-9]{64}$')
+      - control_plane_stack_release_supply_chain.components[item.key].sbom.attestation_count | int >= 1
+      - control_plane_release_scan.verified | bool
+      - control_plane_release_scan.verification_method == 'gh-attestation-verify'
+      - control_plane_release_scan.predicate_type == 'https://cybervpn.dev/attestations/vulnerability-scan/v1'
+      - control_plane_release_scan.signer_workflow == control_plane_stack_release_supply_chain.signer_workflow
+      - control_plane_release_scan.verification_output_sha256 is match('^[a-f0-9]{64}$')
+      - control_plane_release_scan.attestation_count | int >= 1
+      - control_plane_release_scan.schema_version | int == 2
+      - control_plane_release_scan.policy_id == control_plane_stack_release_supply_chain.policy_id
+      - control_plane_release_scan.subject == item.value
+      - control_plane_release_scan.scanner in ['trivy', 'docker-scout']
+      - >-
+        (
+          control_plane_release_scan.scanner == 'trivy'
+          and control_plane_release_scan.report_format == 'trivy-json'
+        ) or (
+          control_plane_release_scan.scanner == 'docker-scout'
+          and control_plane_release_scan.report_format == 'docker-scout-json'
+        )
+      - control_plane_release_scan.report_sha256 is match('^[a-f0-9]{64}$')
+      - control_plane_release_scan.critical is integer
+      - control_plane_release_scan.high is integer
+      - control_plane_release_scan.critical | int >= 0
+      - control_plane_release_scan.high | int >= 0
+      - >-
+        (
+          (control_plane_release_scan.critical | int == 0)
+          and (control_plane_release_scan.high | int == 0)
+          and control_plane_release_scan.result == 'pass'
+          and control_plane_release_scan.risk_disposition == 'clean'
+          and item.key not in (control_plane_release_accepted_risk.components | default({}))
+        ) or (
+          (
+            (control_plane_release_scan.critical | int > 0)
+            or (control_plane_release_scan.high | int > 0)
+          )
+          and control_plane_release_scan.result == 'findings'
+          and control_plane_release_scan.risk_disposition == 'accepted_non_blocking'
+          and control_plane_release_accepted_risk.schema_version | int == 1
+          and control_plane_release_accepted_risk.schema_id == 'https://cybervpn.dev/schemas/control-plane-accepted-risk/v1'
+          and control_plane_release_accepted_risk.decision == 'accepted_non_blocking'
+          and control_plane_release_accepted_risk.policy_id == control_plane_stack_release_supply_chain.policy_id
+          and control_plane_release_accepted_risk.signer_workflow == control_plane_stack_release_supply_chain.signer_workflow
+          and control_plane_release_accepted_risk.source_commit == control_plane_stack_release_source_commit
+          and control_plane_release_accepted_risk.decision_id == control_plane_release_scan.accepted_risk_decision_id
+          and item.key in control_plane_release_accepted_risk.components
+          and control_plane_release_accepted_risk.components[item.key].image == item.value
+          and control_plane_release_accepted_risk.components[item.key].scanner == control_plane_release_scan.scanner
+          and control_plane_release_accepted_risk.components[item.key].report_sha256 == control_plane_release_scan.report_sha256
+          and control_plane_release_accepted_risk.components[item.key].critical | int == control_plane_release_scan.critical | int
+          and control_plane_release_accepted_risk.components[item.key].high | int == control_plane_release_scan.high | int
+        )
+    fail_msg: >-
+      The release must contain fixed-identity signed provenance, a validated
+      SPDX-2.3 SBOM and an exact signed scan report for every image. Nonzero
+      Critical/High findings require a schema-valid owner decision bound to the
+      exact digest, counts, report hash, signer, source commit and policy.
+  loop: "{{ control_plane_release_all_images | dict2items }}"
+  when: control_plane_stack_enforce_immutable_images
   no_log: true

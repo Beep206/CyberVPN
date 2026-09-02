@@ -13,6 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.application.services.auth_session_issuer import hash_device_key
 from src.application.services.config_service import ConfigService
+from src.application.services.remnawave_identity_access import (
+    RemnawaveIdentityAccessConflict,
+    resolve_exact_mapped_remnawave_ref,
+)
 from src.application.use_cases.auth_realms import RealmResolution
 from src.application.use_cases.customer_onboarding import (
     ApplyCustomerOnboardingGrowthCodeUseCase,
@@ -39,6 +43,7 @@ from src.application.use_cases.customer_subscriptions import (
     ListCustomerSubscriptionsUseCase,
 )
 from src.application.use_cases.gifts import RedeemGiftCodeUseCase
+from src.application.use_cases.gifts.provisioning import GiftProvisioningGateway
 from src.application.use_cases.growth_codes import GrowthCodeResolutionOutcome, ResolveGrowthCodeUseCase
 from src.application.use_cases.invites.redeem_invite import InviteRedemptionRuntimeContext, RedeemInviteUseCase
 from src.application.use_cases.service_access import GetCurrentEntitlementStateUseCase
@@ -75,7 +80,11 @@ from src.infrastructure.monitoring.instrumentation.growth_codes import (
 )
 from src.infrastructure.remnawave.client import RemnawaveClient
 from src.infrastructure.remnawave.subscription_urls import normalize_public_subscription_url
-from src.infrastructure.remnawave.user_gateway import RemnawaveUserGateway
+from src.presentation.api.v1.gifts.routes import (
+    get_gift_provisioning_gateway,
+    provision_redeemed_gift_access,
+    require_gift_provisioning_gateway,
+)
 from src.presentation.dependencies.auth import get_current_mobile_user_id, get_optional_current_mobile_user_id
 from src.presentation.dependencies.auth_realms import get_request_customer_realm
 from src.presentation.dependencies.client_ip import resolve_client_ip
@@ -130,11 +139,12 @@ async def get_current_customer_onboarding(
 @router.post("/growth-code/apply", response_model=CustomerOnboardingApplyResponse)
 async def apply_customer_onboarding_growth_code(
     payload: CustomerOnboardingApplyRequest,
-    request: Request = None,
+    request: Request,
     user_id: UUID | None = Depends(get_optional_current_mobile_user_id),
     telegram_bot_secret: str | None = Header(default=None, alias="X-Telegram-Bot-Secret"),
     current_realm: RealmResolution = Depends(get_request_customer_realm),
     db: AsyncSession = Depends(get_db),
+    gift_provisioning_gateway: GiftProvisioningGateway | None = Depends(get_gift_provisioning_gateway),
 ) -> CustomerOnboardingApplyResponse:
     trusted_source_surface = _trusted_apply_source_surface(
         requested_source_surface=payload.source_surface,
@@ -194,6 +204,7 @@ async def apply_customer_onboarding_growth_code(
                     source_surface=trusted_source_surface,
                     telegram_id=payload.telegram_id,
                 ),
+                gift_provisioning_gateway=gift_provisioning_gateway,
             ),
         )
     except CustomerOnboardingUnavailableError as exc:
@@ -203,6 +214,12 @@ async def apply_customer_onboarding_growth_code(
             await db.rollback()
         observe_customer_onboarding_apply(status=exc.code, code_type=None)
         raise _onboarding_http_error(exc) from exc
+    except Exception:
+        # Provider mutations use an independently committed durable latch. The
+        # onboarding transaction must still roll back every local redemption,
+        # grant, outbox, and pending identity write on any provisioning error.
+        await db.rollback()
+        raise
     if result.commit_required:
         await db.commit()
     observe_customer_onboarding_apply(status=result.status, code_type=result.code_type)
@@ -625,35 +642,38 @@ async def _resolve_connection_config(
     auth_realm_id: UUID,
     remnawave_client: RemnawaveClient,
 ) -> _ConnectionConfigSnapshot:
-    if mobile_user.remnawave_uuid:
+    try:
+        user_ref = await resolve_exact_mapped_remnawave_ref(
+            db,
+            subject_type="mobile_user",
+            subject_id=mobile_user.id,
+            numeric_user_id=mobile_user.remnawave_user_id,
+            legacy_uuid_raw=mobile_user.remnawave_uuid,
+        )
+    except RemnawaveIdentityAccessConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Customer VPN identity is not exactly reconciled",
+        ) from exc
+    if user_ref is not None:
+        result = await GenerateConfigUseCase(remnawave_client).execute(user_ref)
         try:
-            result = await GenerateConfigUseCase(remnawave_client).execute(mobile_user.remnawave_uuid)
-        except HTTPException as exc:
-            if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT}:
-                raise
-        else:
-            return _connection_snapshot_from_result(
-                result,
-                fallback_subscription_url=mobile_user.subscription_url,
-                config_profile_name="remnawave_subscription",
-                service_identity_ready=True,
+            await CustomerSubscriptionServiceAccessUseCase(db).sync_current_remnawave_subscription_url(
+                customer_account_id=user_id,
+                auth_realm_id=auth_realm_id,
+                remnawave_ref=user_ref,
+                subscription_url=_snapshot_str(result, "subscription_url"),
             )
-
-    if mobile_user.telegram_id is not None:
-        remnawave_user = await RemnawaveUserGateway(client=remnawave_client).get_by_telegram_id(mobile_user.telegram_id)
-        if remnawave_user is not None:
-            try:
-                result = await GenerateConfigUseCase(remnawave_client).execute(remnawave_user.uuid)
-            except HTTPException as exc:
-                if exc.status_code not in {status.HTTP_404_NOT_FOUND, status.HTTP_422_UNPROCESSABLE_CONTENT}:
-                    raise
-            else:
-                return _connection_snapshot_from_result(
-                    result,
-                    fallback_subscription_url=mobile_user.subscription_url,
-                    config_profile_name="telegram_subscription",
-                    service_identity_ready=True,
-                )
+        except PermissionError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Customer account does not belong to auth realm",
+            ) from exc
+        return _connection_snapshot_from_result(
+            result,
+            config_profile_name="remnawave_subscription",
+            service_identity_ready=True,
+        )
 
     subscription_result = await ListCustomerSubscriptionsUseCase(db).execute(
         customer_account_id=user_id,
@@ -661,50 +681,37 @@ async def _resolve_connection_config(
     )
     if subscription_result.default_subscription_key:
         try:
-            result = await CustomerSubscriptionServiceAccessUseCase(db).get_config(
+            subscription_config_result = await CustomerSubscriptionServiceAccessUseCase(db).get_config(
                 customer_account_id=user_id,
                 auth_realm_id=auth_realm_id,
                 subscription_key=subscription_result.default_subscription_key,
                 remnawave_client=remnawave_client,
             )
         except (LookupError, PermissionError):
-            result = None
-        if result is not None:
+            subscription_config_result = None
+        if subscription_config_result is not None:
             return _connection_snapshot_from_result(
-                result,
-                fallback_subscription_url=mobile_user.subscription_url,
+                subscription_config_result,
                 config_profile_name="subscription_entitlement",
                 service_identity_ready=True,
             )
 
-    if mobile_user.subscription_url:
-        subscription_url = normalize_public_subscription_url(mobile_user.subscription_url) or str(
-            mobile_user.subscription_url
-        )
-        return _ConnectionConfigSnapshot(
-            subscription_url=subscription_url,
-            config_profile_name="legacy_subscription_url",
-            service_identity_ready=True,
-        )
-
     return _ConnectionConfigSnapshot(
         subscription_url=None,
         config_profile_name=None,
-        service_identity_ready=bool(mobile_user.remnawave_uuid),
+        service_identity_ready=user_ref is not None,
     )
 
 
 def _connection_snapshot_from_result(
     result: dict[str, object],
     *,
-    fallback_subscription_url: str | None,
     config_profile_name: str,
     service_identity_ready: bool,
 ) -> _ConnectionConfigSnapshot:
     subscription_url = _snapshot_str(result, "subscription_url")
     normalized = normalize_public_subscription_url(subscription_url) if subscription_url else None
-    fallback = normalize_public_subscription_url(fallback_subscription_url) if fallback_subscription_url else None
-    config = normalized or _snapshot_str(result, "config_string") or fallback
+    config = normalized or _snapshot_str(result, "config_string")
     return _ConnectionConfigSnapshot(
         subscription_url=config,
         config_profile_name=config_profile_name,
@@ -786,11 +793,13 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
         current_realm: RealmResolution,
         source_surface: str = "web",
         runtime_context: InviteRedemptionRuntimeContext | None = None,
+        gift_provisioning_gateway: GiftProvisioningGateway | None = None,
     ) -> None:
         self._session = session
         self._current_realm = current_realm
         self._source_surface = source_surface
         self._runtime_context = runtime_context
+        self._gift_provisioning_gateway = gift_provisioning_gateway
         self._resolver = ResolveGrowthCodeUseCase(session)
         self._invite_redeemer = RedeemInviteUseCase(session)
         self._gift_redeemer = RedeemGiftCodeUseCase(session)
@@ -909,14 +918,26 @@ class CustomerOnboardingGrowthCodeApplier(CustomerOnboardingCodeApplier):
             )
 
         if outcome.code_type == GrowthCodeType.GIFT:
+            provisioning_gateway = require_gift_provisioning_gateway(self._gift_provisioning_gateway)
             try:
-                redeemed_gift = await self._gift_redeemer.execute(
-                    code=code,
-                    user_id=user_id,
-                    current_realm=self._current_realm,
-                )
+                # Onboarding intentionally persists stable business-code
+                # failures. Isolate gift mutation work so an internal
+                # ValueError can never be mistaken for a pre-mutation business
+                # rejection and committed by the outer route.
+                async with self._session.begin_nested():
+                    redeemed_gift = await self._gift_redeemer.execute(
+                        code=code,
+                        user_id=user_id,
+                        current_realm=self._current_realm,
+                    )
             except ValueError as exc:
                 raise _gift_redemption_error(str(exc)) from exc
+            await provision_redeemed_gift_access(
+                db=self._session,
+                user_id=user_id,
+                result=redeemed_gift,
+                provisioning_gateway=provisioning_gateway,
+            )
             return CustomerOnboardingAppliedCode(
                 result="accepted",
                 code_type="gift",

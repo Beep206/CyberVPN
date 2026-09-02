@@ -116,7 +116,6 @@ class TorrentBlockerReportsQuery(NodePluginBaseModel):
 
 
 class TorrentBlockerUserResponse(NodePluginBaseModel):
-    uuid: str
     username: str
 
 
@@ -129,7 +128,7 @@ class TorrentBlockerNodeResponse(NodePluginBaseModel):
 class TorrentBlockerActionReportResponse(NodePluginBaseModel):
     blocked: bool
     ip: str
-    block_duration: int = Field(alias="blockDuration")
+    block_duration: float = Field(alias="blockDuration")
     will_unblock_at: datetime = Field(alias="willUnblockAt")
     user_id: str = Field(alias="userId")
     processed_at: datetime = Field(alias="processedAt")
@@ -148,7 +147,7 @@ class TorrentBlockerXrayReportResponse(NodePluginBaseModel):
     inbound_name: str | None = Field(default=None, alias="inboundName")
     inbound_local: str | None = Field(default=None, alias="inboundLocal")
     outbound_tag: str | None = Field(default=None, alias="outboundTag")
-    ts: int
+    ts: float
 
 
 class TorrentBlockerReportPayloadResponse(NodePluginBaseModel):
@@ -178,16 +177,22 @@ class TorrentBlockerStatsResponse(NodePluginBaseModel):
     reports_last_24_hours: int = Field(alias="reportsLast24Hours")
 
 
-class TorrentBlockerTopEntityResponse(NodePluginBaseModel):
-    uuid: str
+class TorrentBlockerTopUserResponse(NodePluginBaseModel):
+    user_id: int = Field(alias="userId")
     color: str
+    username: str
     total: int
-    username: str | None = None
-    name: str | None = None
-    country_code: str | None = Field(default=None, alias="countryCode")
+
+
+class TorrentBlockerTopNodeResponse(NodePluginBaseModel):
+    uuid: str
+    country_code: str = Field(alias="countryCode")
+    color: str
+    name: str
+    total: int
 
 
 class TorrentBlockerReportsStatsResponse(NodePluginBaseModel):
     stats: TorrentBlockerStatsResponse
-    top_users: list[TorrentBlockerTopEntityResponse] = Field(alias="topUsers")
-    top_nodes: list[TorrentBlockerTopEntityResponse] = Field(alias="topNodes")
+    top_users: list[TorrentBlockerTopUserResponse] = Field(alias="topUsers")
+    top_nodes: list[TorrentBlockerTopNodeResponse] = Field(alias="topNodes")

@@ -11,16 +11,11 @@ import {
   EyeOff,
   ExternalLink,
   Gauge,
-  Globe2,
   KeyRound,
   QrCode,
-  RadioTower,
   RefreshCw,
-  Route,
   Settings,
   ShieldCheck,
-  Signal,
-  Wifi,
   Zap,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -31,7 +26,6 @@ import { useCustomerSubscriptions } from '@/features/customer-subscriptions/cust
 import {
   profileApi,
   publicNetworkApi,
-  serversApi,
   customerSubscriptionsApi,
   DEFAULT_SERVICE_STATE_REQUEST,
   serviceAccessApi,
@@ -42,17 +36,10 @@ import {
   formatServiceStatus,
   getConfigDeliveryBundle,
   getConfigAvailability,
-  getRecommendedServer,
-  getServerLocation,
-  getServerProtocol,
   isServiceStateActive,
-  isUsableServer,
   maskConfigValue,
-  rankServers,
-  summarizeServers,
   type ConfigAvailability,
   type ConfigLink,
-  type RawServer,
 } from './server-access-model';
 
 const LIVE_STALE_MS = 30_000;
@@ -237,33 +224,6 @@ function getPrimaryDeliveryRevealKey(
   ].join(':');
 }
 
-function RouteCard({
-  server,
-  t,
-}: {
-  server: RawServer;
-  t: ReturnType<typeof useTranslations>;
-}) {
-  const usable = isUsableServer(server);
-
-  return (
-    <article className="rounded-2xl border border-grid-line/30 bg-black/20 p-4 backdrop-blur">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="truncate text-lg font-display text-white">{server.name}</p>
-          <p className="mt-1 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            {getServerLocation(server)} / {getServerProtocol(server)}
-          </p>
-        </div>
-        <StatusPill
-          label={t(usable ? 'status.ready' : `status.${server.status}`)}
-          tone={usable ? 'green' : server.status === 'maintenance' ? 'amber' : 'pink'}
-        />
-      </div>
-    </article>
-  );
-}
-
 export function ServerAccessDashboard() {
   const t = useTranslations('Servers');
   const locale = useLocale();
@@ -280,18 +240,6 @@ export function ServerAccessDashboard() {
       return response.data;
     },
     staleTime: PROFILE_STALE_MS,
-    refetchOnWindowFocus: false,
-  });
-
-  const serversQuery = useQuery({
-    queryKey: ['servers'],
-    queryFn: async () => {
-      const response = await serversApi.list();
-      return response.data;
-    },
-    staleTime: LIVE_STALE_MS,
-    refetchInterval: visiblePolling(LIVE_REFETCH_MS),
-    refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
   });
 
@@ -339,10 +287,6 @@ export function ServerAccessDashboard() {
     refetchOnWindowFocus: false,
   });
 
-  const servers = serversQuery.data ?? [];
-  const rankedServers = rankServers(servers).slice(0, 6);
-  const recommendedServer = getRecommendedServer(servers);
-  const summary = summarizeServers(servers);
   const configLinks = extractConfigLinks(configQuery.data, serviceStateQuery.data);
   const deliveryBundle = getConfigDeliveryBundle(configLinks);
   const subscriptionLink = deliveryBundle.subscriptionLink;
@@ -366,7 +310,6 @@ export function ServerAccessDashboard() {
   });
   const serviceActive = isServiceStateActive(serviceStateQuery.data);
   const latestSync = Math.max(
-    serversQuery.dataUpdatedAt,
     serviceStateQuery.dataUpdatedAt,
     configQuery.dataUpdatedAt,
   );
@@ -374,7 +317,6 @@ export function ServerAccessDashboard() {
     ? (formatDateTime(new Date(latestSync).toISOString(), locale) ?? t('sync.neverSynced'))
     : t('sync.neverSynced');
   const hasAnyError =
-    serversQuery.isError ||
     serviceStateQuery.isError ||
     configQuery.isError ||
     dpiQuery.isError;
@@ -432,7 +374,6 @@ export function ServerAccessDashboard() {
 
   const retryAll = () => {
     void profileQuery.refetch();
-    void serversQuery.refetch();
     void serviceStateQuery.refetch();
     void configQuery.refetch();
     void dpiQuery.refetch();
@@ -493,87 +434,7 @@ export function ServerAccessDashboard() {
         </div>
       </section>
 
-      <section
-        className="grid gap-4 md:grid-cols-3"
-        aria-label={t('summary.ariaLabel')}
-      >
-        <article className="rounded-2xl border border-grid-line/30 bg-terminal-surface/45 p-5">
-          <Globe2 className="h-5 w-5 text-neon-cyan" aria-hidden="true" />
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {t('summary.countries')}
-          </p>
-          <p className="mt-2 text-2xl font-display text-white">
-            {summary.countries.length}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-grid-line/30 bg-terminal-surface/45 p-5">
-          <Signal className="h-5 w-5 text-neon-pink" aria-hidden="true" />
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {t('summary.protocols')}
-          </p>
-          <p className="mt-2 truncate text-2xl font-display text-white">
-            {summary.protocols.join(' / ') || t('labels.auto')}
-          </p>
-        </article>
-        <article className="rounded-2xl border border-grid-line/30 bg-terminal-surface/45 p-5">
-          <Wifi className="h-5 w-5 text-neon-purple" aria-hidden="true" />
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {t('summary.access')}
-          </p>
-          <p className="mt-2 text-2xl font-display text-white">
-            {summary.connected > 0 ? t('status.ready') : t('status.pending')}
-          </p>
-        </article>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <article className="rounded-[2rem] border border-matrix-green/25 bg-terminal-surface/55 p-6 shadow-[0_0_42px_rgba(0,255,136,0.07)] backdrop-blur">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-matrix-green">
-                {t('recommended.eyebrow')}
-              </p>
-              <h2 className="mt-3 text-2xl font-display text-white">
-                {t('recommended.title')}
-              </h2>
-            </div>
-            <RadioTower className="h-6 w-6 text-matrix-green" aria-hidden="true" />
-          </div>
-
-          {serversQuery.isPending ? (
-            <LoadingBlock className="mt-6 min-h-56" />
-          ) : recommendedServer ? (
-            <div className="mt-6 space-y-5">
-              <div className="rounded-3xl border border-matrix-green/25 bg-matrix-green/10 p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="font-display text-3xl text-white">{recommendedServer.name}</p>
-                    <p className="mt-2 font-mono text-sm uppercase tracking-[0.18em] text-muted-foreground">
-                      {getServerLocation(recommendedServer)} / {getServerProtocol(recommendedServer)}
-                    </p>
-                  </div>
-                  <StatusPill
-                    label={t(isUsableServer(recommendedServer) ? 'recommended.reasonReady' : 'recommended.reasonFallback')}
-                    tone={isUsableServer(recommendedServer) ? 'green' : 'amber'}
-                  />
-                </div>
-
-                <p className="mt-6 font-mono text-sm leading-7 text-muted-foreground">
-                  {t('recommended.customerSafeReason')}
-                </p>
-              </div>
-
-              <p className="font-mono text-sm leading-7 text-muted-foreground">
-                {t('recommended.description')}
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 font-mono text-sm text-amber-200">
-              {t('recommended.empty')}
-            </div>
-          )}
-        </article>
-
+      <section>
         <article className="rounded-[2rem] border border-neon-cyan/25 bg-terminal-surface/55 p-6 shadow-[0_0_42px_rgba(0,255,255,0.07)] backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -748,29 +609,11 @@ export function ServerAccessDashboard() {
                 {t('servers.description')}
               </p>
             </div>
-            <Route className="h-6 w-6 text-neon-pink" aria-hidden="true" />
+            <ShieldCheck className="h-6 w-6 text-neon-pink" aria-hidden="true" />
           </div>
-
-          {serversQuery.isPending ? (
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              <LoadingBlock />
-              <LoadingBlock />
-            </div>
-          ) : rankedServers.length > 0 ? (
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              {rankedServers.map((server) => (
-                <RouteCard
-                  key={server.uuid}
-                  server={server}
-                  t={t}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 font-mono text-sm text-amber-100">
-              {t('servers.empty')}
-            </div>
-          )}
+          <div className="mt-6 rounded-2xl border border-neon-cyan/25 bg-neon-cyan/5 p-5 font-mono text-sm leading-7 text-muted-foreground">
+            {t('recommended.customerSafeReason')}
+          </div>
         </article>
 
         <div className="space-y-6">
@@ -876,7 +719,6 @@ export function ServerAccessDashboard() {
         >
           <RefreshCw
             className={`h-4 w-4 ${
-              serversQuery.isFetching ||
               serviceStateQuery.isFetching ||
               configQuery.isFetching ||
               dpiQuery.isFetching

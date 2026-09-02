@@ -320,14 +320,14 @@ class SQLAlchemySupportTicketRepository(SupportTicketRepository):
                 audit_summary=f"Priority changed from {previous} to {priority.value}",
             )
         if assigned_admin_id_set and model.assigned_admin_id != assigned_admin_id:
-            previous = str(model.assigned_admin_id) if model.assigned_admin_id is not None else None
+            previous_assignee = str(model.assigned_admin_id) if model.assigned_admin_id is not None else None
             model.assigned_admin_id = assigned_admin_id
             await self.add_event(
                 ticket_id=model.id,
                 actor_type=actor_type,
                 actor_id=actor_id,
                 event_type=SupportTicketEventType.ASSIGNED,
-                from_value=previous,
+                from_value=previous_assignee,
                 to_value=str(assigned_admin_id) if assigned_admin_id is not None else None,
                 audit_summary="Assignment changed",
             )

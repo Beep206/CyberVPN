@@ -45,8 +45,10 @@
     "price": "Цена",
     "provider": "Провайдер",
     "reset": "Сбросить",
+    "retry": "Повторить",
     "save": "Сохранить",
     "saving": "Сохранение...",
+    "loading": "Загрузка",
     "status": "Статус",
     "templateType": "Тип шаблона",
     "userUuid": "UUID пользователя",
@@ -75,7 +77,9 @@
     "templatesDescription": "Последние subscription templates, доступные операторам.",
     "withdrawalsTitle": "Очередь выводов",
     "withdrawalsDescription": "Заявки на вывод, ожидающие решения сотрудника.",
-    "noFlow": "Без flow",
+    "templateEmpty": "Нет payload шаблона",
+    "templateJson": "JSON-шаблон",
+    "templateYaml": "Закодированный YAML-шаблон",
     "routes": {
       "plans": "Создание, настройка и вывод из эксплуатации коммерческих тарифов без выхода из админки.",
       "addons": "Управление каталогом add-ons, лимитами количества и entitlement delta для checkout surfaces.",
@@ -367,13 +371,26 @@
     "metaTitle": "Шаблоны подписок - Ozoxy Admin",
     "eyebrow": "ШАБЛОНЫ ДОСТАВКИ",
     "title": "Subscription Templates",
-    "description": "Управление шаблонами Remnawave, привязкой к host, flow и config payload, используемыми для выдачи конфигураций.",
+    "description": "Управление точными полями Remnawave 3.4.3: именем, JSON payload и закодированным YAML payload.",
+    "configured": "Настроено",
     "createAction": "Создать шаблон",
+    "createUnavailable": "Создание шаблона временно недоступно: безопасный durable settlement ещё не включён. Существующие шаблоны можно редактировать.",
     "createTitle": "Создать шаблон",
     "editTitle": "Изменить шаблон",
     "deleteTitle": "Удалить шаблон",
     "deleteConfirm": "Удалить этот subscription template?",
     "empty": "Шаблоны подписок не найдены.",
+    "loadFailed": "Не удалось загрузить шаблоны подписок. Пустое состояние не подставлено.",
+    "updatePending": "Remnawave принял обновление шаблона, но authoritative reconciliation ещё выполняется. Не отправляйте операцию повторно.",
+    "updateSuccess": "Шаблон подписки обновлён.",
+    "fields": {
+      "encodedTemplateYaml": "Закодированный YAML шаблона",
+      "tags": "Теги",
+      "templateJson": "JSON шаблона"
+    },
+    "validation": {
+      "jsonObjectRequired": "JSON шаблона должен быть JSON-объектом."
+    },
     "form": {
       "namePlaceholder": "VLESS Vision Template",
       "configPlaceholder": "{\n  \"security\": \"reality\"\n}"
@@ -381,12 +398,12 @@
     "metrics": {
       "total": "Шаблоны",
       "totalHint": "записей шаблонов",
-      "withFlow": "С flow",
-      "withFlowHint": "шаблонов с flow control",
-      "hostBound": "Привязаны к host",
-      "hostBoundHint": "шаблонов с host binding",
       "jsonConfig": "JSON config",
-      "jsonConfigHint": "шаблонов с config payload"
+      "jsonConfigHint": "шаблонов с JSON payload",
+      "yamlConfig": "YAML config",
+      "yamlConfigHint": "шаблонов с закодированным YAML",
+      "tagged": "С тегами",
+      "taggedHint": "шаблонов с одним или несколькими тегами"
     }
   },
   "payments": {
