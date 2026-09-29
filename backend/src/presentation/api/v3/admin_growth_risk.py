@@ -588,12 +588,12 @@ async def resolve_growth_risk_review(
 
 
 def _filter_risk_models(
-    statement: Select[tuple[RiskModelVersionModel]],
+    statement: Select[RiskModelVersionModel],
     *,
     model_key: str | None,
     status_filter: str | None,
     deployment_mode: str | None,
-) -> Select[tuple[RiskModelVersionModel]]:
+) -> Select[RiskModelVersionModel]:
     if model_key is not None:
         statement = statement.where(RiskModelVersionModel.model_key == model_key)
     if status_filter is not None:
@@ -603,7 +603,7 @@ def _filter_risk_models(
     return statement
 
 
-async def _count_for(statement: Select[tuple[Any]], db: AsyncSession) -> int:
+async def _count_for(statement: Select[*tuple[Any, ...]], db: AsyncSession) -> int:
     count_statement = select(func.count()).select_from(statement.order_by(None).limit(None).offset(None).subquery())
     return int(await db.scalar(count_statement) or 0)
 

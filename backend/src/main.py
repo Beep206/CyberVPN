@@ -354,7 +354,8 @@ if settings.otel_enabled:
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
     from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
     from opentelemetry.instrumentation.redis import RedisInstrumentor
-    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+
+    from src.infrastructure.monitoring.instrumentation.sqlalchemy_tracing import instrument_sqlalchemy_engine
 
     # Instrument FastAPI app
     FastAPIInstrumentor.instrument_app(app)
@@ -367,7 +368,7 @@ if settings.otel_enabled:
     # Instrument SQLAlchemy
     from src.infrastructure.database.session import engine
 
-    SQLAlchemyInstrumentor().instrument(engine=engine.sync_engine)
+    instrument_sqlalchemy_engine(engine.sync_engine)
     logger.info("OpenTelemetry SQLAlchemy instrumentation applied")
 
     # Instrument Redis

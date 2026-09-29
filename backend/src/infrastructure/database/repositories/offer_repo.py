@@ -42,7 +42,7 @@ class OfferRepository:
         include_inactive: bool = False,
     ) -> list[OfferModel]:
         now = at or datetime.now(UTC)
-        query: Select[tuple[OfferModel]] = select(OfferModel).order_by(
+        query: Select[OfferModel] = select(OfferModel).order_by(
             OfferModel.offer_key,
             OfferModel.effective_from.desc(),
         )

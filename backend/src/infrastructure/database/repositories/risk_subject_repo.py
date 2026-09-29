@@ -33,7 +33,7 @@ class RiskSubjectGraphRepository:
         principal_subject: str,
         auth_realm_id: UUID | None,
     ) -> RiskSubjectModel | None:
-        stmt: Select[tuple[RiskSubjectModel]] = select(RiskSubjectModel).where(
+        stmt: Select[RiskSubjectModel] = select(RiskSubjectModel).where(
             RiskSubjectModel.principal_class == principal_class,
             RiskSubjectModel.principal_subject == principal_subject,
         )

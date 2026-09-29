@@ -35,7 +35,9 @@ class TestServeRuntimeConfig:
         assert config.log_level == "warning"
         assert config.access_log is False
         assert config.proxy_headers is False
-        assert config.forwarded_allow_ips == "127.0.0.1"
+        # Proxy headers are disabled, so uvicorn keeps its own loopback-only
+        # default (IPv4 + IPv6 loopback since uvicorn 0.5x).
+        assert set(config.forwarded_allow_ips.split(",")) == {"127.0.0.1", "::1"}
         assert config.server_header is False
         assert config.date_header is True
         assert config.backlog == 4096

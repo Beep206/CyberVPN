@@ -41,7 +41,7 @@ TERMINAL_RETRY_STATES = (
 )
 
 
-def build_claim_due_jobs_statement(*, now: datetime, limit: int) -> Select[tuple[Stage1ProvisioningRetryJobModel]]:
+def build_claim_due_jobs_statement(*, now: datetime, limit: int) -> Select[Stage1ProvisioningRetryJobModel]:
     """Build the PostgreSQL claim query with row locks and SKIP LOCKED."""
 
     return (

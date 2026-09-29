@@ -79,7 +79,7 @@ class PricebookRepository:
         include_inactive: bool = False,
     ) -> list[PricebookModel]:
         now = at or datetime.now(UTC)
-        query: Select[tuple[PricebookModel]] = (
+        query: Select[PricebookModel] = (
             select(PricebookModel)
             .options(selectinload(PricebookModel.entries).selectinload(PricebookEntryModel.offer))
             .order_by(PricebookModel.pricebook_key, PricebookModel.effective_from.desc())

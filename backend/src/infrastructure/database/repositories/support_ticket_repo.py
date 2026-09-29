@@ -128,7 +128,7 @@ class SQLAlchemySupportTicketRepository(SupportTicketRepository):
             stmt = stmt.where(or_(SupportTicketModel.id == ticket_id, SupportTicketModel.public_id == ticket_ref))
 
         result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
+        model: SupportTicketModel | None = result.scalar_one_or_none()
         return self._to_domain(model) if model is not None else None
 
     async def list_for_customer(
@@ -351,7 +351,7 @@ class SQLAlchemySupportTicketRepository(SupportTicketRepository):
 
     async def _get_required_detail(self, ticket_id: UUID) -> SupportTicket:
         result = await self._session.execute(self._detail_select().where(SupportTicketModel.id == ticket_id))
-        model = result.scalar_one()
+        model: SupportTicketModel = result.scalar_one()
         return self._to_domain(model)
 
     async def _list(self, stmt, *, cursor: str | None, limit: int) -> SupportTicketListResult:
@@ -362,7 +362,7 @@ class SQLAlchemySupportTicketRepository(SupportTicketRepository):
             selectinload(SupportTicketModel.events),
         ).order_by(SupportTicketModel.updated_at.desc(), SupportTicketModel.id.desc())
         result = await self._session.execute(stmt.offset(offset).limit(bounded_limit + 1))
-        models = list(result.scalars().all())
+        models: list[SupportTicketModel] = list(result.scalars().all())
         next_cursor = str(offset + bounded_limit) if len(models) > bounded_limit else None
         return SupportTicketListResult(
             tickets=tuple(self._to_domain(model) for model in models[:bounded_limit]),

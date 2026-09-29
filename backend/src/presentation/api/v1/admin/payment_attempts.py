@@ -251,7 +251,7 @@ def _serialize_admin_payment_attempt(
     )
 
 
-def _admin_payment_attempts_query() -> Select[tuple[PaymentAttemptModel, OrderModel]]:
+def _admin_payment_attempts_query() -> Select[PaymentAttemptModel, OrderModel]:
     return select(PaymentAttemptModel, OrderModel).join(OrderModel, PaymentAttemptModel.order_id == OrderModel.id)
 
 

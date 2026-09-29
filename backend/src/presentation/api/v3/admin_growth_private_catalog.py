@@ -288,7 +288,7 @@ def _grant_state(grant: PrivateCatalogAccessGrantModel) -> dict[str, Any]:
     }
 
 
-async def _count_for(statement: Select[tuple[Any]], db: AsyncSession) -> int:
+async def _count_for(statement: Select[*tuple[Any, ...]], db: AsyncSession) -> int:
     count_statement = select(func.count()).select_from(statement.order_by(None).limit(None).offset(None).subquery())
     return int(await db.scalar(count_statement) or 0)
 

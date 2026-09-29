@@ -16,7 +16,7 @@ class PasskeyCredentialRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    def _active_statement(self) -> Select[tuple[PasskeyCredentialModel]]:
+    def _active_statement(self) -> Select[PasskeyCredentialModel]:
         return select(PasskeyCredentialModel).where(
             PasskeyCredentialModel.status == "active",
             PasskeyCredentialModel.revoked_at.is_(None),

@@ -8,14 +8,16 @@ version = "0.1.0"
 description = "CyberVPN Backend API"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi==0.139.0",
-    "starlette==1.3.1",
-    "uvicorn[standard]==0.49.0",
+    "fastapi==0.141.1",
+    "starlette==1.7.0",
+    "uvicorn[standard]==0.54.0",
     "nats-py>=2.15.0",
-    "pydantic==2.13.4",
-    "pydantic-settings==2.14.2",
+    "pydantic==2.13.5",
+    "pydantic-settings==2.15.0",
     "email-validator>=2.2.0",
-    "sqlalchemy>=2.0.51,<3.0.0",
+    # SQLAlchemy 2.1 no longer installs greenlet implicitly; the asyncio extra is
+    # required for AsyncEngine/AsyncSession.
+    "sqlalchemy[asyncio]>=2.1.1,<2.2",
     "alembic>=1.18.5",
     # SEC: CVE-2026-44307 - Mako vulnerability fix via Alembic dependency
     "mako>=1.3.12",
@@ -23,10 +25,10 @@ dependencies = [
     "httpx>=0.25.0",
     "redis>=8.0.1",
     "pyjwt[crypto]>=2.13.0",
-    "cryptography>=48.0.1",
+    "cryptography>=50.0.1",
     "argon2-cffi>=23.1.0",
     "pyotp>=2.10.0",
-    "webauthn==3.0.0",
+    "webauthn==3.0.1",
     "taskiq>=0.12.4",
     "taskiq-redis>=1.2.3",
     "structlog>=26.1.0",
@@ -65,9 +67,10 @@ dev = [
 packages = ["src"]
 
 [tool.uv]
-override-dependencies = [
-    # taskiq currently resolves aiohttp below the first fixed CVE release.
-    "aiohttp==3.14.1",
+constraint-dependencies = [
+    # aiohttp is transitive (taskiq); keep it at or above the release carrying
+    # the 2026 HTTP parser and WebSocket fixes without pinning it forever.
+    "aiohttp>=3.14.3",
 ]
 
 [tool.ruff]
@@ -77,7 +80,9 @@ line-length = 120
 [tool.ruff.format]
 # Applied Alembic revisions are release artifacts. Do not rewrite historical
 # migration files just to satisfy formatter drift; use corrective migrations.
-exclude = ["alembic/versions/*.py"]
+# Ruff >= 0.16 also formats Python snippets inside Markdown; docs and reports
+# are not formatter-owned source, so keep them out of the format gate.
+exclude = ["alembic/versions/*.py", "*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]

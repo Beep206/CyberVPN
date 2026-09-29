@@ -214,14 +214,14 @@ class SQLAlchemyMessagingRepository(MessagingRepository):
                 )
             )
         result = await self._session.execute(stmt)
-        model = result.scalar_one_or_none()
+        model: MessagingConversationModel | None = result.scalar_one_or_none()
         return self._to_conversation_domain(model) if model is not None else None
 
     async def get_conversation_by_support_ticket_id(self, support_ticket_id: UUID) -> MessagingConversation | None:
         result = await self._session.execute(
             self._detail_select().where(MessagingConversationModel.related_support_ticket_id == support_ticket_id)
         )
-        model = result.scalar_one_or_none()
+        model: MessagingConversationModel | None = result.scalar_one_or_none()
         return self._to_conversation_domain(model) if model is not None else None
 
     async def list_for_customer(
@@ -242,7 +242,7 @@ class SQLAlchemyMessagingRepository(MessagingRepository):
             .offset(offset)
             .limit(bounded_limit + 1)
         )
-        models = list(result.scalars().unique().all())
+        models: list[MessagingConversationModel] = list(result.scalars().unique().all())
         next_cursor = str(offset + bounded_limit) if len(models) > bounded_limit else None
         return MessagingConversationListResult(
             conversations=tuple(
@@ -290,7 +290,7 @@ class SQLAlchemyMessagingRepository(MessagingRepository):
             .offset(offset)
             .limit(bounded_limit + 1)
         )
-        models = list(result.scalars().unique().all())
+        models: list[MessagingConversationModel] = list(result.scalars().unique().all())
         next_cursor = str(offset + bounded_limit) if len(models) > bounded_limit else None
         return MessagingConversationListResult(
             conversations=tuple(self._to_conversation_domain(model) for model in models[:bounded_limit]),
@@ -729,7 +729,7 @@ class SQLAlchemyMessagingRepository(MessagingRepository):
         result = await self._session.execute(
             self._detail_select().where(MessagingConversationModel.id == conversation_id)
         )
-        model = result.scalar_one_or_none()
+        model: MessagingConversationModel | None = result.scalar_one_or_none()
         if model is None:
             raise LookupError("Conversation not found")
         return self._to_conversation_domain(model)

@@ -31,7 +31,7 @@ class LegalDocumentRepository:
         document_type: str | None = None,
         locale: str | None = None,
     ) -> list[LegalDocumentModel]:
-        query: Select[tuple[LegalDocumentModel]] = select(LegalDocumentModel).order_by(
+        query: Select[LegalDocumentModel] = select(LegalDocumentModel).order_by(
             LegalDocumentModel.document_type.asc(),
             LegalDocumentModel.document_key.asc(),
             LegalDocumentModel.locale.asc(),

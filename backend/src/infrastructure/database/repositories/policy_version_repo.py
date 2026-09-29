@@ -39,7 +39,7 @@ class PolicyVersionRepository:
         at: datetime | None = None,
     ) -> list[PolicyVersionModel]:
         now = at or datetime.now(UTC)
-        query: Select[tuple[PolicyVersionModel]] = select(PolicyVersionModel).order_by(
+        query: Select[PolicyVersionModel] = select(PolicyVersionModel).order_by(
             PolicyVersionModel.policy_family.asc(),
             PolicyVersionModel.policy_key.asc(),
             PolicyVersionModel.version_number.desc(),

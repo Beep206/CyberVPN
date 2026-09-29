@@ -30,7 +30,7 @@ class ProgramEligibilityPolicyRepository:
         include_inactive: bool = False,
     ) -> list[ProgramEligibilityPolicyModel]:
         now = at or datetime.now(UTC)
-        query: Select[tuple[ProgramEligibilityPolicyModel]] = select(ProgramEligibilityPolicyModel).order_by(
+        query: Select[ProgramEligibilityPolicyModel] = select(ProgramEligibilityPolicyModel).order_by(
             ProgramEligibilityPolicyModel.policy_key,
             ProgramEligibilityPolicyModel.effective_from.desc(),
         )

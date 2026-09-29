@@ -411,7 +411,7 @@ class PrivacyRequestService:
         stmt = self._apply_admin_query(stmt, query)
         stmt = stmt.order_by(PrivacyRequestModel.submitted_at.desc(), PrivacyRequestModel.id.desc())
         result = await self._session.execute(stmt.offset(offset).limit(bounded_limit + 1))
-        rows = list(result.scalars().unique().all())
+        rows: list[PrivacyRequestModel] = list(result.scalars().unique().all())
         next_cursor = str(offset + bounded_limit) if len(rows) > bounded_limit else None
         return PrivacyRequestListResult(requests=tuple(rows[:bounded_limit]), next_cursor=next_cursor)
 
