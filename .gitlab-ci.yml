@@ -263,7 +263,7 @@ variables:
     - npm ci --cache "$NPM_CONFIG_CACHE" --prefer-offline
 
 .python_job:
-  image: python:3.13.14-bookworm
+  image: python:3.13.15-bookworm
   cache:
     key: "$CI_JOB_NAME_SLUG"
     paths:
@@ -274,7 +274,7 @@ variables:
 
 gitlab:ci-contract:
   stage: validate
-  image: python:3.13.14-bookworm
+  image: python:3.13.15-bookworm
   extends:
     - .rules_gitlab_config
   script:
@@ -543,7 +543,7 @@ npm-audit:high:
 
 pip-audit:python-locks:
   stage: security
-  image: python:3.13.14-bookworm
+  image: python:3.13.15-bookworm
   extends:
     - .rules_security
   cache:
@@ -609,7 +609,7 @@ sbom:release-candidate:
 
 observability:stage2-artifacts:
   stage: validate
-  image: python:3.13.14-alpine
+  image: python:3.13.15-alpine
   extends:
     - .rules_observability
   allow_failure: false
@@ -618,7 +618,7 @@ observability:stage2-artifacts:
 
 partner:stage3-artifacts:
   stage: validate
-  image: python:3.13.14-alpine
+  image: python:3.13.15-alpine
   extends:
     - .rules_partner_stage3
   allow_failure: true

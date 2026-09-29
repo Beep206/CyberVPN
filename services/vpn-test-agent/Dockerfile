@@ -1,4 +1,4 @@
-FROM python:3.13.14-alpine AS builder
+FROM python:3.13.15-alpine AS builder
 
 ARG XRAY_VERSION=26.6.27
 ARG XRAY_SHA256=b3e5902d06d6282fe53cfa2fc426058b9aeaa429b2c812e20887cd47f26d08bf
@@ -22,7 +22,7 @@ RUN curl -fsSLo /tmp/xray.zip "https://github.com/XTLS/Xray-core/releases/downlo
     chmod 0755 /opt/xray/xray && \
     rm -f /tmp/xray.zip
 
-FROM python:3.13.14-alpine AS runtime
+FROM python:3.13.15-alpine AS runtime
 
 RUN apk add --no-cache ca-certificates && \
     addgroup -S -g 10001 vpnagent && adduser -S -u 10001 -G vpnagent -h /app -s /sbin/nologin vpnagent

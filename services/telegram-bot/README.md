@@ -102,7 +102,7 @@ src/
 
 ## Prerequisites
 
-- **Python 3.13.14** (repo baseline; see `.python-version`)
+- **Python 3.13.15** (repo baseline; see `.python-version`)
 - **Redis 7.1+** (or Valkey)
 - **CyberVPN Backend API** (running and accessible)
 - **Telegram Bot Token** (from [@BotFather](https://t.me/BotFather))

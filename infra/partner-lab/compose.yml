@@ -78,7 +78,7 @@ services:
       - no-new-privileges:true
 
   partner-webhook-test-receiver:
-    image: python:3.13.14-alpine
+    image: python:3.13.15-alpine
     container_name: cybervpn-partner-webhook-test-receiver
     profiles:
       - manual

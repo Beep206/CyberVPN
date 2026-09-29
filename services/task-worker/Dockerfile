@@ -1,5 +1,5 @@
 # Stage 1: Builder — install dependencies
-FROM python:3.13.14-alpine AS builder
+FROM python:3.13.15-alpine AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN python -m venv /opt/venv && \
     /opt/venv/bin/pip install --no-cache-dir --no-deps .
 
 # Stage 2: Runtime — minimal image
-FROM python:3.13.14-alpine AS runtime
+FROM python:3.13.15-alpine AS runtime
 
 # Security: run the worker as a non-root user.
 RUN addgroup -S -g 10001 workeruser && \
