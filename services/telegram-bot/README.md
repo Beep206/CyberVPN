@@ -514,4 +514,4 @@ MIT
 
 ---
 
-**CyberVPN Telegram Bot** — Built with aiogram 3.29.1, Python 3.13.14, and Clean Architecture principles.
+**CyberVPN Telegram Bot** — Built with aiogram 3.31.0, Python 3.13.15, and Clean Architecture principles.
