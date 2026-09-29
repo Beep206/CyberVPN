@@ -144,6 +144,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, test]
     if: always()
+    # This job does not check out the repository, so the workflow-level
+    # working directory does not exist on its runner.
+    defaults:
+      run:
+        working-directory: .
     steps:
       - name: Check all jobs
         env:
