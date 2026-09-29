@@ -1,4 +1,4 @@
-"""CyberVPN boundary schemas for the Remnawave 3.4.3 hosts API."""
+"""CyberVPN boundary schemas for the Remnawave 3.4.4 hosts API."""
 
 from __future__ import annotations
 

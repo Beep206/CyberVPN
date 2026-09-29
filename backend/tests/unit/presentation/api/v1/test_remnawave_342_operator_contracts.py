@@ -349,7 +349,7 @@ def test_admin_capabilities_report_only_reachable_implemented_surfaces(monkeypat
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
 
     target = _build_admin_capabilities(
-        panel_version="3.4.3",
+        panel_version="3.4.4",
         node_ssh_available=True,
         numeric_cutover_ready=True,
         stream_export_observed=True,

@@ -520,8 +520,8 @@ require_remnawave_connection_drop_hmac_secret() {
 require_remnawave_app_secret_continuity() {
   compose_env="$COMPOSE_DIR/.env"
   panel_image="$(remote_env_value "$compose_env" CYBERVPN_REMNAWAVE_BACKEND_IMAGE || true)"
-  if ! printf '%s' "$panel_image" | grep -Eq '^.+:3[.]4[.]3-raw-vision-flow[.][0-9]+@sha256:[a-f0-9]{64}$'; then
-    remote_fail "CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be the registry digest-pinned 3.4.3 compatibility image"
+  if ! printf '%s' "$panel_image" | grep -Eq '^.+:3[.]4[.]4-raw-vision-flow[.][0-9]+@sha256:[a-f0-9]{64}$'; then
+    remote_fail "CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be the registry digest-pinned 3.4.4 compatibility image"
   fi
 
   secrets_dir="$(remote_env_value "$compose_env" CYBERVPN_SECRETS_DIR || true)"
@@ -552,7 +552,7 @@ require_remnawave_app_secret_continuity() {
   if [ "$actual_sha256" != "$expected_sha256" ]; then
     remote_fail "APP_SECRET fingerprint differs from the pre-upgrade auth secret; refusing an implicit rotation"
   fi
-  log "Remnawave 3.4.3 image identity and APP_SECRET continuity attestations passed"
+  log "Remnawave 3.4.4 image identity and APP_SECRET continuity attestations passed"
 }
 
 require_remnawave_subscription_page_contract() {

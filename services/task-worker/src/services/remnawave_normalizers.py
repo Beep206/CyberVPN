@@ -2,7 +2,7 @@
 
 The task-worker still has a number of jobs that expect legacy field names like
 ``expiresAt`` or ``trafficUp``. These helpers expose stable snake_case keys for
-the Remnawave 3.4.3 contract while retaining harmless field aliases used by
+the Remnawave 3.4.4 contract while retaining harmless field aliases used by
 older task code. Remnawave user identity is numeric from 3.0 onward.
 """
 

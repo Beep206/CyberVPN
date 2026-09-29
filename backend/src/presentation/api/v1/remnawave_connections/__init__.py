@@ -1,1 +1,1 @@
-"""CyberVPN audience boundaries for Remnawave 3.4.3 connections."""
+"""CyberVPN audience boundaries for Remnawave 3.4.4 connections."""

@@ -1250,8 +1250,10 @@ def _parse_user_usage(fields: Mapping[str, str], limits: StreamPayloadLimits) ->
 
 def _parse_subscription_request(fields: Mapping[str, str]) -> SubscriptionRequestEvent:
     normalized = dict(fields)
-    # Remnawave backend 3.4.3's producer currently emits `ssrResponseType`
-    # although its published contract calls the field `srrResponseType`.
+    # Remnawave backend 3.4.3's producer emitted `ssrResponseType` although its
+    # published contract calls the field `srrResponseType`; 3.4.4 emits the
+    # contract name.  Keep accepting both while 3.4.3 entries may still be
+    # pending in the stream and to preserve a safe panel rollback path.
     contract_value = normalized.get("srrResponseType")
     producer_value = normalized.get("ssrResponseType")
     if contract_value is not None and producer_value is not None and contract_value != producer_value:

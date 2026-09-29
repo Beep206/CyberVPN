@@ -245,7 +245,7 @@ test('pinned image build applies source overlays and never reuses broad auth cre
 
   assert.match(
     dockerfile,
-    /REMNAWAVE_BACKEND_COMMIT=f8ad8ad3410252215ca7b2e429d157bd275ec564/,
+    /REMNAWAVE_BACKEND_COMMIT=b22970cc88481a7e278b5767721672a18f8b2ada/,
   );
   assert.match(dockerfile, /COPY overlay\/ \/opt\/remnawave-backend\//);
   assert.match(dockerfile, /patch-node-ssh-scoped-broker\.mjs/);

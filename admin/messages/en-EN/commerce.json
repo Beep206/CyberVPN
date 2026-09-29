@@ -371,7 +371,7 @@
     "metaTitle": "Subscription Templates - Ozoxy Admin",
     "eyebrow": "DELIVERY TEMPLATES",
     "title": "Subscription Templates",
-    "description": "Manage the exact Remnawave 3.4.3 template name, JSON payload, and encoded YAML payload.",
+    "description": "Manage the exact Remnawave 3.4.4 template name, JSON payload, and encoded YAML payload.",
     "configured": "Configured",
     "createAction": "Create template",
     "createUnavailable": "Template creation is temporarily unavailable because safe durable settlement is not enabled. Existing templates can still be edited.",

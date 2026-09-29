@@ -41,7 +41,7 @@ function renderConsole() {
   );
 }
 
-describe('SubscriptionTemplatesConsole Remnawave 3.4.3 boundary', () => {
+describe('SubscriptionTemplatesConsole Remnawave 3.4.4 boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listTemplates.mockResolvedValue({ data: { total: 1, templates: [template] } });

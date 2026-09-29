@@ -110,7 +110,7 @@ def test_stage1_has_separate_digest_pinned_7_2_6_component_rollback() -> None:
     assert "subscription-page-health" in deploy
 
 
-def test_stage1_panel_requires_registry_digest_pinned_3_4_3_compatibility_image() -> (
+def test_stage1_panel_requires_registry_digest_pinned_3_4_4_compatibility_image() -> (
     None
 ):
     compose = (ROOT / "infra/deploy/stage1/docker-compose.stage1.yml").read_text(
@@ -121,14 +121,14 @@ def test_stage1_panel_requires_registry_digest_pinned_3_4_3_compatibility_image(
     )
 
     assert (
-        "${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:?CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be a registry digest-pinned 3.4.3 image}"
+        "${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:?CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be a registry digest-pinned 3.4.4 image}"
         in compose
     )
     assert (
-        "CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be the registry digest-pinned 3.4.3 compatibility image"
+        "CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be the registry digest-pinned 3.4.4 compatibility image"
         in deploy
     )
-    assert "3[.]4[.]3-raw-vision-flow" in deploy
+    assert "3[.]4[.]4-raw-vision-flow" in deploy
 
 
 def test_ansible_subscription_page_contract_is_private_and_operational() -> None:

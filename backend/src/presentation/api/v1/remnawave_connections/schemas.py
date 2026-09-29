@@ -231,7 +231,7 @@ AdminDropTargetNodes = Annotated[
 
 
 class AdminRemnawaveConnectionDropRequest(BaseModel):
-    """Exact Remnawave 3.4.3 drop shape."""
+    """Exact Remnawave 3.4.4 drop shape."""
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -3314,10 +3314,10 @@ function fixtureForApiRequest(rawUrl, method, postData = null) {
     return {
       kind: 'json',
       data: {
-        panel_version: '3.4.3',
-        target_panel_version: '3.4.3',
+        panel_version: '3.4.4',
+        target_panel_version: '3.4.4',
         target_node_version: '3.4.1',
-        contract_version: '3.4.13',
+        contract_version: '3.4.15',
         capabilities: {
           numeric_user_ids: true,
           connections: true,

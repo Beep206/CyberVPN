@@ -107,7 +107,7 @@ It must match the node port configured in the Remnawave panel.
 Restrict this port in cloud firewall rules to the panel IP or CIDR only.
 
 Keep the Remnawave edge image on its independently versioned compatibility
-line. Current target: custom panel/backend/frontend `3.4.3` first, then edge
+line. Current target: custom panel/backend/frontend `3.4.4` first, then edge
 node `3.4.1`; both promotion paths require OCI digests.
 
 3. Run the rollout:

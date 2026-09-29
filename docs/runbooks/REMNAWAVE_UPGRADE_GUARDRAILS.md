@@ -5,10 +5,10 @@ It does not authorize a production deployment.
 
 ## Current target
 
-- panel/backend/frontend: custom `3.4.3-raw-vision-flow.2`
-- upstream backend base: `remnawave/backend:3.4.3@sha256:4ea85b2fc16bd3e5d367b61afc07ec219133eaa12dd7b5e898adc33c84515422`
-- upstream backend commit: `f8ad8ad3410252215ca7b2e429d157bd275ec564`
-- upstream frontend commit/artifact: `c2c9ba3b476e4914a3b17e8ce677ab9255e1c02f` / `sha256:947e78b5c89ee49f1ac0389b1bd3c943a4aaf90dce32ce51fb44010182613132`
+- panel/backend/frontend: custom `3.4.4-raw-vision-flow.1` (3.4.3 -> 3.4.4 delta: `REMNAWAVE_3_4_4_UPGRADE.md`)
+- upstream backend base: `remnawave/backend:3.4.4@sha256:63ef481550bbf49dabfa514c95d94109619cc85607730b308f7ad0b9b5599f06`
+- upstream backend commit: `b22970cc88481a7e278b5767721672a18f8b2ada`
+- upstream frontend commit/artifact: `cb4453bcfa4254ef91301f9a68d727da861487fb` / `sha256:9fea4c7bb4c01b83df2a5d687949a5ac4f02ae91e1d685c106506c23158c8387`
 - edge node: `remnawave/node:3.4.1@sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e`
 - subscription page: `remnawave/subscription-page:8.0.0@sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac`
 - data services remain PostgreSQL `17.10` and Valkey `8.1.8` over TCP
@@ -21,7 +21,7 @@ digest in each environment's `control_plane_release_images.remnawave` field.
 
 1. Preserve a restorable PostgreSQL backup and the previous environment file.
 2. Prove restore in an isolated staging database before touching the target.
-3. Upgrade the custom panel/backend/frontend to `3.4.3` while nodes remain on
+3. Upgrade the custom panel/backend/frontend to `3.4.4` while nodes remain on
    the old version. A 3.3+ node must never connect to a panel below 3.3.
 4. Run API, subscription, webhook, worker, partner, admin, and node inventory
    smoke checks.
@@ -29,7 +29,7 @@ digest in each environment's `control_plane_release_images.remnawave` field.
 6. Upgrade subscription page `8.0.0` and check `/internal/health` plus an actual
    subscription render through the public reverse proxy.
 
-Do not reverse this order. Panel 3.4.3 supports older nodes during the canary;
+Do not reverse this order. Panel 3.4.4 supports older nodes during the canary;
 node 3.4.1 relies on the 3.x panel-node contract.
 
 ## Secret and environment migration
@@ -112,9 +112,10 @@ public socket, or a new public reverse-proxy route is a release stop condition.
 The custom backend must never patch a file already compiled inside the image.
 The Docker build must:
 
-1. clone tag `3.4.3`, require commit `f8ad8ad3…`, and fail the build unless the
+1. clone tag `3.4.4`, require commit `b22970cc…`, and fail the build unless the
    exact source preserves the mixed-case `backend-tools` authentication guard
-   plus the inherited HWID-concurrency and nullable-OpenAPI fixes;
+   plus the inherited HWID-concurrency and nullable-OpenAPI fixes and the
+   `srrResponseType` subscription-request stream field;
 2. apply the fail-closed patch to
    `src/common/helpers/xray-config/xray-config.validator.ts`;
 3. require numeric `user.id`, remove inbound-level `settings.flow`, and add
@@ -128,7 +129,7 @@ Any source-pattern, user-id mapping, commit, version, or base-image drift must
 fail the image build. Never weaken these checks to make a later upstream tag
 build; review and version the patch instead.
 
-The upstream 3.4.3 tag has unrelated formatter drift in untouched files
+The upstream 3.4.x tags have unrelated formatter drift in untouched files
 under its locked `oxfmt`. For that reason the build runs formatting against
 the only file CyberVPN changes and runs `oxlint` across the complete source
 tree. Do not replace the targeted formatter gate with a formatter write pass;
@@ -206,7 +207,7 @@ build are release gates, not optional diagnostics:
 
 ```bash
 docker build --pull \
-  --tag cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2 \
+  --tag cybervpn/remnawave-backend:3.4.4-raw-vision-flow.1 \
   infra/remnawave-backend-compat
 ```
 
@@ -260,7 +261,7 @@ only by a safe exact-identity GET and never by replaying the mutation.
   bounded lag and no dead-letter/receipt replay storm;
 - subscription page is healthy at `/internal/health` and renders a real test
   subscription;
-- old nodes reconnect to panel 3.4.3 before the node canary begins;
+- old nodes reconnect to panel 3.4.4 before the node canary begins;
 - the node canary passes client compatibility, Xray config, metrics, nftables,
   GeoCheck, and rollback checks;
 - every API consumer has passed its 3.x contract tests;

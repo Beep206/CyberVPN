@@ -155,7 +155,7 @@ describe('governanceApi admin invite operations', () => {
 });
 
 describe('governanceApi policy settings operations', () => {
-  it('loads the singleton Remnawave 3.4.3 settings document', async () => {
+  it('loads the singleton Remnawave 3.4.4 settings document', async () => {
     server.use(
       http.get(MATCH_ANY_API_ORIGIN.settings, () =>
         HttpResponse.json({

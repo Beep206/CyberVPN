@@ -73,9 +73,9 @@ def test_admin_capabilities_fail_closed_without_exact_target_panel(monkeypatch) 
 def test_admin_numeric_and_stream_capabilities_require_observed_readiness(monkeypatch) -> None:
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
 
-    unproved = _build_admin_capabilities(panel_version="3.4.3", node_ssh_available=False)
+    unproved = _build_admin_capabilities(panel_version="3.4.4", node_ssh_available=False)
     proved = _build_admin_capabilities(
-        panel_version="3.4.3",
+        panel_version="3.4.4",
         node_ssh_available=False,
         numeric_cutover_ready=True,
         stream_export_observed=True,
@@ -173,7 +173,7 @@ async def test_fresh_stream_receipts_are_unknown_when_backlog_is_unobserved(
     assert routes._stream_export_readiness_observed(streams) is False
 
     client = AsyncMock()
-    client.get.return_value = {"version": "3.4.3"}
+    client.get.return_value = {"version": "3.4.4"}
     monkeypatch.setattr(routes, "_stream_health", AsyncMock(return_value=streams))
     monkeypatch.setattr(routes, "_numeric_identity_cutover_ready", AsyncMock(return_value=True))
     monkeypatch.setattr(routes, "is_remnawave_node_ssh_available_for", lambda _user: False)
@@ -297,9 +297,9 @@ async def test_stream_gap_and_dead_letter_reasons_precede_receipt_staleness(monk
 
 
 @pytest.mark.unit
-async def test_admin_status_reports_exact_343_panel_and_341_node_targets(monkeypatch) -> None:
+async def test_admin_status_reports_exact_344_panel_and_341_node_targets(monkeypatch) -> None:
     client = AsyncMock()
-    client.get.return_value = {"version": "v3.4.3"}
+    client.get.return_value = {"version": "v3.4.4"}
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
     monkeypatch.setattr(routes, "_stream_health", AsyncMock(return_value=[]))
     monkeypatch.setattr(routes, "_numeric_identity_cutover_ready", AsyncMock(return_value=True))
@@ -312,10 +312,10 @@ async def test_admin_status_reports_exact_343_panel_and_341_node_targets(monkeyp
     )
 
     client.get.assert_awaited_once_with("/system/metadata")
-    assert response.panel_version == "3.4.3"
-    assert response.target_panel_version == "3.4.3"
+    assert response.panel_version == "3.4.4"
+    assert response.target_panel_version == "3.4.4"
     assert response.target_node_version == "3.4.1"
-    assert response.contract_version == "3.4.13"
+    assert response.contract_version == "3.4.15"
     assert response.degraded_reason is None
     assert response.capabilities.numeric_user_ids is True
     assert response.capabilities.node_ssh is True
@@ -324,9 +324,11 @@ async def test_admin_status_reports_exact_343_panel_and_341_node_targets(monkeyp
 
 
 @pytest.mark.unit
-async def test_admin_status_rejects_341_panel_as_version_mismatch(monkeypatch) -> None:
+@pytest.mark.parametrize("panel_version", ["3.4.1", "3.4.3", "3.4.5"])
+async def test_admin_status_rejects_non_target_panel_as_version_mismatch(monkeypatch, panel_version: str) -> None:
+    # 3.4.3 was the previous exact target; it must fail closed after the 3.4.4 cutover.
     client = AsyncMock()
-    client.get.return_value = {"version": "3.4.1"}
+    client.get.return_value = {"version": panel_version}
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
     monkeypatch.setattr(routes, "_stream_health", AsyncMock(return_value=[]))
     monkeypatch.setattr(routes, "_numeric_identity_cutover_ready", AsyncMock(return_value=True))
@@ -338,7 +340,7 @@ async def test_admin_status_rejects_341_panel_as_version_mismatch(monkeypatch) -
         client=client,
     )
 
-    assert response.panel_version == "3.4.1"
+    assert response.panel_version == panel_version
     assert response.degraded_reason == "panel_version_mismatch"
     assert not any(response.capabilities.model_dump().values())
 
@@ -352,7 +354,7 @@ async def test_target_panel_readiness_single_flights_simultaneous_status_checks(
         assert path == "/system/metadata"
         refresh_started.set()
         await release_refresh.wait()
-        return {"version": "3.4.3"}
+        return {"version": "3.4.4"}
 
     client = AsyncMock()
     client.get.side_effect = get_metadata
@@ -384,7 +386,7 @@ async def test_target_panel_readiness_single_flights_refresh_after_expiry(monkey
         if call_count > 1:
             refresh_started.set()
             await release_refresh.wait()
-        return {"version": "3.4.3"}
+        return {"version": "3.4.4"}
 
     client = AsyncMock()
     client.get.side_effect = get_metadata
@@ -410,7 +412,7 @@ async def test_target_panel_readiness_caches_false_until_expiry(monkeypatch) -> 
     client = AsyncMock()
     client.get.side_effect = [
         {"version": "3.4.1"},
-        {"version": "3.4.3"},
+        {"version": "3.4.4"},
     ]
     monkeypatch.setattr(
         routes,
@@ -432,12 +434,12 @@ async def test_target_panel_readiness_never_serves_stale_true_after_refresh_erro
     now = [100.0]
     client = AsyncMock()
     client.get.side_effect = [
-        {"version": "3.4.3"},
+        {"version": "3.4.4"},
         httpx.ConnectError(
             "panel unavailable",
             request=httpx.Request("GET", "https://remnawave.invalid/system/metadata"),
         ),
-        {"version": "3.4.3"},
+        {"version": "3.4.4"},
     ]
     monkeypatch.setattr(
         routes,
@@ -473,7 +475,7 @@ async def test_customer_status_is_scoped_to_authenticated_customer(monkeypatch) 
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
 
     client = AsyncMock()
-    client.get.return_value = {"version": "3.4.3"}
+    client.get.return_value = {"version": "3.4.4"}
     response = await get_customer_vpn_service_status(customer_account_id=customer_id, db=db, client=client)
 
     db.get.assert_awaited_once()
@@ -499,7 +501,7 @@ async def test_customer_status_does_not_advertise_numeric_identity_without_exact
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
 
     client = AsyncMock()
-    client.get.return_value = {"version": "3.4.3"}
+    client.get.return_value = {"version": "3.4.4"}
     response = await get_customer_vpn_service_status(customer_account_id=customer_id, db=db, client=client)
 
     assert response.connections_available is False
@@ -533,7 +535,7 @@ async def test_partner_status_counts_only_query_scoped_grants(monkeypatch) -> No
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
 
     client = AsyncMock()
-    client.get.return_value = {"version": "3.4.3"}
+    client.get.return_value = {"version": "3.4.4"}
     response = await get_partner_vpn_service_status(workspace_id=workspace_id, access=access, db=db, client=client)
 
     assert response.workspace_id == workspace_id
@@ -562,7 +564,7 @@ async def test_partner_status_does_not_advertise_connections_for_unrelated_grant
     monkeypatch.setattr(settings, "remnawave_stream_ingestion_enabled", True)
 
     client = AsyncMock()
-    client.get.return_value = {"version": "3.4.3"}
+    client.get.return_value = {"version": "3.4.4"}
     response = await get_partner_vpn_service_status(workspace_id=workspace_id, access=access, db=db, client=client)
 
     assert response.assigned_resources == 1

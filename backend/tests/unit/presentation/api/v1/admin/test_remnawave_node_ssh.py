@@ -285,7 +285,7 @@ async def test_admin_status_reports_node_ssh_for_current_trusted_admin_only(monk
         scalars=lambda: SimpleNamespace(all=lambda: []),
     )
     client = AsyncMock()
-    client.get.return_value = {"version": "3.4.3"}
+    client.get.return_value = {"version": "3.4.4"}
 
     trusted_db = AsyncMock()
     trusted_db.execute.return_value = empty_rows

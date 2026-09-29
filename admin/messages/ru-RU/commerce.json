@@ -371,7 +371,7 @@
     "metaTitle": "Шаблоны подписок - Ozoxy Admin",
     "eyebrow": "ШАБЛОНЫ ДОСТАВКИ",
     "title": "Subscription Templates",
-    "description": "Управление точными полями Remnawave 3.4.3: именем, JSON payload и закодированным YAML payload.",
+    "description": "Управление точными полями Remnawave 3.4.4: именем, JSON payload и закодированным YAML payload.",
     "configured": "Настроено",
     "createAction": "Создать шаблон",
     "createUnavailable": "Создание шаблона временно недоступно: безопасный durable settlement ещё не включён. Существующие шаблоны можно редактировать.",

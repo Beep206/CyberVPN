@@ -1,8 +1,8 @@
-"""Typed Remnawave 3.4.3 connections API boundary.
+"""Typed Remnawave 3.4.4 connections API boundary.
 
 The upstream read operations create short-lived jobs with POST and expose the
 result through retry-safe GET requests. Connection dropping is an explicitly
-single-attempt operation because upstream 3.4.3 has neither an idempotency key
+single-attempt operation because upstream 3.4.4 has neither an idempotency key
 nor a result/reconciliation route; callers must reserve local ambiguity state
 before invoking it.
 """
@@ -186,7 +186,7 @@ class RemnawaveConnectionDropCommand(BaseModel):
 
 
 class RemnawaveConnectionsGateway:
-    """Exact, bounded adapter for the Remnawave 3.4.3 connections routes."""
+    """Exact, bounded adapter for the Remnawave 3.4.4 connections routes."""
 
     def __init__(self, client: RemnawaveClient) -> None:
         self._client = client

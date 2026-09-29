@@ -414,7 +414,7 @@ async def test_reused_idempotency_key_with_different_payload_returns_conflict_be
 
 
 @pytest.mark.unit
-async def test_tag_reads_and_mutations_use_exact_343_resource_paths_and_shapes(
+async def test_tag_reads_and_mutations_use_exact_344_resource_paths_and_shapes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     attempt = _AttemptServiceFake()
@@ -829,7 +829,7 @@ async def test_reconciliation_latched_snippet_uses_exact_collection_readback_wit
 
 
 @pytest.mark.unit
-async def test_sync_returns_safe_accepted_receipt_and_uses_exact_343_action_contract(
+async def test_sync_returns_safe_accepted_receipt_and_uses_exact_344_action_contract(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     attempt = _AttemptServiceFake()
@@ -953,7 +953,7 @@ async def test_geocheck_uses_exact_connections_paths_and_target_alias_shapes(
 
 
 @pytest.mark.unit
-async def test_exact_343_collection_paths_and_shapes_are_preserved() -> None:
+async def test_exact_344_collection_paths_and_shapes_are_preserved() -> None:
     provider = AsyncMock(spec=RemnawaveClient)
     integration = NodeIntegration(
         uuid=uuid4(),

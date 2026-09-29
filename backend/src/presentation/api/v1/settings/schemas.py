@@ -1,4 +1,4 @@
-"""Typed Remnawave 3.4.3 system-settings contracts."""
+"""Typed Remnawave 3.4.4 system-settings contracts."""
 
 from __future__ import annotations
 
@@ -117,7 +117,7 @@ class BrandingSettings(RemnawaveSettingsModel):
 
 
 class RemnawaveSettingsResponse(RemnawaveSettingsModel):
-    """Unwrapped ``response`` object returned by Remnawave 3.4.3."""
+    """Unwrapped ``response`` object returned by Remnawave 3.4.4."""
 
     passkey_settings: PasskeySettings | None = Field(alias="passkeySettings")
     oauth2_settings: OAuth2Settings | None = Field(alias="oauth2Settings")

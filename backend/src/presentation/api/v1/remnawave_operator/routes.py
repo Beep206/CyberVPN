@@ -1,4 +1,4 @@
-"""Trusted-admin Remnawave 3.4.3 control-plane operations.
+"""Trusted-admin Remnawave 3.4.4 control-plane operations.
 
 Every provider mutation is protected by a durable stop-before-retry marker.
 Known resources are read back after empty/ambiguous responses; creates use an

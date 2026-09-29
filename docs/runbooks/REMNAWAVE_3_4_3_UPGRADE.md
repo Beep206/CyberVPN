@@ -1,5 +1,9 @@
 # Remnawave 3.4.3 Upgrade Procedure
 
+> The current panel target is 3.4.4. For the 3.4.3 -> 3.4.4 patch step use
+> `REMNAWAVE_3_4_4_UPGRADE.md`; this document remains the full procedure and
+> operations reference.
+
 Use this procedure for the controlled migration from the CyberVPN custom 2.8.0
 panel to custom panel/backend/frontend 3.4.3, Remnawave Node 3.4.1, and
 Subscription Page 8.0.0. Complete the guardrails in

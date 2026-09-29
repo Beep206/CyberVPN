@@ -1,4 +1,4 @@
-"""Typed Remnawave 3.4.3 host and subscription-template contracts."""
+"""Typed Remnawave 3.4.4 host and subscription-template contracts."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ class RemnawaveHostInternalSquadsResponse(_RemnawaveResponse):
 
 
 class RemnawaveHostV34Response(_RemnawaveResponse):
-    """Unwrapped ``HostResponseDto.response`` from Remnawave 3.4.3."""
+    """Unwrapped ``HostResponseDto.response`` from Remnawave 3.4.4."""
 
     uuid: UUID
     view_position: int = Field(alias="viewPosition", ge=-(2**53 - 1), le=2**53 - 1)

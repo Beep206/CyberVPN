@@ -9,15 +9,22 @@ from pathlib import Path
 INFRA_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = INFRA_ROOT.parent
 
+# Runtime pins for the current Remnawave panel target.
 BACKEND_DIGEST = (
+    "sha256:63ef481550bbf49dabfa514c95d94109619cc85607730b308f7ad0b9b5599f06"
+)
+# Immutable 3.4.3 evidence bundle identity (historical, not the runtime pin).
+EVIDENCE_343_BACKEND_DIGEST = (
     "sha256:4ea85b2fc16bd3e5d367b61afc07ec219133eaa12dd7b5e898adc33c84515422"
 )
 NODE_DIGEST = "sha256:0cdf386dd49f360fc885bb34bde21132e478e40f0deac62d616086ec0fa9257e"
 SUBPAGE_DIGEST = (
     "sha256:04e8d479afb3598024e4018e9e15cd7fe879938250090a690ba39f1ee91b79ac"
 )
-BACKEND_COMMIT = "f8ad8ad3410252215ca7b2e429d157bd275ec564"
-FRONTEND_COMMIT = "c2c9ba3b476e4914a3b17e8ce677ab9255e1c02f"
+BACKEND_COMMIT = "b22970cc88481a7e278b5767721672a18f8b2ada"
+FRONTEND_COMMIT = "cb4453bcfa4254ef91301f9a68d727da861487fb"
+EVIDENCE_343_BACKEND_COMMIT = "f8ad8ad3410252215ca7b2e429d157bd275ec564"
+EVIDENCE_343_FRONTEND_COMMIT = "c2c9ba3b476e4914a3b17e8ce677ab9255e1c02f"
 NODE_COMMIT = "44912631321664dbd5822e9bf8d96766ccff7c93"
 
 
@@ -29,17 +36,17 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_custom_backend_is_rebuilt_from_pinned_3_4_3_typescript_source() -> None:
+def test_custom_backend_is_rebuilt_from_pinned_3_4_4_typescript_source() -> None:
     dockerfile = _read(INFRA_ROOT / "remnawave-backend-compat" / "Dockerfile")
     patcher = _read(
         INFRA_ROOT / "remnawave-backend-compat" / "patch-xray-config-validator.mjs"
     )
 
-    assert "REMNAWAVE_BACKEND_VERSION=3.4.3" in dockerfile
+    assert "REMNAWAVE_BACKEND_VERSION=3.4.4" in dockerfile
     assert f"REMNAWAVE_BACKEND_COMMIT={BACKEND_COMMIT}" in dockerfile
     assert f"REMNAWAVE_FRONTEND_COMMIT={FRONTEND_COMMIT}" in dockerfile
-    assert f"remnawave/backend:3.4.3@{BACKEND_DIGEST}" in dockerfile
-    assert "verify-upstream-3.4.3-regressions.mjs" in dockerfile
+    assert f"remnawave/backend:3.4.4@{BACKEND_DIGEST}" in dockerfile
+    assert "verify-upstream-3.4.4-regressions.mjs" in dockerfile
     assert "__RW_METADATA_GIT_FRONTEND_COMMIT}" in dockerfile
     assert "src/common/helpers/xray-config/xray-config.validator.ts" in dockerfile
     assert "npx --no-install oxfmt --check" in dockerfile
@@ -296,9 +303,9 @@ def test_local_image_and_runtime_evidence_cannot_be_mistaken_for_promotion() -> 
     assert panel_evidence["promotion_eligible"] is False
     assert len(panel_evidence["promotion_blockers"]) >= 3
     panel = panel_evidence["panel_backend_frontend"]
-    assert panel["backend_tag_commit"] == BACKEND_COMMIT
-    assert panel["frontend_tag_commit"] == FRONTEND_COMMIT
-    assert BACKEND_DIGEST in panel["upstream_image"]
+    assert panel["backend_tag_commit"] == EVIDENCE_343_BACKEND_COMMIT
+    assert panel["frontend_tag_commit"] == EVIDENCE_343_FRONTEND_COMMIT
+    assert EVIDENCE_343_BACKEND_DIGEST in panel["upstream_image"]
     assert panel["disposable_runtime_smoke"]["health"] == "pass"
     assert (
         panel["disposable_runtime_smoke"]["lowercase_backend_tools_without_auth"] == 403
@@ -359,7 +366,7 @@ def test_local_sboms_bind_exact_images_but_are_not_promotion_attestations() -> N
 def test_local_compose_pins_target_versions_and_preserves_data_services() -> None:
     compose = _read(INFRA_ROOT / "docker-compose.yml")
 
-    assert "cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2" in compose
+    assert "cybervpn/remnawave-backend:3.4.4-raw-vision-flow.1" in compose
     assert f"remnawave/subscription-page:8.0.0@{SUBPAGE_DIGEST}" in compose
     assert "http://localhost:3010/internal/health" in compose
     assert "postgres:17.10" in compose

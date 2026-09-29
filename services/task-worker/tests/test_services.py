@@ -42,7 +42,7 @@ async def test_remnawave_client_get_users():
 
 @pytest.mark.asyncio
 async def test_remnawave_client_get_users_normalizes_aliases():
-    """Test RemnawaveClient get_users normalizes 3.4.3 payloads."""
+    """Test RemnawaveClient get_users normalizes 3.4.4 payloads."""
     user_payload = load_remnawave_fixture("user_3_4_1.json")
 
     with patch("src.services.remnawave_client.httpx.AsyncClient") as mock_client_cls:

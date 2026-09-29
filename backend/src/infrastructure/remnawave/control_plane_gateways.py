@@ -1,4 +1,4 @@
-"""Fail-closed Remnawave 3.4.3 host and template mutation gateways."""
+"""Fail-closed Remnawave 3.4.4 host and template mutation gateways."""
 
 from __future__ import annotations
 

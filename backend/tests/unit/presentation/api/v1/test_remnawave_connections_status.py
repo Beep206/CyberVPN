@@ -11,8 +11,8 @@ from src.presentation.dependencies.partner_workspace import PartnerWorkspaceAcce
 
 
 @pytest.mark.unit
-def test_admin_connections_capability_requires_exact_343_panel() -> None:
-    assert routes._build_admin_capabilities(panel_version="3.4.3", node_ssh_available=False).connections is True
+def test_admin_connections_capability_requires_exact_344_panel() -> None:
+    assert routes._build_admin_capabilities(panel_version="3.4.4", node_ssh_available=False).connections is True
     assert routes._build_admin_capabilities(panel_version="3.4.1", node_ssh_available=True).connections is False
     assert routes._build_admin_capabilities(panel_version=None, node_ssh_available=True).connections is False
 
@@ -39,7 +39,7 @@ async def test_partner_live_connections_capability_is_independent_of_stream_expo
             is_internal_admin_override=False,
         ),
         db=AsyncMock(),
-        client=AsyncMock(get=AsyncMock(return_value={"version": "3.4.3"})),
+        client=AsyncMock(get=AsyncMock(return_value={"version": "3.4.4"})),
     )
 
     assert response.capabilities.connections is True
@@ -69,7 +69,7 @@ async def test_customer_live_connections_capability_requires_exact_active_mappin
     response = await routes.get_customer_vpn_service_status(
         customer_account_id=customer_id,
         db=db,
-        client=AsyncMock(get=AsyncMock(return_value={"version": "3.4.3"})),
+        client=AsyncMock(get=AsyncMock(return_value={"version": "3.4.4"})),
     )
 
     exact_resolver.assert_awaited_once_with(db, customer)

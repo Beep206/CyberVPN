@@ -26,7 +26,7 @@ def _raise_billing_unsupported(*, action: str) -> NoReturn:
     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
     response_model=None,
     deprecated=True,
-    responses={503: {"description": "Remnawave 3.4.3 exposes no customer billing endpoint"}},
+    responses={503: {"description": "Remnawave 3.4.4 exposes no customer billing endpoint"}},
 )
 async def get_billing_info(
     current_user=Depends(get_current_active_user),
@@ -41,7 +41,7 @@ async def get_billing_info(
     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
     response_model=None,
     deprecated=True,
-    responses={503: {"description": "Remnawave 3.4.3 exposes no customer payment endpoint"}},
+    responses={503: {"description": "Remnawave 3.4.4 exposes no customer payment endpoint"}},
 )
 async def create_payment(
     payment_data: CreatePaymentRequest,

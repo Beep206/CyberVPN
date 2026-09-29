@@ -481,7 +481,7 @@ services:
 
   cybervpn-remnawave:
     <<: *runtime-defaults
-    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:?CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be a registry digest-pinned 3.4.3 image}
+    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:?CYBERVPN_REMNAWAVE_BACKEND_IMAGE must be a registry digest-pinned 3.4.4 image}
     env_file:
       - path: ${CYBERVPN_SECRETS_DIR:-/srv/cybervpn-h/secrets}/remnawave-panel.env
         required: true

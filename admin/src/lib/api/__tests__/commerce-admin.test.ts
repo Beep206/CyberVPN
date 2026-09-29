@@ -916,7 +916,7 @@ describe('publicCatalogApi operations', () => {
 });
 
 describe('subscriptionsApi admin operations', () => {
-  it('sends the exact 3.4.3 create shape and preserves the safety-disabled failure', async () => {
+  it('sends the exact 3.4.4 create shape and preserves the safety-disabled failure', async () => {
     let capturedBody: Record<string, unknown> | null = null;
 
     server.use(

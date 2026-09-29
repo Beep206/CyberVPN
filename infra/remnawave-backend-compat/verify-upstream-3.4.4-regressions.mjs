@@ -6,7 +6,7 @@ const sourceRoot =
   process.env.REMNAWAVE_BACKEND_SOURCE_ROOT ?? '/opt/remnawave-backend';
 
 function fail(message) {
-  console.error(`Remnawave 3.4.3 upstream regression verification failed: ${message}`);
+  console.error(`Remnawave 3.4.4 upstream regression verification failed: ${message}`);
   process.exit(1);
 }
 
@@ -33,8 +33,8 @@ function requireOrder(source, needles, label) {
 }
 
 const packageJson = JSON.parse(read('package.json'));
-if (packageJson.version !== '3.4.3') {
-  fail(`package version must be 3.4.3, got ${JSON.stringify(packageJson.version)}`);
+if (packageJson.version !== '3.4.4') {
+  fail(`package version must be 3.4.4, got ${JSON.stringify(packageJson.version)}`);
 }
 if (packageJson.scripts?.postinstall !== 'patch-package') {
   fail('package postinstall must apply the tagged patch-package fixes');
@@ -90,6 +90,22 @@ if (!existsBranch.includes('checkAndUpsertHwidDevice')) {
   fail('EXISTS branch must reconcile mutable device metadata');
 }
 
+// 3.4.4 fixed the subscription-request stream producer, which emitted the
+// misspelled `ssrResponseType` field in 3.4.3.  The CyberVPN task-worker still
+// accepts both spellings for rollback safety, but the pinned producer must emit
+// only the published contract field.
+const subscriptionRequestsProcessor = read(
+  'src/queue/_users/processors/subscription-requests.processor.ts',
+);
+requireOnce(
+  subscriptionRequestsProcessor,
+  'srrResponseType: payload.srrResponseType,',
+  'subscription-request stream srrResponseType producer field',
+);
+if (subscriptionRequestsProcessor.includes('ssrResponseType')) {
+  fail('subscription-request stream producer must not emit the legacy ssrResponseType field');
+}
+
 const main = read('src/main.ts');
 requireOnce(
   main,
@@ -134,5 +150,5 @@ if (!nullablePatch.includes('normalizeTypeUnions')) {
 }
 
 console.log(
-  'Verified Remnawave 3.4.3 backend-tools auth, HWID concurrency, and nullable OpenAPI source fixes.',
+  'Verified Remnawave 3.4.4 backend-tools auth, HWID concurrency, subscription-request stream field, and nullable OpenAPI source fixes.',
 );

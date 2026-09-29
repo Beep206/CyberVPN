@@ -1,7 +1,7 @@
 # CyberVPN scoped Node SSH broker contract
 
 This overlay applies only to the Remnawave backend source pinned at commit
-`f8ad8ad3410252215ca7b2e429d157bd275ec564` (release `3.4.3`). The patcher
+`b22970cc88481a7e278b5767721672a18f8b2ada` (release `3.4.4`). The patcher
 fails before writing any file when one of the security-sensitive upstream
 anchors has drifted.
 

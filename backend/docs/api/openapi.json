@@ -24836,7 +24836,7 @@
         "operationId": "get_billing_info_api_v1_billing__get",
         "responses": {
           "503": {
-            "description": "Remnawave 3.4.3 exposes no customer billing endpoint",
+            "description": "Remnawave 3.4.4 exposes no customer billing endpoint",
             "content": {
               "application/json": {
                 "schema": {}
@@ -24870,7 +24870,7 @@
         },
         "responses": {
           "503": {
-            "description": "Remnawave 3.4.3 exposes no customer payment endpoint",
+            "description": "Remnawave 3.4.4 exposes no customer payment endpoint",
             "content": {
               "application/json": {
                 "schema": {}
@@ -47004,7 +47004,7 @@
         "operationId": "get_public_key_api_v1_keygen_public_key_get",
         "responses": {
           "503": {
-            "description": "Remnawave 3.4.3 has no public-key operation",
+            "description": "Remnawave 3.4.4 has no public-key operation",
             "content": {
               "application/json": {
                 "schema": {}
@@ -47040,7 +47040,7 @@
         },
         "responses": {
           "503": {
-            "description": "Remnawave 3.4.3 has no sign-payload operation",
+            "description": "Remnawave 3.4.4 has no sign-payload operation",
             "content": {
               "application/json": {
                 "schema": {}
@@ -47188,7 +47188,7 @@
         },
         "responses": {
           "503": {
-            "description": "Remnawave 3.4.3 has no create-settings operation",
+            "description": "Remnawave 3.4.4 has no create-settings operation",
             "content": {
               "application/json": {
                 "schema": {}
@@ -47299,7 +47299,7 @@
         },
         "responses": {
           "503": {
-            "description": "Remnawave 3.4.3 has no by-id settings operation",
+            "description": "Remnawave 3.4.4 has no by-id settings operation",
             "content": {
               "application/json": {
                 "schema": {}
@@ -71246,7 +71246,7 @@
           },
           "target_panel_version": {
             "type": "string",
-            "const": "3.4.3",
+            "const": "3.4.4",
             "title": "Target Panel Version"
           },
           "target_node_version": {
@@ -71256,7 +71256,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "3.4.13",
+            "const": "3.4.15",
             "title": "Contract Version"
           },
           "capabilities": {
@@ -71485,7 +71485,7 @@
           "targetNodes"
         ],
         "title": "AdminRemnawaveConnectionDropRequest",
-        "description": "Exact Remnawave 3.4.3 drop shape."
+        "description": "Exact Remnawave 3.4.4 drop shape."
       },
       "AdminRemnawaveConnectionDropUnresolvedPageResponse": {
         "properties": {
@@ -109036,7 +109036,7 @@
           "brandingSettings"
         ],
         "title": "RemnawaveSettingsResponse",
-        "description": "Unwrapped ``response`` object returned by Remnawave 3.4.3."
+        "description": "Unwrapped ``response`` object returned by Remnawave 3.4.4."
       },
       "RemnawaveSnippetResponse": {
         "properties": {

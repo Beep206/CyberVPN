@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 const testDir = dirname(fileURLToPath(import.meta.url));
-const sourceVerifier = resolve(testDir, '..', 'verify-upstream-3.4.3-regressions.mjs');
+const sourceVerifier = resolve(testDir, '..', 'verify-upstream-3.4.4-regressions.mjs');
 const openApiVerifier = resolve(testDir, '..', 'verify-openapi-nullability.mjs');
 
 function write(root, relativePath, content) {
@@ -17,12 +17,12 @@ function write(root, relativePath, content) {
 }
 
 function makeSourceFixture() {
-  const root = mkdtempSync(join(tmpdir(), 'cybervpn-remnawave-343-source-'));
+  const root = mkdtempSync(join(tmpdir(), 'cybervpn-remnawave-344-source-'));
   write(
     root,
     'package.json',
     JSON.stringify({
-      version: '3.4.3',
+      version: '3.4.4',
       scripts: { postinstall: 'patch-package' },
       devDependencies: { 'patch-package': '^8.0.1' },
     }),
@@ -57,6 +57,16 @@ function makeSourceFixture() {
   );
   write(
     root,
+    'src/queue/_users/processors/subscription-requests.processor.ts',
+    `const fields: Record<string, string> = {
+      v: SUBSCRIPTION_REQUEST_STREAM_MESSAGE_VERSION,
+      userId: payload.userId.toString(),
+      srrResponseType: payload.srrResponseType,
+      requestAt: new Date(payload.requestAt).toISOString(),
+    };`,
+  );
+  write(
+    root,
     'src/main.ts',
     `const backendToolsPath = \`\${ROOT}\${BACKEND_TOOLS_ROOT}\`;
 const isBackendToolsRequest = (req: Request): boolean =>
@@ -79,18 +89,18 @@ function runSourceVerifier(root) {
   });
 }
 
-test('3.4.3 source verifier accepts the backend-tools, HWID, and OpenAPI fixes', () => {
+test('3.4.4 source verifier accepts the backend-tools, HWID, stream field, and OpenAPI fixes', () => {
   const root = makeSourceFixture();
   try {
     const result = runSourceVerifier(root);
     assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, /Verified Remnawave 3\.4\.3/);
+    assert.match(result.stdout, /Verified Remnawave 3\.4\.4/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('3.4.3 source verifier fails closed when the per-user advisory lock drifts', () => {
+test('3.4.4 source verifier fails closed when the per-user advisory lock drifts', () => {
   const root = makeSourceFixture();
   try {
     const repositoryPath = join(
@@ -116,7 +126,7 @@ test('3.4.3 source verifier fails closed when the per-user advisory lock drifts'
   }
 });
 
-test('3.4.3 source verifier fails closed when mixed-case backend-tools auth regresses', () => {
+test('3.4.4 source verifier fails closed when mixed-case backend-tools auth regresses', () => {
   const root = makeSourceFixture();
   try {
     writeFileSync(
@@ -136,8 +146,45 @@ test('3.4.3 source verifier fails closed when mixed-case backend-tools auth regr
   }
 });
 
+test('3.4.4 source verifier fails closed when the stream producer emits the legacy field', () => {
+  const root = makeSourceFixture();
+  try {
+    writeFileSync(
+      join(root, 'src/queue/_users/processors/subscription-requests.processor.ts'),
+      `const fields: Record<string, string> = {
+        userId: payload.userId.toString(),
+        ssrResponseType: payload.srrResponseType,
+      };`,
+    );
+    const result = runSourceVerifier(root);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /srrResponseType producer field/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('3.4.4 source verifier rejects a source tree that is not the pinned release', () => {
+  const root = makeSourceFixture();
+  try {
+    writeFileSync(
+      join(root, 'package.json'),
+      JSON.stringify({
+        version: '3.4.3',
+        scripts: { postinstall: 'patch-package' },
+        devDependencies: { 'patch-package': '^8.0.1' },
+      }),
+    );
+    const result = runSourceVerifier(root);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /package version must be 3\.4\.4/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('OpenAPI verifier accepts anyOf schemas and rejects array-valued type fields', () => {
-  const root = mkdtempSync(join(tmpdir(), 'cybervpn-remnawave-343-openapi-'));
+  const root = mkdtempSync(join(tmpdir(), 'cybervpn-remnawave-344-openapi-'));
   try {
     const target = join(root, 'openapi.json');
     writeFileSync(

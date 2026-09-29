@@ -61,7 +61,7 @@ function renderConsole() {
   return render(<QueryClientProvider client={queryClient}><HostsConsole /></QueryClientProvider>);
 }
 
-describe('HostsConsole Remnawave 3.4.3 boundary', () => {
+describe('HostsConsole Remnawave 3.4.4 boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listHosts.mockResolvedValue({ data: [host] });

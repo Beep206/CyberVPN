@@ -129,7 +129,7 @@
     "metaTitle": "Статус Remnawave 3.4 - Ozoxy Admin",
     "eyebrow": "КОНТУР УПРАВЛЕНИЯ REMNAWAVE",
     "title": "Готовность Remnawave 3.4",
-    "description": "Доступный только администраторам реестр возможностей и состояние Redis-потоков по сохранённым receipt для контракта panel 3.4.3 и node 3.4.1.",
+    "description": "Доступный только администраторам реестр возможностей и состояние Redis-потоков по сохранённым receipt для контракта panel 3.4.4 и node 3.4.1.",
     "retry": "Обновить статус",
     "loading": "Загружаем возможности Remnawave и состояние receipt потоков",
     "unknown": "Неизвестно",
@@ -562,7 +562,7 @@
   },
   "remnawaveOperator": {
     "metaTitle": "Операторская консоль Remnawave - Ozoxy Admin",
-    "eyebrow": "ОПЕРАТОРСКИЙ КОНТУР REMNAWAVE 3.4.3",
+    "eyebrow": "ОПЕРАТОРСКИЙ КОНТУР REMNAWAVE 3.4.4",
     "title": "Операторская консоль Remnawave",
     "description": "Admin-only управление GeoCheck, тегами ресурсов, интеграциями нод, shared lists и точными root snippets. Мутации отправляются один раз, неоднозначные результаты остаются на сверке.",
     "loading": "Загружаем контракт операторских возможностей",

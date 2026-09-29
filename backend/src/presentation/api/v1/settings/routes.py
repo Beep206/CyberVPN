@@ -68,7 +68,7 @@ async def update_settings(
     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
     response_model=None,
     deprecated=True,
-    responses={503: {"description": "Remnawave 3.4.3 has no create-settings operation"}},
+    responses={503: {"description": "Remnawave 3.4.4 has no create-settings operation"}},
 )
 async def create_setting(
     setting_data: CreateSettingRequest,
@@ -84,7 +84,7 @@ async def create_setting(
     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
     response_model=None,
     deprecated=True,
-    responses={503: {"description": "Remnawave 3.4.3 has no by-id settings operation"}},
+    responses={503: {"description": "Remnawave 3.4.4 has no by-id settings operation"}},
 )
 async def update_setting(
     id: int,

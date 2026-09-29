@@ -129,7 +129,7 @@
     "metaTitle": "Remnawave 3.4 status - Ozoxy Admin",
     "eyebrow": "REMNAWAVE CONTROL PLANE",
     "title": "Remnawave 3.4 readiness",
-    "description": "Admin-only capability inventory and receipt-backed Redis stream state for the panel 3.4.3 and node 3.4.1 contract.",
+    "description": "Admin-only capability inventory and receipt-backed Redis stream state for the panel 3.4.4 and node 3.4.1 contract.",
     "retry": "Refresh status",
     "loading": "Loading Remnawave capabilities and stream receipt state",
     "unknown": "Unknown",
@@ -562,7 +562,7 @@
   },
   "remnawaveOperator": {
     "metaTitle": "Remnawave operator console - Ozoxy Admin",
-    "eyebrow": "REMNAWAVE 3.4.3 OPERATOR PLANE",
+    "eyebrow": "REMNAWAVE 3.4.4 OPERATOR PLANE",
     "title": "Remnawave operator console",
     "description": "Admin-only control for GeoCheck, resource tags, node integrations, shared lists and exact root snippets. Mutations are sent once and ambiguous outcomes stay in reconciliation.",
     "loading": "Loading the operator capability contract",

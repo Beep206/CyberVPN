@@ -26,7 +26,7 @@ def _raise_keygen_unsupported(*, action: str) -> NoReturn:
     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
     response_model=None,
     deprecated=True,
-    responses={503: {"description": "Remnawave 3.4.3 has no public-key operation"}},
+    responses={503: {"description": "Remnawave 3.4.4 has no public-key operation"}},
 )
 async def get_public_key(
     current_user=Depends(get_current_active_user),
@@ -41,7 +41,7 @@ async def get_public_key(
     status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
     response_model=None,
     deprecated=True,
-    responses={503: {"description": "Remnawave 3.4.3 has no sign-payload operation"}},
+    responses={503: {"description": "Remnawave 3.4.4 has no sign-payload operation"}},
 )
 async def sign_payload(
     payload_data: SignPayloadRequest,

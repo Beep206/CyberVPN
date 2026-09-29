@@ -1159,7 +1159,7 @@
       "createUnavailable": "Template creation is temporarily unavailable because safe durable settlement is not enabled. Existing templates can still be edited.",
       "deleteConfirm": "Delete this subscription template?",
       "deleteTitle": "Delete template",
-      "description": "Manage the exact Remnawave 3.4.3 template name, JSON payload, and encoded YAML payload.",
+      "description": "Manage the exact Remnawave 3.4.4 template name, JSON payload, and encoded YAML payload.",
       "editTitle": "Edit template",
       "empty": "No subscription templates found.",
       "eyebrow": "DELIVERY TEMPLATES",
@@ -4324,7 +4324,7 @@
         "streams": "{count} Redis stream(s) are degraded or unknown.",
         "title": "Operational data is degraded"
       },
-      "description": "Admin-only capability inventory and receipt-backed Redis stream state for the panel 3.4.3 and node 3.4.1 contract.",
+      "description": "Admin-only capability inventory and receipt-backed Redis stream state for the panel 3.4.4 and node 3.4.1 contract.",
       "disabled": "Unavailable",
       "enabled": "Enabled",
       "error": {
@@ -4720,7 +4720,7 @@
         "forbidden": "Your administrator role is not authorized for this resource. No protected data is shown.",
         "loadFailed": "The authoritative data could not be loaded. An empty state was not substituted."
       },
-      "eyebrow": "REMNAWAVE 3.4.3 OPERATOR PLANE",
+      "eyebrow": "REMNAWAVE 3.4.4 OPERATOR PLANE",
       "feedback": {
         "accepted": "The backend accepted the background operation. Application is not reported as complete; refresh authoritative state before another action.",
         "failed": "The mutation failed. No successful state was assumed.",

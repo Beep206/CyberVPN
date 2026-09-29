@@ -147,7 +147,7 @@ Adds: DEBUG logging, Python debugger port (5678), Grafana anonymous auth.
 
 ## Remnawave baseline
 
-- target baseline: custom panel/backend/frontend `3.4.3`, edge node `3.4.1`, subscription page `8.0.0`
+- target baseline: custom panel/backend/frontend `3.4.4`, edge node `3.4.1`, subscription page `8.0.0`
 - custom panel build: pinned upstream commit plus the fail-closed TypeScript RAW Vision compatibility patch in `infra/remnawave-backend-compat/`
 - data services remain PostgreSQL `17.10` and Valkey `8.1.8` over TCP
 - canonical internal contract: `backend/src/infrastructure/remnawave/contracts.py`

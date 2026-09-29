@@ -1,4 +1,4 @@
-"""Admin proxy for the exact Remnawave 3.4.3 host contract."""
+"""Admin proxy for the exact Remnawave 3.4.4 host contract."""
 
 from uuid import UUID
 

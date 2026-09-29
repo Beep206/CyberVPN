@@ -151,9 +151,9 @@ class AdminRemnawaveCapabilities(BaseModel):
 
 class AdminRemnawaveCapabilitiesAndStreams(BaseModel):
     panel_version: str | None
-    target_panel_version: Literal["3.4.3"]
+    target_panel_version: Literal["3.4.4"]
     target_node_version: Literal["3.4.1"]
-    contract_version: Literal["3.4.13"]
+    contract_version: Literal["3.4.15"]
     capabilities: AdminRemnawaveCapabilities
     streams: list[AdminRemnawaveStreamHealth]
     degraded_reason: str | None
@@ -210,7 +210,7 @@ def _build_admin_capabilities(
     admin CyberVPN boundary, durable mutation receipts, and typed contracts
     are registered in the same process.
     """
-    target_reachable = panel_version == "3.4.3"
+    target_reachable = panel_version == "3.4.4"
     return AdminRemnawaveCapabilities(
         numeric_user_ids=target_reachable and numeric_cutover_ready,
         connections=target_reachable,
@@ -239,7 +239,7 @@ def _panel_version(payload: object) -> str | None:
 async def _fetch_target_panel_readiness(client: RemnawaveClient) -> bool:
     """Fetch exact target readiness, mapping expected provider failures to false."""
     try:
-        return _panel_version(await client.get("/system/metadata")) == "3.4.3"
+        return _panel_version(await client.get("/system/metadata")) == "3.4.4"
     except (HTTPError, RemnawaveProtocolError, TypeError, ValueError):
         return False
 
@@ -571,7 +571,7 @@ async def get_admin_remnawave_capabilities_and_streams(
         degraded_reason = "panel_metadata_unavailable"
     if panel_version is None and degraded_reason is None:
         degraded_reason = "panel_metadata_invalid"
-    elif panel_version is not None and panel_version != "3.4.3":
+    elif panel_version is not None and panel_version != "3.4.4":
         degraded_reason = "panel_version_mismatch"
 
     streams = await _stream_health(db)
@@ -582,9 +582,9 @@ async def get_admin_remnawave_capabilities_and_streams(
         degraded_reason = "stream_consumer_unobserved"
     return AdminRemnawaveCapabilitiesAndStreams(
         panel_version=panel_version,
-        target_panel_version="3.4.3",
+        target_panel_version="3.4.4",
         target_node_version="3.4.1",
-        contract_version="3.4.13",
+        contract_version="3.4.15",
         capabilities=_build_admin_capabilities(
             panel_version=panel_version,
             node_ssh_available=is_remnawave_node_ssh_available_for(current_user),

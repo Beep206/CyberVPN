@@ -1,4 +1,4 @@
-"""Exact, bounded Remnawave 3.4.3 operator contracts."""
+"""Exact, bounded Remnawave 3.4.4 operator contracts."""
 
 from __future__ import annotations
 

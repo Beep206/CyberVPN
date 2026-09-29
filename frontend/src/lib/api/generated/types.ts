@@ -21336,7 +21336,7 @@ export interface components {
              * Target Panel Version
              * @constant
              */
-            target_panel_version: "3.4.3";
+            target_panel_version: "3.4.4";
             /**
              * Target Node Version
              * @constant
@@ -21346,7 +21346,7 @@ export interface components {
              * Contract Version
              * @constant
              */
-            contract_version: "3.4.13";
+            contract_version: "3.4.15";
             capabilities: components["schemas"]["AdminRemnawaveCapabilities"];
             /** Streams */
             streams: components["schemas"]["AdminRemnawaveStreamHealth"][];
@@ -21402,7 +21402,7 @@ export interface components {
         };
         /**
          * AdminRemnawaveConnectionDropRequest
-         * @description Exact Remnawave 3.4.3 drop shape.
+         * @description Exact Remnawave 3.4.4 drop shape.
          */
         AdminRemnawaveConnectionDropRequest: {
             /** Dropby */
@@ -36164,7 +36164,7 @@ export interface components {
         };
         /**
          * RemnawaveSettingsResponse
-         * @description Unwrapped ``response`` object returned by Remnawave 3.4.3.
+         * @description Unwrapped ``response`` object returned by Remnawave 3.4.4.
          */
         RemnawaveSettingsResponse: {
             passkeySettings: components["schemas"]["PasskeySettings"] | null;
@@ -56677,7 +56677,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Remnawave 3.4.3 exposes no customer billing endpoint */
+            /** @description Remnawave 3.4.4 exposes no customer billing endpoint */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -56710,7 +56710,7 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description Remnawave 3.4.3 exposes no customer payment endpoint */
+            /** @description Remnawave 3.4.4 exposes no customer payment endpoint */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -69441,7 +69441,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Remnawave 3.4.3 has no public-key operation */
+            /** @description Remnawave 3.4.4 has no public-key operation */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -69474,7 +69474,7 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description Remnawave 3.4.3 has no sign-payload operation */
+            /** @description Remnawave 3.4.4 has no sign-payload operation */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -69587,7 +69587,7 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description Remnawave 3.4.3 has no create-settings operation */
+            /** @description Remnawave 3.4.4 has no create-settings operation */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -69662,7 +69662,7 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description Remnawave 3.4.3 has no by-id settings operation */
+            /** @description Remnawave 3.4.4 has no by-id settings operation */
             503: {
                 headers: {
                     [name: string]: unknown;

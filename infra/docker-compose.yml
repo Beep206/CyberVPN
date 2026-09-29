@@ -16,7 +16,7 @@ x-env: &env
 
 services:
   remnawave:
-    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:-cybervpn/remnawave-backend:3.4.3-raw-vision-flow.2}
+    image: ${CYBERVPN_REMNAWAVE_BACKEND_IMAGE:-cybervpn/remnawave-backend:3.4.4-raw-vision-flow.1}
     build:
       context: ./remnawave-backend-compat
     container_name: remnawave
