@@ -298,8 +298,6 @@ workspace, role, object ownership, allowed state transition, and audit need.
 ## Git and diff hygiene
 
 - Use one coherent task per branch. Prefer `codex/<task-id>-<slug>`.
-- Do not use `git commit --no-verify`.
-- Do not force-push over user-owned commits.
 - Before handoff inspect `git status --short`, `git diff --check`,
   `git diff --stat`, the complete diff against the merge base, deleted files,
   generated files, migrations, and untracked artifacts.
