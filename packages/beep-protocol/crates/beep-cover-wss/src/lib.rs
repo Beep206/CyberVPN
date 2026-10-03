@@ -1,6 +1,9 @@
 mod dialer;
 
-pub use dialer::{ChromeDialer, ChromePreset, ChromeWsConn, RootCerts, RustlsDialer};
+pub use dialer::{
+    control_download, ChromeDialer, ChromePreset, ChromeWsConn, ControlResult, RootCerts,
+    RustlsDialer,
+};
 
 use beep_transport::{CoverConn, TransportCapabilities, TransportError};
 use bytes::Bytes;

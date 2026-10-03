@@ -1,0 +1,16 @@
+# Test-bench matrix cells. One line per "network x entry point x profile".
+# TAB-separated. Lines starting with # and blank lines are ignored.
+#
+# Fields:
+#   network       label for the client network (wired ISP, mobile op, ...)
+#   entry         entry-point IP the client dials
+#   port          entry-point port (usually 443)
+#   domain        cover-site domain for this entry (one domain per profile)
+#   profile       path to the wire profile .toml the client loads
+#   token         client auth token the node accepts
+#   control_path  path to a file on the cover site for the control download
+#
+# network	entry	port	domain	profile	token	control_path
+wired-isp	203.0.113.10	443	updates-a.example.net	profiles/ru-chrome141.toml	tok_demo_a	/static/app-5mb.bin
+mobile-op1	203.0.113.10	443	updates-a.example.net	profiles/ru-chrome141.toml	tok_demo_a	/static/app-5mb.bin
+wired-isp	198.51.100.20	443	cdn-b.example.org	profiles/ru-chrome141.toml	tok_demo_b	/static/app-5mb.bin

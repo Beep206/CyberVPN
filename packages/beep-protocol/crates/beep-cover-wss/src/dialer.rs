@@ -11,14 +11,18 @@
 //!
 //! [`PresentationProfile`]: beep_core_types::artifact::PresentationProfile
 
+use std::net::SocketAddr;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use beep_core_types::artifact::{HttpMode, SniMode};
+use beep_core_types::profile::ProfileFile;
 use beep_transport::{
     binding_from_leaf, CoverConn, CoverDialer, DialTarget, TransportCapabilities, TransportError,
     WS_BINDING_LABEL,
 };
 use bytes::Bytes;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio_rustls::TlsConnector;
 use wreq::IntoEmulation;
@@ -323,6 +327,196 @@ impl CoverConn for ChromeWsConn {
             supports_migration: false,
         }
     }
+}
+
+// ── Control download (test-bench baseline) ──────────────────────────────
+//
+// A plain HTTPS GET of a file from the cover site, using the same TLS stack
+// and profile a Beep session would, but with no tunnel. This is the control
+// the stand compares Beep against: it shows whether an ordinary HTTPS fetch
+// from the same server, with the same fingerprint, gets through.
+
+/// Outcome of one control download.
+#[derive(Debug, Clone)]
+pub struct ControlResult {
+    /// HTTP status code of the response.
+    pub status: u16,
+    /// Number of body bytes received.
+    pub bytes: u64,
+    /// Wall-clock time from connect start to the full body.
+    pub duration: Duration,
+}
+
+/// Fetch `path` from the cover site named by `profile`, over the same TLS
+/// provider and fingerprint a Beep session would use, without a tunnel.
+pub async fn control_download(
+    profile: &ProfileFile,
+    addr: SocketAddr,
+    insecure: bool,
+    path: &str,
+) -> Result<ControlResult, TransportError> {
+    let target = DialTarget::from_profile(profile, addr);
+    match profile.presentation.tls_provider.as_str() {
+        "boringssl" => {
+            let preset =
+                ChromePreset::parse(&profile.presentation.fingerprint).ok_or_else(|| {
+                    TransportError::Tls(format!(
+                        "unknown fingerprint `{}`",
+                        profile.presentation.fingerprint
+                    ))
+                })?;
+            control_download_chrome(preset, &target, insecure, path).await
+        }
+        _ => {
+            let roots = if insecure {
+                RootCerts::Insecure
+            } else {
+                RootCerts::System
+            };
+            control_download_rustls(roots, &target, path).await
+        }
+    }
+}
+
+async fn control_download_chrome(
+    preset: ChromePreset,
+    target: &DialTarget,
+    insecure: bool,
+    path: &str,
+) -> Result<ControlResult, TransportError> {
+    // An ordinary page/file load keeps the browser's default ALPS, unlike the
+    // cold WebSocket path, so the fingerprint matches a real navigation.
+    let emulation = wreq_util::Emulation::builder()
+        .profile(preset.profile())
+        .platform(wreq_util::Platform::Linux)
+        .build()
+        .into_emulation();
+    let client = wreq::Client::builder()
+        .emulation(emulation)
+        .resolve(target.server_name.clone(), target.addr)
+        .connect_timeout(target.connect_timeout)
+        .tls_cert_verification(!insecure)
+        .build()
+        .map_err(|e| TransportError::Tls(e.to_string()))?;
+
+    let p = path.trim_start_matches('/');
+    let url = format!("https://{}/{p}", target.server_name);
+    let started = Instant::now();
+    let resp = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| TransportError::Tls(e.to_string()))?;
+    let status = resp.status().as_u16();
+    let body = resp
+        .bytes()
+        .await
+        .map_err(|e| TransportError::Tls(e.to_string()))?;
+    Ok(ControlResult {
+        status,
+        bytes: body.len() as u64,
+        duration: started.elapsed(),
+    })
+}
+
+async fn control_download_rustls(
+    roots: RootCerts,
+    target: &DialTarget,
+    path: &str,
+) -> Result<ControlResult, TransportError> {
+    let mut config = match roots {
+        RootCerts::System => rustls::ClientConfig::builder()
+            .with_root_certificates(system_roots())
+            .with_no_client_auth(),
+        RootCerts::Insecure => rustls::ClientConfig::builder()
+            .dangerous()
+            .with_custom_certificate_verifier(Arc::new(LabInsecureVerifier))
+            .with_no_client_auth(),
+    };
+    config.alpn_protocols = target.alpn.iter().map(|s| s.as_bytes().to_vec()).collect();
+
+    let server_name = match target.sni {
+        SniMode::Omit => rustls::pki_types::ServerName::IpAddress(target.addr.ip().into()),
+        SniMode::ServerName => rustls::pki_types::ServerName::try_from(target.server_name.clone())
+            .map_err(|e| TransportError::Tls(e.to_string()))?,
+    };
+
+    let connector = TlsConnector::from(Arc::new(config));
+    let started = Instant::now();
+    let tcp = tokio::time::timeout(target.connect_timeout, TcpStream::connect(target.addr))
+        .await
+        .map_err(|_| TransportError::Timeout)?
+        .map_err(|e| TransportError::Io(e.to_string()))?;
+    let mut tls = tokio::time::timeout(target.connect_timeout, connector.connect(server_name, tcp))
+        .await
+        .map_err(|_| TransportError::Timeout)?
+        .map_err(|e| TransportError::Tls(e.to_string()))?;
+
+    let p = if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    };
+    let request = format!(
+        "GET {p} HTTP/1.1\r\nHost: {host}\r\nUser-Agent: beep-control/1\r\n\
+         Accept: */*\r\nConnection: close\r\n\r\n",
+        host = target.server_name,
+    );
+    tls.write_all(request.as_bytes())
+        .await
+        .map_err(|e| TransportError::Io(e.to_string()))?;
+    tls.flush()
+        .await
+        .map_err(|e| TransportError::Io(e.to_string()))?;
+
+    // `Connection: close` means the server closes at the end of the body, so
+    // reading to EOF yields the whole response.
+    let mut raw = Vec::new();
+    tls.read_to_end(&mut raw)
+        .await
+        .map_err(|e| TransportError::Io(e.to_string()))?;
+
+    let (status, bytes) = parse_http_response(&raw)?;
+    Ok(ControlResult {
+        status,
+        bytes,
+        duration: started.elapsed(),
+    })
+}
+
+/// Parse an HTTP/1.1 response buffer into `(status, body_len)`. Prefers the
+/// `Content-Length` header when present, else counts the bytes after the
+/// header terminator.
+fn parse_http_response(raw: &[u8]) -> Result<(u16, u64), TransportError> {
+    let header_end = raw
+        .windows(4)
+        .position(|w| w == b"\r\n\r\n")
+        .ok_or_else(|| TransportError::Io("no HTTP header terminator in response".into()))?;
+    let headers = &raw[..header_end];
+    let head_text = String::from_utf8_lossy(headers);
+    let mut lines = head_text.lines();
+
+    let status_line = lines
+        .next()
+        .ok_or_else(|| TransportError::Io("empty HTTP response".into()))?;
+    let status = status_line
+        .split_whitespace()
+        .nth(1)
+        .and_then(|c| c.parse::<u16>().ok())
+        .ok_or_else(|| TransportError::Io(format!("bad HTTP status line: {status_line}")))?;
+
+    let content_length = lines.find_map(|line| {
+        line.split_once(':').and_then(|(name, value)| {
+            if name.trim().eq_ignore_ascii_case("content-length") {
+                value.trim().parse::<u64>().ok()
+            } else {
+                None
+            }
+        })
+    });
+
+    let body_len = content_length.unwrap_or_else(|| (raw.len() - (header_end + 4)) as u64);
+    Ok((status, body_len))
 }
 
 #[cfg(test)]

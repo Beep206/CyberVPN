@@ -43,6 +43,14 @@ pub enum Event {
         out_bytes: u64,
         duration_ms: u64,
     },
+    /// A control download (a plain HTTPS fetch with no tunnel, used as the
+    /// baseline) finished.
+    ControlDownload {
+        ok: bool,
+        status: u16,
+        bytes: u64,
+        duration_ms: u64,
+    },
 }
 
 /// The record actually written: common fields plus the flattened event.

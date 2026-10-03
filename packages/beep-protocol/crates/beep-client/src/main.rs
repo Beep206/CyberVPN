@@ -51,6 +51,12 @@ struct Args {
     /// disconnect reason) to this file, for the test bench.
     #[arg(long)]
     event_log: Option<PathBuf>,
+
+    /// Control download: fetch this path from the cover site over the same TLS
+    /// stack and profile, with no tunnel, then exit. The test-bench baseline
+    /// for comparing against a Beep session.
+    #[arg(long)]
+    control_download: Option<String>,
 }
 
 // ── Physical Tun Adapter ────────────────────────────────────────────────
@@ -187,6 +193,59 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         provider = %profile.presentation.tls_provider,
         "Loaded wire profile"
     );
+
+    // Control-download mode: a plain HTTPS fetch over the same TLS stack and
+    // profile, no tunnel, then exit. No TUN device is created.
+    if let Some(dl_path) = &args.control_download {
+        let addr: std::net::SocketAddr = args
+            .server
+            .parse()
+            .map_err(|_| format!("invalid --server address: {}", args.server))?;
+        let events = match &args.event_log {
+            Some(path) => Some(
+                EventLog::to_file("client", &profile.presentation.id, path)
+                    .map_err(|e| format!("event log {}: {e}", path.display()))?,
+            ),
+            None => None,
+        };
+        tracing::info!(
+            server = %args.server,
+            host = %profile.presentation.server_name,
+            path = %dl_path,
+            "Control download (no tunnel)..."
+        );
+        match beep_cover_wss::control_download(&profile, addr, args.insecure, dl_path).await {
+            Ok(r) => {
+                tracing::info!(
+                    status = r.status,
+                    bytes = r.bytes,
+                    ms = r.duration.as_millis() as u64,
+                    "Control download complete"
+                );
+                if let Some(ev) = &events {
+                    ev.emit(&Event::ControlDownload {
+                        ok: (200..400).contains(&r.status),
+                        status: r.status,
+                        bytes: r.bytes,
+                        duration_ms: r.duration.as_millis() as u64,
+                    });
+                }
+            }
+            Err(e) => {
+                tracing::error!("Control download failed: {e}");
+                if let Some(ev) = &events {
+                    ev.emit(&Event::ControlDownload {
+                        ok: false,
+                        status: 0,
+                        bytes: 0,
+                        duration_ms: 0,
+                    });
+                }
+                return Err(e.into());
+            }
+        }
+        return Ok(());
+    }
 
     tracing::info!("Initializing Beep Client...");
 
