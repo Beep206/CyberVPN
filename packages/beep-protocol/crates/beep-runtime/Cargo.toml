@@ -15,6 +15,8 @@ tracing = { workspace = true }
 futures-util = "0.3"
 async-trait = "0.1"
 thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = "1"
 
 [dev-dependencies]
 beep-cover-wss = { path = "../beep-cover-wss" }
@@ -23,3 +25,4 @@ rcgen = { workspace = true }
 rustls-pemfile = { workspace = true }
 rustls = { workspace = true }
 tokio-rustls = { workspace = true }
+serde_json = "1"

@@ -2,7 +2,7 @@ use beep_core::key_schedule::SessionKeys;
 use beep_core::session::{ClientConfig, ClientHandshake, ServerConfig, ServerHandshake};
 use beep_core_types::{CapabilityId, CoreVersion};
 use beep_cover_wss::{accept_wss, connect_wss, ALPN_HTTP11};
-use beep_runtime::{RuntimeMultiplexer, TunDevice};
+use beep_runtime::{EventLog, RuntimeMultiplexer, TunDevice};
 use beep_session::SessionDriver;
 use beep_transport::CoverConn;
 use bytes::Bytes;
@@ -343,4 +343,114 @@ async fn runtime_bidirectional_throughput_no_deadlock() {
         }
         Err(_) => panic!("bidirectional transfer deadlocked / timed out"),
     }
+}
+
+// ── Event log over the multiplexer ───────────────────────────────────────
+
+use std::sync::Mutex as StdMutex;
+
+/// A `Write` sink backed by a shared buffer the test can read afterwards.
+#[derive(Clone)]
+struct SharedBuf(Arc<StdMutex<Vec<u8>>>);
+impl std::io::Write for SharedBuf {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.lock().unwrap().extend_from_slice(buf);
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+/// The multiplexer, with an event log attached, records a `session_closed`
+/// event carrying the byte totals when the session ends.
+#[tokio::test]
+async fn event_log_records_bytes_and_session_close() {
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
+    let (certs, key, raw_cert_der) = generate_test_certs();
+    let server_tls = server_tls_config(certs, key);
+    let client_tls = client_tls_config();
+    let cert_for_server = raw_cert_der.clone();
+
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+    let server_addr = listener.local_addr().unwrap();
+
+    let (client_os_tx, client_tun_rx) = mpsc::channel(16);
+    let (client_tun_tx, _client_os_rx) = mpsc::channel(16);
+    let client_tun = MockTun {
+        rx: client_tun_rx,
+        tx: client_tun_tx,
+    };
+
+    let (server_os_tx, server_tun_rx) = mpsc::channel(16);
+    let (server_tun_tx, mut server_os_rx) = mpsc::channel(16);
+    let server_tun = MockTun {
+        rx: server_tun_rx,
+        tx: server_tun_tx,
+    };
+
+    // Shared buffer the server's event log writes into.
+    let log_buf = SharedBuf(Arc::new(StdMutex::new(Vec::new())));
+    let server_log = EventLog::new("node", "test-profile", Box::new(log_buf.clone()));
+
+    let _server = tokio::spawn(async move {
+        let acceptor = TlsAcceptor::from(Arc::new(server_tls));
+        let (tcp, _) = listener.accept().await.unwrap();
+        let tls = acceptor.accept(tcp).await.unwrap();
+        let mut conn = accept_wss(tls, &cert_for_server).await.unwrap();
+        let binding = conn.transport_binding();
+        let keys = do_beep_handshake(&mut conn, false, binding).await;
+        let driver = SessionDriver::new(conn, &keys, false);
+        let mut mux = RuntimeMultiplexer::new(driver, server_tun, false).with_events(server_log);
+        let _ = mux.run().await;
+    });
+
+    let _client = tokio::spawn(async move {
+        let mut conn = connect_wss(server_addr, "localhost", "/ws", client_tls)
+            .await
+            .unwrap();
+        let binding = conn.transport_binding();
+        let keys = do_beep_handshake(&mut conn, true, binding).await;
+        let driver = SessionDriver::new(conn, &keys, true);
+        let mut mux = RuntimeMultiplexer::new(driver, client_tun, false);
+        let _ = mux.run().await;
+    });
+
+    // Push two packets client -> server and confirm the server received them,
+    // so the byte counter is non-zero before the session closes.
+    let p1 = Bytes::from_static(b"PING-PAYLOAD-1-ICMP");
+    let p2 = Bytes::from_static(b"PING-PAYLOAD-2-ICMP");
+    client_os_tx.send(p1.clone()).await.unwrap();
+    client_os_tx.send(p2.clone()).await.unwrap();
+    assert_eq!(server_os_rx.recv().await.unwrap(), p1);
+    assert_eq!(server_os_rx.recv().await.unwrap(), p2);
+    let expected = (p1.len() + p2.len()) as u64;
+
+    // Close both ends by dropping the OS channels; the server's TUN read then
+    // fails and its multiplexer returns, emitting SessionClosed.
+    drop(client_os_tx);
+    drop(server_os_tx);
+
+    // Wait briefly for the close event to be written.
+    let mut recorded = None;
+    for _ in 0..40 {
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        let raw = String::from_utf8(log_buf.0.lock().unwrap().clone()).unwrap();
+        if let Some(line) = raw.lines().find(|l| l.contains("session_closed")) {
+            recorded = Some(line.to_string());
+            break;
+        }
+    }
+
+    let line = recorded.expect("a session_closed event should be written");
+    let v: serde_json::Value = serde_json::from_str(&line).unwrap();
+    assert_eq!(v["event"], "session_closed");
+    assert_eq!(v["role"], "node");
+    assert_eq!(v["profile"], "test-profile");
+    assert!(
+        v["in_bytes"].as_u64().unwrap() >= expected,
+        "server should have counted at least {expected} inbound bytes, got {}",
+        v["in_bytes"]
+    );
 }

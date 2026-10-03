@@ -4,7 +4,7 @@ use beep_core::session::{ServerConfig, ServerHandshake};
 use beep_core_types::artifact::decode_hex32;
 use beep_core_types::{CapabilityId, CoreVersion, ProfileFile, Role};
 use beep_cover_wss::{accept_ws, WsGate};
-use beep_runtime::{tun_hub, RuntimeMultiplexer, TunDevice, TunHubHandle};
+use beep_runtime::{tun_hub, Event, EventLog, RuntimeMultiplexer, TunDevice, TunHubHandle};
 use beep_session::SessionDriver;
 use beep_transport::{binding_from_leaf, CoverConn, WS_BINDING_LABEL};
 use bytes::Bytes;
@@ -78,6 +78,11 @@ struct Args {
     /// Seconds a single handshake may take before it is abandoned.
     #[arg(long, default_value_t = 10)]
     handshake_timeout_secs: u64,
+
+    /// Append a JSON event log (handshake timing, byte counts, stalls,
+    /// disconnect reason) to this file, for the test bench.
+    #[arg(long)]
+    event_log: Option<PathBuf>,
 
     /// Terminate TLS here with an auto-generated self-signed certificate,
     /// and listen on every interface. A lab convenience for running without
@@ -228,6 +233,7 @@ struct NodeContext {
     handshake_permits: Arc<Semaphore>,
     handshake_timeout: Duration,
     hub: TunHubHandle,
+    events: Option<EventLog>,
 }
 
 // ── Main entrypoint ───────────────────────────────────────────────────────
@@ -311,6 +317,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    let events = match &args.event_log {
+        Some(path) => Some(
+            EventLog::to_file("node", &profile.presentation.id, path)
+                .map_err(|e| format!("event log {}: {e}", path.display()))?,
+        ),
+        None => None,
+    };
+
     let ctx = Arc::new(NodeContext {
         capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
         node_identity: b"beep-node".to_vec(),
@@ -321,6 +335,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         handshake_permits: Arc::new(Semaphore::new(args.max_handshakes.max(1))),
         handshake_timeout: Duration::from_secs(args.handshake_timeout_secs.max(1)),
         hub: hub_handle,
+        events,
     });
 
     // Prebuild the ALPN list the self-signed lab listener advertises.
@@ -425,14 +440,41 @@ async fn serve_connection<C: CoverConn + 'static>(
         }
     };
 
+    if let Some(ev) = &ctx.events {
+        ev.emit(&Event::HandshakeStart);
+    }
+    let hs_start = std::time::Instant::now();
     let result = tokio::time::timeout(ctx.handshake_timeout, authenticate(&ctx, &mut conn)).await;
     let (keys, _slot) = match result {
-        Ok(Ok(v)) => v,
+        Ok(Ok(v)) => {
+            if let Some(ev) = &ctx.events {
+                ev.emit(&Event::HandshakeEnd {
+                    ok: true,
+                    duration_ms: hs_start.elapsed().as_millis() as u64,
+                    detail: None,
+                });
+            }
+            v
+        }
         Ok(Err(e)) => {
+            if let Some(ev) = &ctx.events {
+                ev.emit(&Event::HandshakeEnd {
+                    ok: false,
+                    duration_ms: hs_start.elapsed().as_millis() as u64,
+                    detail: Some(e.clone()),
+                });
+            }
             tracing::debug!(%remote, "handshake rejected: {e}");
             return;
         }
         Err(_) => {
+            if let Some(ev) = &ctx.events {
+                ev.emit(&Event::HandshakeEnd {
+                    ok: false,
+                    duration_ms: hs_start.elapsed().as_millis() as u64,
+                    detail: Some("handshake timed out".into()),
+                });
+            }
             tracing::debug!(%remote, "handshake timed out");
             return;
         }
@@ -445,6 +487,9 @@ async fn serve_connection<C: CoverConn + 'static>(
     let session_tun = ctx.hub.register(SESSION_INBOUND_QUEUE);
     let driver = SessionDriver::new(conn, &keys, false);
     let mut mux = RuntimeMultiplexer::new(driver, session_tun, false);
+    if let Some(ev) = &ctx.events {
+        mux = mux.with_events(ev.clone());
+    }
     if let Err(e) = mux.run().await {
         tracing::warn!(%remote, "session ended: {e}");
     }

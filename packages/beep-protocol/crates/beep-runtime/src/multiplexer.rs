@@ -1,3 +1,4 @@
+use crate::events::{Event, EventLog, STALL_THRESHOLD_MS};
 use crate::keepalive::KeepaliveConfig;
 use crate::tun_device::TunDevice;
 use beep_core::mux::StreamId;
@@ -6,6 +7,10 @@ use beep_transport::CoverConn;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use std::io;
 use std::time::{Duration, Instant};
+
+/// How often the event log takes a byte-count snapshot and checks for stalls,
+/// when an [`EventLog`] is attached. Independent of keepalive timing.
+const EVENT_TICK: Duration = Duration::from_secs(5);
 
 #[derive(Debug, thiserror::Error)]
 pub enum MultiplexerError {
@@ -38,6 +43,14 @@ pub struct RuntimeMultiplexer<C: CoverConn, T: TunDevice> {
     // silent for longer than `idle_timeout`, so the client can reconnect.
     keepalive: Option<KeepaliveConfig>,
     last_activity: Instant,
+
+    // Optional structured event log for the test bench, plus the counters it
+    // reports. `stall_reported` keeps one stall episode to a single event.
+    events: Option<EventLog>,
+    in_bytes: u64,
+    out_bytes: u64,
+    session_start: Instant,
+    stall_reported: bool,
 }
 
 impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
@@ -59,6 +72,11 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
             pending_out: None,
             keepalive: None,
             last_activity: Instant::now(),
+            events: None,
+            in_bytes: 0,
+            out_bytes: 0,
+            session_start: Instant::now(),
+            stall_reported: false,
         }
     }
 
@@ -69,14 +87,42 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
         self
     }
 
-    /// Run the multiplexer loop until closure or error.
+    /// Attach a structured event log. Byte counters, stalls and the final
+    /// `SessionClosed` are then emitted for this session.
+    pub fn with_events(mut self, events: EventLog) -> Self {
+        self.events = Some(events);
+        self
+    }
+
+    /// Run the session until it closes or errors, emitting a final
+    /// `SessionClosed` event (with byte totals and the reason) when a log is
+    /// attached. The actual loop is [`Self::drive`]; this wrapper guarantees the
+    /// close event is recorded on every exit path.
+    pub async fn run(&mut self) -> Result<(), MultiplexerError> {
+        let result = self.drive().await;
+        if let Some(ev) = self.events.clone() {
+            let reason = match &result {
+                Ok(()) => "closed".to_string(),
+                Err(e) => e.to_string(),
+            };
+            ev.emit(&Event::SessionClosed {
+                reason,
+                in_bytes: self.in_bytes,
+                out_bytes: self.out_bytes,
+                duration_ms: self.session_start.elapsed().as_millis() as u64,
+            });
+        }
+        result
+    }
+
+    /// The multiplexer loop.
     ///
     /// Outbound packets are paced by stream flow control: at most one packet is
     /// held (`pending_out`) while we wait for the peer's `FLOW_CREDIT` grants,
     /// which arrive on the receive arm. This keeps in-flight data bounded by the
     /// send window, so a stream never dies at the window edge and the outer
     /// transport socket never fills enough to block both directions at once.
-    pub async fn run(&mut self) -> Result<(), MultiplexerError> {
+    async fn drive(&mut self) -> Result<(), MultiplexerError> {
         // The beacon ticks at the keepalive interval, or idles far in the
         // future when keepalive is disabled (the arm then does nothing).
         let tick_period = self
@@ -85,7 +131,15 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
             .unwrap_or_else(|| Duration::from_secs(3600));
         let mut beacon = tokio::time::interval(tick_period);
         beacon.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
+        // A separate, faster beacon drives event snapshots and stall detection,
+        // so they work even without keepalive. Its arm is a no-op when no log
+        // is attached.
+        let mut event_beacon = tokio::time::interval(EVENT_TICK);
+        event_beacon.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+
         self.last_activity = Instant::now();
+        self.session_start = Instant::now();
 
         loop {
             // Flush the held packet as soon as we have credit for it.
@@ -102,6 +156,7 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
                 // delivers FLOW_CREDIT grants that free up send credit.
                 event_res = self.driver.recv() => {
                     self.last_activity = Instant::now();
+                    self.stall_reported = false;
                     let event = event_res?;
                     self.handle_vpn_event(event).await?;
                 }
@@ -122,7 +177,28 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
                         self.driver.send_health_summary().await?;
                     }
                 }
+
+                // Event log: periodic byte snapshot + stall detection.
+                _ = event_beacon.tick(), if self.events.is_some() => {
+                    self.on_event_tick();
+                }
             }
+        }
+    }
+
+    /// Emit a byte snapshot and, once per stall episode, a stall event.
+    fn on_event_tick(&mut self) {
+        let Some(ev) = self.events.clone() else {
+            return;
+        };
+        ev.emit(&Event::Bytes {
+            in_bytes: self.in_bytes,
+            out_bytes: self.out_bytes,
+        });
+        let idle = self.last_activity.elapsed().as_millis() as u64;
+        if idle >= STALL_THRESHOLD_MS && !self.stall_reported {
+            ev.emit(&Event::Stall { idle_ms: idle });
+            self.stall_reported = true;
         }
     }
 
@@ -140,6 +216,7 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
         match event {
             RecvEvent::Datagram(df) => {
                 // Datagram framing perfectly aligns with IP packtes.
+                self.in_bytes += df.data.len() as u64;
                 self.tun.write_packet(Bytes::from(df.data)).await?;
             }
             RecvEvent::StreamData { frame, .. } => {
@@ -176,6 +253,7 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
             let pkt = self.recv_buffer.split_to(packet_len);
 
             // Inject into TUN
+            self.in_bytes += pkt.len() as u64;
             self.tun.write_packet(pkt.freeze()).await?;
         }
         Ok(())
@@ -186,6 +264,7 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
     async fn send_out(&mut self, pkt: Bytes) -> Result<(), MultiplexerError> {
         if self.use_datagrams {
             // Unreliable direct injection; class ID 0 for default IP traffic.
+            self.out_bytes += pkt.len() as u64;
             self.driver.send_datagram(0, &pkt).await?;
         } else {
             // Reliable continuous stream: length-prefix wrapper.
@@ -198,6 +277,7 @@ impl<C: CoverConn, T: TunDevice> RuntimeMultiplexer<C, T> {
             out.put_u16(pkt.len() as u16);
             out.put_slice(&pkt);
 
+            self.out_bytes += pkt.len() as u64;
             self.driver.send_stream(self.stream_id, &out, false).await?;
         }
         Ok(())

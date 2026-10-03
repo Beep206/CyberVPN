@@ -1,10 +1,11 @@
 use async_trait::async_trait;
+use beep_core::key_schedule::SessionKeys;
 use beep_core::session::{ClientConfig, ClientHandshake};
 use beep_core_types::{CapabilityId, CoreVersion, ProfileFile, Role};
 use beep_cover_wss::{
     ChromeDialer, ChromePreset, ChromeWsConn, RootCerts, RustlsDialer, WssCoverConn,
 };
-use beep_runtime::{KeepaliveConfig, RuntimeMultiplexer, TunDevice};
+use beep_runtime::{Event, EventLog, KeepaliveConfig, RuntimeMultiplexer, TunDevice};
 use beep_session::SessionDriver;
 use beep_transport::{CoverConn, CoverDialer, DialTarget, TransportCapabilities, TransportError};
 use bytes::Bytes;
@@ -45,6 +46,11 @@ struct Args {
     /// Accept any certificate the node presents. Lab and test builds only.
     #[arg(long)]
     insecure: bool,
+
+    /// Append a JSON event log (handshake timing, byte counts, stalls,
+    /// disconnect reason) to this file, for the test bench.
+    #[arg(long)]
+    event_log: Option<PathBuf>,
 }
 
 // ── Physical Tun Adapter ────────────────────────────────────────────────
@@ -212,8 +218,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tracing::info!("Allocated OS TUN Interface: {}", args.iface);
 
+    // Open the event log once (append-mode) and share it across reconnects.
+    let events = match &args.event_log {
+        Some(path) => Some(
+            EventLog::to_file("client", &profile.presentation.id, path)
+                .map_err(|e| format!("event log {}: {e}", path.display()))?,
+        ),
+        None => None,
+    };
+
     loop {
-        match run_session(&args, tun_dev.clone()).await {
+        match run_session(&args, tun_dev.clone(), events.clone()).await {
             Ok(()) => {
                 tracing::info!("Session closed cleanly; exiting.");
                 break;
@@ -246,7 +261,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Establish one Beep session and run it until it ends.
-async fn run_session(args: &Args, tun_dev: OsTun) -> Result<(), Box<dyn std::error::Error>> {
+async fn run_session(
+    args: &Args,
+    tun_dev: OsTun,
+    events: Option<EventLog>,
+) -> Result<(), Box<dyn std::error::Error>> {
     let profile = ProfileFile::load_validated(&args.profile, Role::Client)
         .map_err(|e| format!("profile {}: {e}", args.profile.display()))?;
 
@@ -271,31 +290,61 @@ async fn run_session(args: &Args, tun_dev: OsTun) -> Result<(), Box<dyn std::err
         return Err("profile node_public_key is not valid hex".into());
     }
 
-    // Session handshake.
+    // Session handshake, timed and logged as one unit so the event log records
+    // both success and the reason for any failure.
     tracing::info!("Transport established. Proceeding with Beep Session Check...");
-    let mut hs = ClientHandshake::new(ClientConfig {
-        core_version: CoreVersion::V1,
-        transport_binding: binding,
-        capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
-        auth_method: 0x01,
-        auth_data: args.token.as_bytes().to_vec(),
-        expected_node_key,
-    });
+    if let Some(ev) = &events {
+        ev.emit(&Event::HandshakeStart);
+    }
+    let hs_start = std::time::Instant::now();
+    let hs_result: Result<SessionKeys, Box<dyn std::error::Error>> = async {
+        let mut hs = ClientHandshake::new(ClientConfig {
+            core_version: CoreVersion::V1,
+            transport_binding: binding,
+            capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
+            auth_method: 0x01,
+            auth_data: args.token.as_bytes().to_vec(),
+            expected_node_key,
+        });
+        let client_init = hs.create_client_init()?;
+        conn.send(Bytes::from(client_init)).await?;
+        let data = conn
+            .recv()
+            .await?
+            .ok_or("transport closed during handshake")?;
+        hs.process_server_init(&data)?;
+        let client_finish = hs.create_client_finish()?;
+        conn.send(Bytes::from(client_finish)).await?;
+        let data = conn
+            .recv()
+            .await?
+            .ok_or("transport closed during handshake")?;
+        Ok(hs.process_server_finish(&data)?)
+    }
+    .await;
 
-    let client_init = hs.create_client_init()?;
-    conn.send(Bytes::from(client_init)).await?;
-    let data = conn
-        .recv()
-        .await?
-        .ok_or("transport closed during handshake")?;
-    hs.process_server_init(&data)?;
-    let client_finish = hs.create_client_finish()?;
-    conn.send(Bytes::from(client_finish)).await?;
-    let data = conn
-        .recv()
-        .await?
-        .ok_or("transport closed during handshake")?;
-    let keys = hs.process_server_finish(&data)?;
+    let keys = match hs_result {
+        Ok(keys) => {
+            if let Some(ev) = &events {
+                ev.emit(&Event::HandshakeEnd {
+                    ok: true,
+                    duration_ms: hs_start.elapsed().as_millis() as u64,
+                    detail: None,
+                });
+            }
+            keys
+        }
+        Err(e) => {
+            if let Some(ev) = &events {
+                ev.emit(&Event::HandshakeEnd {
+                    ok: false,
+                    duration_ms: hs_start.elapsed().as_millis() as u64,
+                    detail: Some(e.to_string()),
+                });
+            }
+            return Err(e);
+        }
+    };
 
     tracing::info!("Beep Session keys derived successfully!");
 
@@ -308,6 +357,9 @@ async fn run_session(args: &Args, tun_dev: OsTun) -> Result<(), Box<dyn std::err
     };
     let driver = SessionDriver::new(conn, &keys, true);
     let mut mux = RuntimeMultiplexer::new(driver, tun_dev, false).with_keepalive(keepalive);
+    if let Some(ev) = &events {
+        mux = mux.with_events(ev.clone());
+    }
 
     tracing::info!("Runtime Multiplexer Operational. Traffic is now bridged.");
     mux.run().await?;
