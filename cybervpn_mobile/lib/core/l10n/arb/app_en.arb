@@ -3090,5 +3090,12 @@
     }
   },
   "profileEmpty": "No profiles yet",
-  "profileEmptySubtitle": "Add your first VPN subscription to get started"
+  "profileEmptySubtitle": "Add your first VPN subscription to get started",
+  "testAllServers": "Test All",
+  "testingServers": "Testing...",
+  "a11yTestAllServers": "Test latency for all servers",
+  "outboundModeRule": "Rule",
+  "outboundModeGlobal": "Global",
+  "outboundModeDirect": "Direct",
+  "outboundModeTooltip": "Outbound Traffic Mode"
 }

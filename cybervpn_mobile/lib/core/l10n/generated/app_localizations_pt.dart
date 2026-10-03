@@ -5002,4 +5002,25 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get profileEmptySubtitle =>
       'Add your first VPN subscription to get started';
+
+  @override
+  String get testAllServers => 'Test All';
+
+  @override
+  String get testingServers => 'Testing...';
+
+  @override
+  String get a11yTestAllServers => 'Test latency for all servers';
+
+  @override
+  String get outboundModeRule => 'Rule';
+
+  @override
+  String get outboundModeGlobal => 'Global';
+
+  @override
+  String get outboundModeDirect => 'Direct';
+
+  @override
+  String get outboundModeTooltip => 'Outbound Traffic Mode';
 }

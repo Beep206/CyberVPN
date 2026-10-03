@@ -197,6 +197,14 @@ class SettingsNotifier extends AsyncNotifier<AppSettings> {
     );
   }
 
+  /// Update outbound traffic routing mode (rule / global / direct).
+  Future<void> updateOutboundMode(OutboundMode mode) async {
+    await _updateSetting(
+      (settings) => settings.copyWith(outboundMode: mode),
+      'updateOutboundMode(${mode.name})',
+    );
+  }
+
   /// Enable or disable advanced rule-based traffic routing.
   Future<void> updateRoutingEnabled(bool enabled) async {
     await _updateSetting(
@@ -841,6 +849,7 @@ final vpnSettingsProvider = Provider<VpnSettings>((ref) {
     autoConnectOnLaunch: settings.autoConnectOnLaunch,
     autoConnectUntrustedWifi: settings.autoConnectUntrustedWifi,
     killSwitch: settings.killSwitch,
+    outboundMode: settings.outboundMode,
     routingEnabled: settings.routingEnabled,
     routingProfiles: settings.routingProfiles,
     activeRoutingProfileId: settings.activeRoutingProfileId,
@@ -934,6 +943,7 @@ sealed class VpnSettings with _$VpnSettings {
     @Default(false) bool autoConnectOnLaunch,
     @Default(false) bool autoConnectUntrustedWifi,
     @Default(false) bool killSwitch,
+    @Default(OutboundMode.rule) OutboundMode outboundMode,
     @Default(false) bool routingEnabled,
     @Default(<RoutingProfile>[]) List<RoutingProfile> routingProfiles,
     String? activeRoutingProfileId,

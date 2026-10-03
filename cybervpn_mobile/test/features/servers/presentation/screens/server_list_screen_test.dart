@@ -204,6 +204,9 @@ class _FakeServerListNotifier extends AsyncNotifier<ServerListState>
 
   @override
   Future<void> loadMore() async {}
+
+  @override
+  Future<void> testAllServers({bool force = true}) async {}
 }
 
 // ---------------------------------------------------------------------------
@@ -245,6 +248,8 @@ class _LoadingNotifier extends AsyncNotifier<ServerListState>
   Future<void> refresh() async {}
   @override
   Future<void> loadMore() async {}
+  @override
+  Future<void> testAllServers({bool force = true}) async {}
 }
 
 class _ErrorNotifier extends AsyncNotifier<ServerListState>
@@ -270,6 +275,8 @@ class _ErrorNotifier extends AsyncNotifier<ServerListState>
   Future<void> refresh() async {}
   @override
   Future<void> loadMore() async {}
+  @override
+  Future<void> testAllServers({bool force = true}) async {}
 }
 
 class _FakeSettingsNotifier extends SettingsNotifier {

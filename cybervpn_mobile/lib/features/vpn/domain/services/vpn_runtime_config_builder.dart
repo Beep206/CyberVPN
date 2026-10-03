@@ -558,6 +558,7 @@ class VpnRuntimeConfigBuilder {
     return dnsPlan.servers != null ||
         vpnSettings.logLevel != LogLevel.error ||
         vpnSettings.routingEnabled ||
+        vpnSettings.outboundMode != OutboundMode.rule ||
         vpnSettings.muxEnabled ||
         vpnSettings.fragmentationEnabled ||
         vpnSettings.preferredIpType != PreferredIpType.auto ||
@@ -669,6 +670,22 @@ class VpnRuntimeConfigBuilder {
   ) {
     final routingConfig = _ensureMap(jsonConfig, 'routing');
     final rules = <Map<String, dynamic>>[];
+
+    if (vpnSettings.outboundMode == OutboundMode.global) {
+      routingConfig['rules'] = rules;
+      routingConfig['domainStrategy'] = 'AsIs';
+      applied.add('outbound-mode:global');
+      return;
+    }
+
+    if (vpnSettings.outboundMode == OutboundMode.direct) {
+      routingConfig['rules'] = [
+        {'outboundTag': _directOutboundTag, 'network': 'tcp,udp'},
+      ];
+      routingConfig['domainStrategy'] = 'AsIs';
+      applied.add('outbound-mode:direct');
+      return;
+    }
 
     if (!vpnSettings.routingEnabled) {
       routingConfig['rules'] = rules;

@@ -129,6 +129,7 @@ class FlutterV2rayPlugin : FlutterPlugin, ActivityAware, PluginRegistry.Activity
         REMARK = call.argument("remark") ?: ""
         V2RAY_FULL_JSON_CONFIG = call.argument("config") ?: ""
         BLOCKED_APPS = call.argument<ArrayList<String>>("blocked_apps") ?: ArrayList()
+        ALLOWED_APPS = call.argument<ArrayList<String>>("allowed_apps") ?: ArrayList()
         BYPASS_SUBNETS = call.argument<ArrayList<String>>("bypass_subnets") ?: ArrayList()
         DNS_SERVERS = call.argument<ArrayList<String>>("dns_servers")
         MTU = call.argument<Int>("mtu")

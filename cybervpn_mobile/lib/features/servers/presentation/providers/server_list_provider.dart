@@ -22,7 +22,10 @@ import 'package:cybervpn_mobile/core/network/websocket_provider.dart';
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
 import 'package:cybervpn_mobile/features/settings/domain/entities/app_settings.dart';
 import 'package:cybervpn_mobile/features/settings/presentation/providers/settings_provider.dart';
+import 'package:cybervpn_mobile/core/utils/country_code_detector.dart';
 import 'package:cybervpn_mobile/features/servers/presentation/providers/profile_aware_server_list.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/presentation/providers/profile_update_notifier.dart';
 
 part 'server_list_provider.freezed.dart';
 
@@ -322,6 +325,62 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
     });
   }
 
+  /// Tests latency for all servers in the currently active list.
+  ///
+  /// Supports Real Delay (via proxy URL test if profile configs are available
+  /// or when connected) and falls back to TCP connect.
+  Future<void> testAllServers({bool force = true}) async {
+    final isPingingNotifier = ref.read(serverListIsPingingProvider.notifier);
+    if (ref.read(serverListIsPingingProvider)) return;
+
+    isPingingNotifier.setPinging(true);
+    try {
+      final activeProfile = ref.read(activeVpnProfileProvider).value;
+      if (activeProfile != null && activeProfile.servers.isNotEmpty) {
+        // Active profile path: use ProfileUpdateNotifier to test and persist
+        final notifier = ref.read(profileUpdateNotifierProvider.notifier);
+        await notifier.refreshRemoteProfileLatencies(
+          targetProfileId: activeProfile.id,
+        );
+
+        // Also sync latencies into serverPingResultsProvider
+        final updatedProfile = ref.read(activeVpnProfileProvider).value;
+        if (updatedProfile != null) {
+          final latencies = <String, int>{};
+          for (final s in updatedProfile.servers) {
+            if (s.latencyMs != null) {
+              latencies[s.id] = s.latencyMs!;
+            }
+          }
+          ref.read(serverPingResultsProvider.notifier).mergeResults(latencies);
+        }
+      } else {
+        // Standard server list path
+        final current = state.value;
+        if (current == null || current.servers.isEmpty) return;
+
+        final pingService = ref.read(pingServiceProvider);
+        final targets = force
+            ? current.servers
+            : current.servers.where((s) => !pingService.isFresh(s.id)).toList();
+
+        if (targets.isEmpty) return;
+
+        final results = await pingService.pingAllConcurrent(targets);
+        ref.read(serverPingResultsProvider.notifier).mergeResults(results);
+      }
+    } catch (e, st) {
+      AppLogger.error(
+        'Failed to test all servers',
+        error: e,
+        stackTrace: st,
+        category: 'servers.ping',
+      );
+    } finally {
+      isPingingNotifier.setPinging(false);
+    }
+  }
+
   /// Change the sort mode.
   void sortBy(SortMode mode) {
     final current = state.value;
@@ -520,9 +579,9 @@ class ServerListNotifier extends AsyncNotifier<ServerListState> {
   void _triggerPingTest(List<ServerEntity> servers) {
     final pingService = ref.read(pingServiceProvider);
     final settings = ref.read(settingsProvider).value ?? const AppSettings();
-    final plan = ref.read(pingPolicyRuntimeProvider).resolveServerListPlan(
-      settings.pingMode,
-    );
+    final plan = ref
+        .read(pingPolicyRuntimeProvider)
+        .resolveServerListPlan(settings.pingMode);
     if (plan.isFallback) {
       AppLogger.info(
         'Server list ping fell back to TCP',
@@ -657,6 +716,18 @@ final serverPingByIdProvider = Provider.family<int?, String>((ref, String id) {
   return ref.watch(serverPingResultsProvider.select((pings) => pings[id]));
 });
 
+class ServerListIsPingingNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setPinging(bool value) => state = value;
+}
+
+final serverListIsPingingProvider =
+    NotifierProvider<ServerListIsPingingNotifier, bool>(
+      ServerListIsPingingNotifier.new,
+    );
+
 // ---------------------------------------------------------------------------
 // Derived providers
 // ---------------------------------------------------------------------------
@@ -741,19 +812,13 @@ final serverSearchQueryProvider =
       ServerSearchQueryNotifier.new,
     );
 
-String? _extractCountryCode(String name) {
-  final countryPattern = RegExp(r'\b([A-Z]{2})\b');
-  final match = countryPattern.firstMatch(name.toUpperCase());
-  return match?.group(1);
-}
-
 ServerEntity _customConfigToServer(ImportedConfig config) {
-  final countryCode = _extractCountryCode(config.name) ?? 'XX';
+  final detected = CountryCodeDetector.detect(config.name);
   return ServerEntity(
     id: config.id,
     name: config.name,
-    countryCode: countryCode,
-    countryName: countryCode == 'XX' ? 'Custom' : countryCode,
+    countryCode: detected.code,
+    countryName: detected.name,
     city: config.serverAddress,
     address: config.serverAddress,
     port: config.port,

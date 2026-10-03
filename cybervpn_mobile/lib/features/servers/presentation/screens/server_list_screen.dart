@@ -218,6 +218,31 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
     };
   }
 
+  Widget _buildTestAllAction(BuildContext context) {
+    final isPinging = ref.watch(serverListIsPingingProvider);
+    final l10n = AppLocalizations.of(context);
+    return IconButton(
+      icon: isPinging
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.bolt_outlined),
+      tooltip: isPinging ? l10n.testingServers : l10n.testAllServers,
+      onPressed: isPinging
+          ? null
+          : () {
+              unawaited(ref.read(hapticServiceProvider).selection());
+              unawaited(
+                ref
+                    .read(serverListProvider.notifier)
+                    .testAllServers(force: true),
+              );
+            },
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
@@ -261,6 +286,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
             text: AppLocalizations.of(context).servers,
             style: Theme.of(context).appBarTheme.titleTextStyle,
           ),
+          actions: [_buildTestAllAction(context)],
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
@@ -313,6 +339,7 @@ class _ServerListScreenState extends ConsumerState<ServerListScreen> {
           style: Theme.of(context).appBarTheme.titleTextStyle,
         ),
         actions: [
+          _buildTestAllAction(context),
           IconButton(
             icon: Icon(preferMap ? Icons.list : Icons.map_outlined),
             tooltip: preferMap ? 'List view' : 'Map view',

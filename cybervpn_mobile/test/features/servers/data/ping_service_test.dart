@@ -59,10 +59,29 @@ void main() {
       });
 
       test('clearCache empties the cache', () async {
-        // We cannot easily populate the cache without real sockets,
-        // but we can verify clearCache does not throw.
+        pingService.recordLatency('srv-1', 42);
+        expect(pingService.getLatency('srv-1'), equals(42));
+        expect(pingService.isFresh('srv-1'), isTrue);
+        expect(pingService.cachedResults['srv-1'], equals(42));
+
         pingService.clearCache();
         expect(pingService.cachedResults, isEmpty);
+        expect(pingService.getLatency('srv-1'), isNull);
+        expect(pingService.isFresh('srv-1'), isFalse);
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // pingHttp (HTTP 204 URL test)
+    // -----------------------------------------------------------------------
+
+    group('pingHttp', () {
+      test('returns null for unreachable host without crashing', () async {
+        final result = await pingService.pingHttp(
+          'http://192.0.2.1:1/generate_204',
+          timeout: const Duration(milliseconds: 200),
+        );
+        expect(result, isNull);
       });
     });
 

@@ -32,6 +32,18 @@ enum PreferredIpType { auto, ipv4, ipv6 }
 /// Runtime mode used when starting the VPN engine.
 enum VpnRunMode { vpn, proxyOnly }
 
+/// Outbound traffic routing mode (Happ / Sing-box / INCY style).
+enum OutboundMode {
+  /// Traffic is routed according to routing rules (e.g. bypass RU sites, adblock).
+  rule,
+
+  /// All traffic goes through VPN proxy.
+  global,
+
+  /// All traffic goes directly (bypasses VPN proxy).
+  direct,
+}
+
 /// Server ping strategy used by the app.
 enum PingMode { tcp, realDelay, proxyGet, proxyHead, icmp }
 
@@ -94,6 +106,7 @@ sealed class AppSettings with _$AppSettings {
 
     // Routing
     @Default(false) bool routingEnabled,
+    @Default(OutboundMode.rule) OutboundMode outboundMode,
     @Default(<RoutingProfile>[]) List<RoutingProfile> routingProfiles,
     String? activeRoutingProfileId,
     @Default(<String>[]) List<String> bypassSubnets,

@@ -24,6 +24,7 @@ class _FakeFlutterV2ray extends FlutterV2ray {
     required String remark,
     required String config,
     List<String>? blockedApps,
+    List<String>? allowedApps,
     List<String>? bypassSubnets,
     List<String>? dnsServers,
     int? mtu,

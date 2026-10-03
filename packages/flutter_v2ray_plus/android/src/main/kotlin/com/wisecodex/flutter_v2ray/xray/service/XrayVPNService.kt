@@ -218,20 +218,32 @@ class XrayVPNService : VpnService() {
                 setMetered(false)
             }
 
-            // Exclude this app from VPN to prevent loops
-            runCatching {
-                addDisallowedApplication(packageName)
-            }.onFailure {
-                Log.e(TAG, "Failed to exclude app from VPN", it)
-            }
-
-            // Apply blocked apps (Per-App VPN)
-            config.BLOCKED_APPS.forEach { blockedApp ->
+            // Apply Per-App VPN: Allowed Apps (Whitelist / Proxy Mode) or Blocked Apps (Blacklist / Bypass Mode)
+            if (config.ALLOWED_APPS.isNotEmpty()) {
+                config.ALLOWED_APPS.forEach { allowedApp ->
+                    runCatching {
+                        addAllowedApplication(allowedApp)
+                        Log.d(TAG, "Included app in VPN: $allowedApp")
+                    }.onFailure {
+                        Log.w(TAG, "Failed to include app '$allowedApp' in VPN", it)
+                    }
+                }
+            } else {
+                // Exclude this app from VPN to prevent loops
                 runCatching {
-                    addDisallowedApplication(blockedApp)
-                    Log.d(TAG, "Excluded app from VPN: $blockedApp")
+                    addDisallowedApplication(packageName)
                 }.onFailure {
-                    Log.w(TAG, "Failed to exclude app '$blockedApp' from VPN", it)
+                    Log.e(TAG, "Failed to exclude app from VPN", it)
+                }
+
+                // Apply blocked apps (Per-App VPN)
+                config.BLOCKED_APPS.forEach { blockedApp ->
+                    runCatching {
+                        addDisallowedApplication(blockedApp)
+                        Log.d(TAG, "Excluded app from VPN: $blockedApp")
+                    }.onFailure {
+                        Log.w(TAG, "Failed to exclude app '$blockedApp' from VPN", it)
+                    }
                 }
             }
 

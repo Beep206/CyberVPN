@@ -5044,4 +5044,25 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get profileEmptySubtitle =>
       'Add your first VPN subscription to get started';
+
+  @override
+  String get testAllServers => 'Проверить все';
+
+  @override
+  String get testingServers => 'Проверка...';
+
+  @override
+  String get a11yTestAllServers => 'Проверить задержку всех серверов';
+
+  @override
+  String get outboundModeRule => 'Правила';
+
+  @override
+  String get outboundModeGlobal => 'Все через VPN';
+
+  @override
+  String get outboundModeDirect => 'Напрямую';
+
+  @override
+  String get outboundModeTooltip => 'Режим маршрутизации трафика';
 }

@@ -168,7 +168,6 @@ abstract class AppLocalizations {
     Locale('vi'),
     Locale('yo'),
     Locale('zh'),
-    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
   ];
 
   /// No description provided for @appName.
@@ -8678,6 +8677,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add your first VPN subscription to get started'**
   String get profileEmptySubtitle;
+
+  /// No description provided for @testAllServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Test All'**
+  String get testAllServers;
+
+  /// No description provided for @testingServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing...'**
+  String get testingServers;
+
+  /// No description provided for @a11yTestAllServers.
+  ///
+  /// In en, this message translates to:
+  /// **'Test latency for all servers'**
+  String get a11yTestAllServers;
+
+  /// No description provided for @outboundModeRule.
+  ///
+  /// In en, this message translates to:
+  /// **'Rule'**
+  String get outboundModeRule;
+
+  /// No description provided for @outboundModeGlobal.
+  ///
+  /// In en, this message translates to:
+  /// **'Global'**
+  String get outboundModeGlobal;
+
+  /// No description provided for @outboundModeDirect.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct'**
+  String get outboundModeDirect;
+
+  /// No description provided for @outboundModeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Outbound Traffic Mode'**
+  String get outboundModeTooltip;
 }
 
 class _AppLocalizationsDelegate

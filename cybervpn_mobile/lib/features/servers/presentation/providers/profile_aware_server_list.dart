@@ -5,6 +5,8 @@ import 'package:cybervpn_mobile/features/servers/presentation/providers/server_l
 import 'package:cybervpn_mobile/features/vpn_profiles/di/profile_providers.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
 
+import 'package:cybervpn_mobile/core/utils/country_code_detector.dart';
+
 // ---------------------------------------------------------------------------
 // Mapper
 // ---------------------------------------------------------------------------
@@ -12,14 +14,14 @@ import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_se
 /// Converts a [ProfileServer] (from the multi-profile Drift DB) into a
 /// [ServerEntity] (the type consumed by the server list UI).
 ///
-/// Fields that have no equivalent in [ProfileServer] (e.g. `countryCode`,
-/// `city`, `load`) receive sensible defaults.
+/// Automatically detects country code and name from the server name or remark.
 ServerEntity profileServerToEntity(ProfileServer ps) {
+  final detected = CountryCodeDetector.detect(ps.name, ps.remark);
   return ServerEntity(
     id: ps.id,
     name: ps.name,
-    countryCode: '',
-    countryName: ps.remark ?? '',
+    countryCode: detected.code,
+    countryName: detected.name,
     city: '',
     address: ps.serverAddress,
     port: ps.port,
@@ -46,8 +48,9 @@ ServerEntity profileServerToEntity(ProfileServer ps) {
 /// All derived providers ([filteredServersProvider],
 /// [groupedByCountryProvider], etc.) read from this provider so that
 /// switching profiles transparently updates the server list UI.
-final profileAwareServerListProvider =
-    Provider<AsyncValue<ServerListState>>((ref) {
+final profileAwareServerListProvider = Provider<AsyncValue<ServerListState>>((
+  ref,
+) {
   final activeProfileAsync = ref.watch(activeVpnProfileProvider);
 
   return activeProfileAsync.when(
@@ -60,13 +63,9 @@ final profileAwareServerListProvider =
       }
 
       // Active profile → build state from profile servers.
-      final servers = activeProfile.servers
-          .map(profileServerToEntity)
-          .toList();
+      final servers = activeProfile.servers.map(profileServerToEntity).toList();
 
-      return AsyncData<ServerListState>(
-        ServerListState(servers: servers),
-      );
+      return AsyncData<ServerListState>(ServerListState(servers: servers));
     },
   );
 });

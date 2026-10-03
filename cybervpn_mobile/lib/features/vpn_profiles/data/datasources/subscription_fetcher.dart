@@ -3,9 +3,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 
 import 'package:cybervpn_mobile/core/utils/app_logger.dart';
-import 'package:cybervpn_mobile/features/config_import/domain/entities/parsed_config.dart';
-import 'package:cybervpn_mobile/features/config_import/domain/parsers/vpn_uri_parser.dart';
 import 'package:cybervpn_mobile/features/config_import/domain/usecases/parse_vpn_uri.dart';
+import 'package:cybervpn_mobile/features/vpn_profiles/data/datasources/subscription_format_parser.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/data/models/fetch_result.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/data/models/parsed_server.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/domain/entities/profile_server.dart';
@@ -37,21 +36,26 @@ class SubscriptionFetcher {
   /// Creates a [SubscriptionFetcher].
   ///
   /// [dio] is the HTTP client used for the subscription request.
+  /// Creates a [SubscriptionFetcher].
+  ///
+  /// [dio] is the HTTP client used for the subscription request.
   /// [parseVpnUri] is an optional override for the VPN URI parser;
   /// defaults to [ParseVpnUri] with all built-in protocol parsers.
   SubscriptionFetcher({
     required Dio dio,
     ParseVpnUri? parseVpnUri,
+    SubscriptionFormatParser? formatParser,
     Future<SubscriptionPolicyState> Function()? resolvePolicy,
     SubscriptionPolicyRuntime? policyRuntime,
-  })
-    : _dio = dio,
-      _parseVpnUri = parseVpnUri ?? ParseVpnUri(),
-      _resolvePolicy = resolvePolicy,
-      _policyRuntime = policyRuntime ?? const SubscriptionPolicyRuntime();
+  }) : _dio = dio,
+       _formatParser =
+           formatParser ??
+           SubscriptionFormatParser(parseVpnUri: parseVpnUri ?? ParseVpnUri()),
+       _resolvePolicy = resolvePolicy,
+       _policyRuntime = policyRuntime ?? const SubscriptionPolicyRuntime();
 
   final Dio _dio;
-  final ParseVpnUri _parseVpnUri;
+  final SubscriptionFormatParser _formatParser;
   final Future<SubscriptionPolicyState> Function()? _resolvePolicy;
   final SubscriptionPolicyRuntime _policyRuntime;
 
@@ -92,11 +96,7 @@ class SubscriptionFetcher {
       },
     );
 
-    return FetchResult(
-      info: info,
-      servers: sortedServers,
-      parseErrors: errors,
-    );
+    return FetchResult(info: info, servers: sortedServers, parseErrors: errors);
   }
 
   /// Perform the HTTP GET request.
@@ -119,10 +119,7 @@ class SubscriptionFetcher {
           responseType: ResponseType.plain,
           receiveTimeout: _timeout,
           sendTimeout: _timeout,
-          headers: {
-            'User-Agent': policy.effectiveUserAgent,
-            'Accept': '*/*',
-          },
+          headers: {'User-Agent': policy.effectiveUserAgent, 'Accept': '*/*'},
         ),
       );
     } on DioException catch (e) {
@@ -138,9 +135,7 @@ class SubscriptionFetcher {
 
   Future<SubscriptionPolicyState> _readPolicy() async {
     return await (_resolvePolicy?.call() ??
-        Future<SubscriptionPolicyState>.value(
-          const SubscriptionPolicyState(),
-        ));
+        Future<SubscriptionPolicyState>.value(const SubscriptionPolicyState()));
   }
 
   /// Extract subscription metadata from response headers.
@@ -220,46 +215,16 @@ class SubscriptionFetcher {
 
   /// Decode and parse the response body into a list of servers.
   ///
-  /// Tries Base64 decoding first, falls back to plain text if the
-  /// body already contains VPN URI schemes.
+  /// Supports:
+  /// - Base64 or plain-text line-separated VPN URIs
+  /// - Clash Meta / Mihomo YAML subscriptions (`proxies:`)
+  /// - Sing-box JSON subscriptions (`outbounds:`)
   (List<ParsedServer>, List<String>) _parseBody(String body) {
     final trimmed = body.trim();
     if (trimmed.isEmpty) return (const [], const []);
 
     final decoded = _decodeBody(trimmed);
-    final lines = decoded.split(RegExp(r'\r?\n'));
-    final servers = <ParsedServer>[];
-    final errors = <String>[];
-
-    for (var i = 0; i < lines.length; i++) {
-      final line = lines[i].trim();
-      if (line.isEmpty) continue;
-
-      final result = _parseVpnUri.call(line);
-      switch (result) {
-        case ParseSuccess(:final config):
-          servers.add(
-            ParsedServer(
-              name:
-                  config.remark ?? '${config.protocol}:${config.serverAddress}',
-              rawUri: line,
-              protocol: config.protocol,
-              serverAddress: config.serverAddress,
-              port: config.port,
-              configData: _buildConfigData(config),
-            ),
-          );
-        case ParseFailure(:final message):
-          errors.add('Line ${i + 1}: $message');
-          AppLogger.debug(
-            'Failed to parse subscription line',
-            category: 'subscription',
-            data: {'line': i + 1, 'error': message},
-          );
-      }
-    }
-
-    return (servers, errors);
+    return _formatParser.parse(decoded);
   }
 
   /// Try to Base64-decode the body; fall back to plain text.
@@ -287,18 +252,6 @@ class SubscriptionFetcher {
   bool _looksLikePlainVpnUris(String content) {
     final firstLine = content.split('\n').first.trim().toLowerCase();
     return ParseVpnUri.supportedSchemes.any(firstLine.startsWith);
-  }
-
-  /// Build a JSON-encodable config data map from a [ParsedConfig].
-  Map<String, dynamic> _buildConfigData(ParsedConfig config) {
-    return <String, dynamic>{
-      'uuid': config.uuid,
-      if (config.password != null) 'password': config.password,
-      if (config.transportSettings != null)
-        'transport': config.transportSettings,
-      if (config.tlsSettings != null) 'tls': config.tlsSettings,
-      if (config.additionalParams != null) 'params': config.additionalParams,
-    };
   }
 
   /// Remove query params and fragment from URL for safe logging.

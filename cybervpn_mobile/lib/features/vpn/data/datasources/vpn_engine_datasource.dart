@@ -53,6 +53,7 @@ class VpnEngineDatasource {
   String? _lastConfig;
   String? _lastRemark;
   List<String>? _lastBlockedApps;
+  List<String>? _lastAllowedApps;
   List<String>? _lastBypassSubnets;
   List<String>? _lastDnsServers;
   int? _lastMtu;
@@ -118,6 +119,7 @@ class VpnEngineDatasource {
     String config, {
     String? remark,
     List<String>? blockedApps,
+    List<String>? allowedApps,
     List<String>? bypassSubnets,
     List<String>? dnsServers,
     int? mtu,
@@ -132,6 +134,7 @@ class VpnEngineDatasource {
     _lastConfig = normalizedConfig;
     _lastRemark = remark;
     _lastBlockedApps = blockedApps;
+    _lastAllowedApps = allowedApps;
     _lastBypassSubnets = bypassSubnets;
     _lastDnsServers = dnsServers;
     _lastMtu = mtu;
@@ -159,6 +162,7 @@ class VpnEngineDatasource {
       remark: remark ?? 'CyberVPN',
       config: normalizedConfig,
       blockedApps: blockedApps ?? [],
+      allowedApps: allowedApps,
       bypassSubnets: bypassSubnets ?? [],
       dnsServers: dnsServers,
       mtu: mtu,
@@ -200,6 +204,7 @@ class VpnEngineDatasource {
       config,
       remark: _lastRemark,
       blockedApps: _lastBlockedApps,
+      allowedApps: _lastAllowedApps,
       bypassSubnets: _lastBypassSubnets,
       dnsServers: _lastDnsServers,
       mtu: _lastMtu,

@@ -114,6 +114,9 @@ class _PerfServerListNotifier extends AsyncNotifier<ServerListState>
       current.copyWith(servers: updatedServers, favoriteServerIds: favoriteIds),
     );
   }
+
+  @override
+  Future<void> testAllServers({bool force = true}) async {}
 }
 
 class _PerfSettingsNotifier extends SettingsNotifier {

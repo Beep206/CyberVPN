@@ -75,6 +75,65 @@ sealed class RoutingProfile with _$RoutingProfile {
     String? description,
   }) = _RoutingProfile;
 
+  static const String ruBypassProfileId = 'preset_ru_bypass';
+  static const String adBlockProfileId = 'preset_adblock';
+
+  static const defaultRuBypass = RoutingProfile(
+    id: ruBypassProfileId,
+    name: 'Bypass Russia (Госуслуги, Банки, RU)',
+    description:
+        'Direct access to Russian services, banks and government sites; proxy for everything else.',
+    enabled: true,
+    rules: [
+      RoutingRule(
+        id: 'ru_geosite',
+        matchType: RoutingRuleMatchType.geoSite,
+        value: 'ru',
+        action: RoutingRuleAction.direct,
+        enabled: true,
+        note: 'Russian websites direct',
+      ),
+      RoutingRule(
+        id: 'ru_geoip',
+        matchType: RoutingRuleMatchType.geoIp,
+        value: 'ru',
+        action: RoutingRuleAction.direct,
+        enabled: true,
+        note: 'Russian IP ranges direct',
+      ),
+      RoutingRule(
+        id: 'ru_ads',
+        matchType: RoutingRuleMatchType.geoSite,
+        value: 'category-ads-all',
+        action: RoutingRuleAction.block,
+        enabled: true,
+        note: 'Ad blocking',
+      ),
+    ],
+  );
+
+  static const defaultAdBlock = RoutingProfile(
+    id: adBlockProfileId,
+    name: 'AdBlock',
+    description: 'Blocks common advertising and tracking networks.',
+    enabled: true,
+    rules: [
+      RoutingRule(
+        id: 'adblock_ads',
+        matchType: RoutingRuleMatchType.geoSite,
+        value: 'category-ads-all',
+        action: RoutingRuleAction.block,
+        enabled: true,
+        note: 'Block advertising domains',
+      ),
+    ],
+  );
+
+  static const List<RoutingProfile> defaultPresets = [
+    defaultRuBypass,
+    defaultAdBlock,
+  ];
+
   factory RoutingProfile.fromStorageJson(Map<String, dynamic> json) {
     final rawRules = json['rules'];
     final rules = rawRules is List

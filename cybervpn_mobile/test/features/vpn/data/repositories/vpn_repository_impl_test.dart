@@ -46,6 +46,7 @@ class _MockVpnEngine implements VpnEngineDatasource {
     String config, {
     String? remark,
     List<String>? blockedApps,
+    List<String>? allowedApps,
     List<String>? bypassSubnets,
     List<String>? dnsServers,
     int? mtu,

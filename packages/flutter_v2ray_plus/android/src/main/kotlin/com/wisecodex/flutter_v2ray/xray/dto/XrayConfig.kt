@@ -33,9 +33,12 @@ data class XrayConfig(
     /** List of subnets to bypass (not routed through VPN). */
     var BYPASS_SUBNETS: ArrayList<String> = ArrayList(),
     
-    /** List of app package names to exclude from VPN. */
+    /** List of app package names to exclude from VPN (blacklist mode). */
     var BLOCKED_APPS: ArrayList<String> = ArrayList(),
     
+    /** List of app package names to route through VPN (whitelist mode). */
+    var ALLOWED_APPS: ArrayList<String> = ArrayList(),
+
     /** The raw Xray configuration JSON string. */
     var V2RAY_FULL_JSON_CONFIG: String = "",
     

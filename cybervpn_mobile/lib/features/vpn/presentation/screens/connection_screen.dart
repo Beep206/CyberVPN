@@ -15,6 +15,7 @@ import 'package:cybervpn_mobile/shared/widgets/feature_tooltip.dart';
 import 'package:cybervpn_mobile/shared/widgets/glitch_text.dart';
 import 'package:cybervpn_mobile/shared/widgets/responsive_layout.dart';
 import 'package:cybervpn_mobile/features/vpn_profiles/presentation/widgets/profile_selector_widget.dart';
+import 'package:cybervpn_mobile/features/vpn/presentation/widgets/outbound_mode_selector.dart';
 
 /// Main VPN connection screen.
 ///
@@ -206,7 +207,12 @@ class _ConnectionScreenState extends ConsumerState<ConnectionScreen>
         // Connection info (server, protocol, timer, IP)
         const ConnectionInfo(),
 
-        const SizedBox(height: Spacing.xl + Spacing.xs),
+        const SizedBox(height: Spacing.md),
+
+        // Outbound routing mode selector (Rule / Global / Direct)
+        const OutboundModeSelector(),
+
+        const SizedBox(height: Spacing.lg),
 
         // Error message banner
         if (vpnState is VpnError)

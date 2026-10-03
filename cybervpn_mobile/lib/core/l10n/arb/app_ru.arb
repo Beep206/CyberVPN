@@ -1679,5 +1679,12 @@
   },
   "@cantUnlinkOnlyMethod": {
     "description": "Error when trying to unlink the only login method"
-  }
+  },
+  "testAllServers": "Проверить все",
+  "testingServers": "Проверка...",
+  "a11yTestAllServers": "Проверить задержку всех серверов",
+  "outboundModeRule": "Правила",
+  "outboundModeGlobal": "Все через VPN",
+  "outboundModeDirect": "Напрямую",
+  "outboundModeTooltip": "Режим маршрутизации трафика"
 }

@@ -257,10 +257,7 @@ class ProfileUpdateNotifier extends Notifier<ProfileUpdateState> {
         .where(
           (profile) => ref
               .read(subscriptionPolicyRuntimeProvider)
-              .isRefreshDue(
-                lastUpdated: profile.lastUpdatedAt,
-                policy: policy,
-              ),
+              .isRefreshDue(lastUpdated: profile.lastUpdatedAt, policy: policy),
         )
         .toList(growable: false);
 
@@ -314,11 +311,19 @@ class ProfileUpdateNotifier extends Notifier<ProfileUpdateState> {
     return refreshedCount;
   }
 
-  Future<int> _refreshRemoteProfileLatencies() async {
+  /// Refreshes latency for remote profiles (or a specific profile if [targetProfileId] is specified).
+  Future<int> refreshRemoteProfileLatencies({String? targetProfileId}) async {
+    return _refreshRemoteProfileLatencies(targetProfileId: targetProfileId);
+  }
+
+  Future<int> _refreshRemoteProfileLatencies({String? targetProfileId}) async {
     final profiles = await ref.read(profileListProvider.future);
     final remoteProfiles = profiles
         .whereType<RemoteVpnProfile>()
         .where((profile) => profile.servers.isNotEmpty)
+        .where(
+          (profile) => targetProfileId == null || profile.id == targetProfileId,
+        )
         .toList(growable: false);
     if (remoteProfiles.isEmpty) {
       return 0;
@@ -396,6 +401,9 @@ class ProfileUpdateNotifier extends Notifier<ProfileUpdateState> {
         );
         for (final entry in batchResults) {
           latencies[entry.key] = entry.value;
+          if (entry.value != null) {
+            pingService.recordLatency(entry.key, entry.value!);
+          }
         }
       }
 

@@ -30,6 +30,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   static const _kAutoConnectOnLaunch = 'settings.autoConnectOnLaunch';
   static const _kAutoConnectUntrustedWifi = 'settings.autoConnectUntrustedWifi';
   static const _kKillSwitch = 'settings.killSwitch';
+  static const _kOutboundMode = 'settings.outboundMode';
   static const _kRoutingEnabled = 'settings.routingEnabled';
   static const _kRoutingProfiles = 'settings.routingProfiles';
   static const _kActiveRoutingProfileId = 'settings.activeRoutingProfileId';
@@ -109,6 +110,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
     _kAutoConnectOnLaunch,
     _kAutoConnectUntrustedWifi,
     _kKillSwitch,
+    _kOutboundMode,
     _kRoutingEnabled,
     _kRoutingProfiles,
     _kActiveRoutingProfileId,
@@ -183,20 +185,24 @@ class SettingsRepositoryImpl implements SettingsRepository {
     );
   }
 
-  static List<RoutingProfile> _readRoutingProfiles(String? stored) {
-    if (stored == null || stored.isEmpty) return const <RoutingProfile>[];
+  static List<RoutingProfile> _readRoutingProfiles(
+    String? stored, [
+    List<RoutingProfile> defaultProfiles = const <RoutingProfile>[],
+  ]) {
+    if (stored == null || stored.isEmpty) return defaultProfiles;
 
     try {
       final decoded = jsonDecode(stored);
-      if (decoded is! List) return const <RoutingProfile>[];
+      if (decoded is! List) return defaultProfiles;
 
-      return decoded
+      final parsed = decoded
           .whereType<Map<String, dynamic>>()
           .map(RoutingProfile.fromStorageJson)
           .where((profile) => profile.id.isNotEmpty && profile.name.isNotEmpty)
           .toList();
+      return parsed.isNotEmpty ? parsed : defaultProfiles;
     } catch (_) {
-      return const <RoutingProfile>[];
+      return defaultProfiles;
     }
   }
 
@@ -334,6 +340,11 @@ class SettingsRepositoryImpl implements SettingsRepository {
             _prefs.getBool(_kAutoConnectUntrustedWifi) ??
             defaults.autoConnectUntrustedWifi,
         killSwitch: _prefs.getBool(_kKillSwitch) ?? defaults.killSwitch,
+        outboundMode: _readEnum(
+          _prefs.getString(_kOutboundMode),
+          OutboundMode.values,
+          defaults.outboundMode,
+        ),
         routingEnabled:
             _prefs.getBool(_kRoutingEnabled) ?? defaults.routingEnabled,
         routingProfiles: _readRoutingProfiles(
@@ -512,6 +523,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
         settings.autoConnectUntrustedWifi,
       );
       await _prefs.setBool(_kKillSwitch, settings.killSwitch);
+      await _prefs.setString(_kOutboundMode, settings.outboundMode.name);
       await _prefs.setBool(_kRoutingEnabled, settings.routingEnabled);
       await _prefs.setString(
         _kRoutingProfiles,

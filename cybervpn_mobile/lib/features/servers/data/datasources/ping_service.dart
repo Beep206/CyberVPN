@@ -74,11 +74,7 @@ class PingService {
   Future<int?> pingServer(String host, int port) async {
     try {
       final stopwatch = Stopwatch()..start();
-      final socket = await Socket.connect(
-        host,
-        port,
-        timeout: timeoutDuration,
-      );
+      final socket = await Socket.connect(host, port, timeout: timeoutDuration);
       stopwatch.stop();
       await socket.close();
       socket.destroy();
@@ -87,6 +83,39 @@ class PingService {
       AppLogger.warning('Ping failed for server', error: e, category: 'ping');
       return null;
     }
+  }
+
+  /// Ping an HTTP URL (e.g. 204 URL test) to measure real round-trip delay.
+  ///
+  /// Returns latency in milliseconds, or `null` if the request failed or timed out.
+  Future<int?> pingHttp(String url, {Duration? timeout}) async {
+    HttpClient? client;
+    try {
+      final effectiveTimeout = timeout ?? timeoutDuration;
+      final uri = Uri.parse(url);
+      client = HttpClient()..connectionTimeout = effectiveTimeout;
+      final stopwatch = Stopwatch()..start();
+      final request = await client.getUrl(uri).timeout(effectiveTimeout);
+      request.followRedirects = false;
+      final response = await request.close().timeout(effectiveTimeout);
+      stopwatch.stop();
+      if (response.statusCode >= 200 && response.statusCode < 400) {
+        return stopwatch.elapsedMilliseconds;
+      }
+      return null;
+    } catch (e) {
+      AppLogger.warning('HTTP ping failed', error: e, category: 'ping');
+      return null;
+    } finally {
+      client?.close();
+    }
+  }
+
+  /// Manually record a latency measurement in the cache (e.g. measured via Xray proxy).
+  void recordLatency(String serverId, int latency) {
+    _cache[serverId] = latency;
+    _cacheTimestamps[serverId] = DateTime.now();
+    _evictIfNeeded();
   }
 
   /// Ping all servers in parallel (up to [maxConcurrent] at a time).
@@ -139,8 +168,9 @@ class PingService {
 
     // Split servers into batches of maxConcurrent.
     for (var i = 0; i < servers.length; i += maxConcurrent) {
-      final end =
-          (i + maxConcurrent > servers.length) ? servers.length : i + maxConcurrent;
+      final end = (i + maxConcurrent > servers.length)
+          ? servers.length
+          : i + maxConcurrent;
       batches.add(servers.sublist(i, end));
     }
 

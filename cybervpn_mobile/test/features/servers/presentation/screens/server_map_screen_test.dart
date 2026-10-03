@@ -106,4 +106,7 @@ class _FakeServerListNotifier extends AsyncNotifier<ServerListState>
 
   @override
   Future<void> toggleFavorite(String serverId) async {}
+
+  @override
+  Future<void> testAllServers({bool force = true}) async {}
 }

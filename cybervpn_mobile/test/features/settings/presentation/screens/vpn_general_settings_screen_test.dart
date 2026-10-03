@@ -24,6 +24,12 @@ class _FakeSettingsNotifier extends AsyncNotifier<AppSettings>
   Future<AppSettings> build() async => _settings;
 
   @override
+  Future<void> updateOutboundMode(OutboundMode mode) async {
+    _settings = _settings.copyWith(outboundMode: mode);
+    state = AsyncData(_settings);
+  }
+
+  @override
   Future<void> updateProtocol(PreferredProtocol protocol) async {
     _settings = _settings.copyWith(preferredProtocol: protocol);
     state = AsyncData(_settings);

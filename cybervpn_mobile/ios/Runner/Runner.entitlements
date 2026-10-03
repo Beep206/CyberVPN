@@ -14,5 +14,10 @@
 	<array>
 		<string>applinks:$(TELEGRAM_IOS_ASSOCIATED_DOMAIN)</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.cybervpn</string>
+		<string>group.com.cybervpn.widgets</string>
+	</array>
 </dict>
 </plist>
