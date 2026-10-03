@@ -38,6 +38,23 @@ pub struct ClientConfig {
     pub capabilities: Vec<CapabilityId>,
     pub auth_method: u16,
     pub auth_data: Vec<u8>,
+    /// Pinned Ed25519 node public key (32 bytes). When set, the client
+    /// requires a valid node-identity signature in ServerFinish and rejects
+    /// the node otherwise. `None` disables node authentication (lab only).
+    pub expected_node_key: Option<[u8; 32]>,
+}
+
+impl Default for ClientConfig {
+    fn default() -> Self {
+        Self {
+            core_version: CoreVersion::V1,
+            transport_binding: [0u8; 32],
+            capabilities: Vec::new(),
+            auth_method: 0,
+            auth_data: Vec::new(),
+            expected_node_key: None,
+        }
+    }
 }
 
 /// Server-side configuration.
@@ -47,6 +64,23 @@ pub struct ServerConfig {
     pub capabilities: Vec<CapabilityId>,
     pub node_identity: Vec<u8>,
     pub policy_epoch: u64,
+    /// Ed25519 secret seed (32 bytes) the node signs the handshake transcript
+    /// with. When set, `node_identity` is published as the matching public key
+    /// and a signature is added to ServerFinish. `None` disables signing.
+    pub node_signing_key: Option<[u8; 32]>,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            supported_versions: vec![CoreVersion::V1],
+            transport_binding: [0u8; 32],
+            capabilities: Vec::new(),
+            node_identity: Vec::new(),
+            policy_epoch: 0,
+            node_signing_key: None,
+        }
+    }
 }
 
 /// Client handshake driver. Transport-agnostic, synchronous.
@@ -68,7 +102,8 @@ impl ClientHandshake {
         let (secret, public) = key_schedule::generate_x25519_keypair();
 
         let mut sm = StateMachine::new(Role::Initiator);
-        sm.process(Event::OuterTransportReady).expect("idle → outer");
+        sm.process(Event::OuterTransportReady)
+            .expect("idle → outer");
 
         Self {
             sm,
@@ -83,9 +118,10 @@ impl ClientHandshake {
 
     /// Create ClientInit. Returns encoded frame bytes to send.
     pub fn create_client_init(&mut self) -> Result<Vec<u8>, SessionError> {
-        let public = self.client_public.take().ok_or_else(|| {
-            SessionError::InvalidTransition("ClientInit already created".into())
-        })?;
+        let public = self
+            .client_public
+            .take()
+            .ok_or_else(|| SessionError::InvalidTransition("ClientInit already created".into()))?;
 
         let msg = ClientInit {
             core_version: self.config.core_version.as_u32(),
@@ -95,7 +131,12 @@ impl ClientHandshake {
             key_share: public.as_bytes().to_vec(),
             auth_method: self.config.auth_method,
             auth_data: self.config.auth_data.clone(),
-            capabilities: self.config.capabilities.iter().map(|c| c.to_wire()).collect(),
+            capabilities: self
+                .config
+                .capabilities
+                .iter()
+                .map(|c| c.to_wire())
+                .collect(),
             extensions: vec![],
         };
 
@@ -112,8 +153,9 @@ impl ClientHandshake {
     /// Process received ServerInit frame. Derives handshake keys.
     pub fn process_server_init(&mut self, data: &[u8]) -> Result<(), SessionError> {
         let frame = decode_expect_type(data, FrameType::SERVER_INIT)?;
-        let (server_init, _) = ServerInit::decode(&frame.payload)
-            .map_err(|e| SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string()))?;
+        let (server_init, _) = ServerInit::decode(&frame.payload).map_err(|e| {
+            SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string())
+        })?;
 
         self.transcript.extend_from_slice(&frame.payload);
 
@@ -122,11 +164,12 @@ impl ClientHandshake {
             SessionError::InvalidTransition("ephemeral secret already consumed".into())
         })?;
         let peer_public = PublicKey::from(
-            <[u8; 32]>::try_from(server_init.server_key_share.as_slice())
-                .map_err(|_| SessionError::protocol(
+            <[u8; 32]>::try_from(server_init.server_key_share.as_slice()).map_err(|_| {
+                SessionError::protocol(
                     SessionErrorCode::CapabilityMismatch,
                     "invalid server key share length",
-                ))?,
+                )
+            })?,
         );
 
         let shared = key_schedule::x25519_dh(secret, &peer_public);
@@ -143,9 +186,10 @@ impl ClientHandshake {
 
     /// Create ClientFinish with authenticator. Returns encoded frame bytes.
     pub fn create_client_finish(&mut self) -> Result<Vec<u8>, SessionError> {
-        let keys = self.handshake_keys.as_ref().ok_or_else(|| {
-            SessionError::InvalidTransition("handshake keys not derived".into())
-        })?;
+        let keys = self
+            .handshake_keys
+            .as_ref()
+            .ok_or_else(|| SessionError::InvalidTransition("handshake keys not derived".into()))?;
 
         let th = key_schedule::transcript_hash(&self.transcript);
         let authenticator = key_schedule::compute_authenticator(&keys.client_auth_key, &th);
@@ -169,8 +213,9 @@ impl ClientHandshake {
     /// Process ServerFinish, verify authenticator, derive session keys.
     pub fn process_server_finish(&mut self, data: &[u8]) -> Result<SessionKeys, SessionError> {
         let frame = decode_expect_type(data, FrameType::SERVER_FINISH)?;
-        let (server_finish, _) = ServerFinish::decode(&frame.payload)
-            .map_err(|e| SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string()))?;
+        let (server_finish, _) = ServerFinish::decode(&frame.payload).map_err(|e| {
+            SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string())
+        })?;
 
         let keys = self.handshake_keys.as_ref().ok_or_else(|| {
             SessionError::InvalidTransition("handshake keys not available".into())
@@ -178,8 +223,44 @@ impl ClientHandshake {
 
         // Verify server authenticator (over transcript before ServerFinish)
         let th = key_schedule::transcript_hash(&self.transcript);
-        if !key_schedule::verify_authenticator(&keys.server_auth_key, &th, &server_finish.authenticator) {
-            return Err(SessionError::protocol(SessionErrorCode::AuthFailed, "server authenticator invalid"));
+        if !key_schedule::verify_authenticator(
+            &keys.server_auth_key,
+            &th,
+            &server_finish.authenticator,
+        ) {
+            return Err(SessionError::protocol(
+                SessionErrorCode::AuthFailed,
+                "server authenticator invalid",
+            ));
+        }
+
+        // Verify the node-identity signature against the pinned key. The
+        // authenticator above only proves the peer completed the X25519 DH;
+        // this proves it holds the long-term key the profile pins, which an
+        // active middlebox doing its own DH cannot. Signature and
+        // authenticator cover the same transcript hash (ClientInit,
+        // ServerInit, ClientFinish).
+        if let Some(expected_key) = self.config.expected_node_key {
+            let signature = server_finish
+                .extensions
+                .iter()
+                .find(|e| e.ext_type == ext::NODE_SIGNATURE)
+                .map(|e| e.data.as_slice());
+            match signature {
+                Some(sig) if key_schedule::verify_node_identity(&expected_key, &th, sig) => {}
+                Some(_) => {
+                    return Err(SessionError::protocol(
+                        SessionErrorCode::AuthFailed,
+                        "node identity signature invalid",
+                    ));
+                }
+                None => {
+                    return Err(SessionError::protocol(
+                        SessionErrorCode::AuthFailed,
+                        "node identity signature missing",
+                    ));
+                }
+            }
         }
 
         self.transcript.extend_from_slice(&frame.payload);
@@ -210,7 +291,8 @@ impl ServerHandshake {
         let (secret, public) = key_schedule::generate_x25519_keypair();
 
         let mut sm = StateMachine::new(Role::Responder);
-        sm.process(Event::OuterTransportReady).expect("idle → outer");
+        sm.process(Event::OuterTransportReady)
+            .expect("idle → outer");
 
         Self {
             sm,
@@ -226,24 +308,30 @@ impl ServerHandshake {
     /// Process received ClientInit frame.
     pub fn process_client_init(&mut self, data: &[u8]) -> Result<ClientInit, SessionError> {
         let frame = decode_expect_type(data, FrameType::CLIENT_INIT)?;
-        let (client_init, _) = ClientInit::decode(&frame.payload)
-            .map_err(|e| SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string()))?;
+        let (client_init, _) = ClientInit::decode(&frame.payload).map_err(|e| {
+            SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string())
+        })?;
 
         // Verify transport binding
         if client_init.transport_binding != self.config.transport_binding {
-            return Err(SessionError::protocol_code(SessionErrorCode::TransportBindingFailed));
+            return Err(SessionError::protocol_code(
+                SessionErrorCode::TransportBindingFailed,
+            ));
         }
 
         self.transcript.extend_from_slice(&frame.payload);
 
         // X25519 DH
-        let secret = self.ephemeral_secret.take().unwrap();
+        let secret = self.ephemeral_secret.take().ok_or_else(|| {
+            SessionError::InvalidTransition("ephemeral secret already consumed".into())
+        })?;
         let peer_public = PublicKey::from(
-            <[u8; 32]>::try_from(client_init.key_share.as_slice())
-                .map_err(|_| SessionError::protocol(
+            <[u8; 32]>::try_from(client_init.key_share.as_slice()).map_err(|_| {
+                SessionError::protocol(
                     SessionErrorCode::CapabilityMismatch,
                     "invalid client key share length",
-                ))?,
+                )
+            })?,
         );
 
         let shared = key_schedule::x25519_dh(secret, &peer_public);
@@ -259,20 +347,36 @@ impl ServerHandshake {
 
     /// Create ServerInit. Returns encoded frame bytes.
     pub fn create_server_init(&mut self) -> Result<Vec<u8>, SessionError> {
-        let public = self.server_public.take().ok_or_else(|| {
-            SessionError::InvalidTransition("ServerInit already created".into())
-        })?;
+        let public = self
+            .server_public
+            .take()
+            .ok_or_else(|| SessionError::InvalidTransition("ServerInit already created".into()))?;
 
-        let selected_caps: Vec<u16> = self.config.capabilities.iter().map(|c| c.to_wire()).collect();
+        let selected_caps: Vec<u16> = self
+            .config
+            .capabilities
+            .iter()
+            .map(|c| c.to_wire())
+            .collect();
 
         let msg = ServerInit {
-            selected_version: self.config.supported_versions.first()
+            selected_version: self
+                .config
+                .supported_versions
+                .first()
                 .map(|v| v.as_u32())
                 .unwrap_or(1),
             server_nonce: self.server_nonce,
             server_key_share: public.as_bytes().to_vec(),
             selected_capabilities: selected_caps,
-            node_identity: self.config.node_identity.clone(),
+            // When the node signs, advertise its public key as the identity so
+            // it is visible in a capture; trust still rests on the client's
+            // pinned key and the ServerFinish signature, not on this field.
+            node_identity: self
+                .config
+                .node_signing_key
+                .map(|seed| key_schedule::node_public_key(&seed).to_vec())
+                .unwrap_or_else(|| self.config.node_identity.clone()),
             policy_epoch: self.config.policy_epoch,
             extensions: vec![],
         };
@@ -290,14 +394,25 @@ impl ServerHandshake {
     /// Process ClientFinish and verify authenticator.
     pub fn process_client_finish(&mut self, data: &[u8]) -> Result<(), SessionError> {
         let frame = decode_expect_type(data, FrameType::CLIENT_FINISH)?;
-        let (client_finish, _) = ClientFinish::decode(&frame.payload)
-            .map_err(|e| SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string()))?;
+        let (client_finish, _) = ClientFinish::decode(&frame.payload).map_err(|e| {
+            SessionError::protocol(SessionErrorCode::ProtocolViolation, e.to_string())
+        })?;
 
-        let keys = self.handshake_keys.as_ref().unwrap();
+        let keys = self
+            .handshake_keys
+            .as_ref()
+            .ok_or_else(|| SessionError::InvalidTransition("handshake keys not derived".into()))?;
         let th = key_schedule::transcript_hash(&self.transcript);
 
-        if !key_schedule::verify_authenticator(&keys.client_auth_key, &th, &client_finish.authenticator) {
-            return Err(SessionError::protocol(SessionErrorCode::AuthFailed, "client authenticator invalid"));
+        if !key_schedule::verify_authenticator(
+            &keys.client_auth_key,
+            &th,
+            &client_finish.authenticator,
+        ) {
+            return Err(SessionError::protocol(
+                SessionErrorCode::AuthFailed,
+                "client authenticator invalid",
+            ));
         }
 
         self.transcript.extend_from_slice(&frame.payload);
@@ -307,15 +422,33 @@ impl ServerHandshake {
 
     /// Create ServerFinish with authenticator. Returns (frame bytes, session keys).
     pub fn create_server_finish(&mut self) -> Result<(Vec<u8>, SessionKeys), SessionError> {
-        let keys = self.handshake_keys.as_ref().unwrap();
+        let keys = self
+            .handshake_keys
+            .as_ref()
+            .ok_or_else(|| SessionError::InvalidTransition("handshake keys not derived".into()))?;
 
         let th = key_schedule::transcript_hash(&self.transcript);
         let authenticator = key_schedule::compute_authenticator(&keys.server_auth_key, &th);
 
+        // Sign the transcript with the node's long-term key, if configured.
+        // Covers the same transcript hash as the authenticator.
+        let mut extensions = Vec::new();
+        if let Some(seed) = self.config.node_signing_key {
+            let signature = key_schedule::sign_node_identity(&seed, &th);
+            extensions.push(Extension {
+                ext_type: ext::NODE_SIGNATURE,
+                data: signature.to_vec(),
+            });
+        }
+
+        // Random, unpredictable session identifier (was a fixed placeholder).
+        let mut session_id = vec![0u8; 16];
+        rand::RngCore::fill_bytes(&mut rand::rngs::OsRng, &mut session_id);
+
         let msg = ServerFinish {
             authenticator: authenticator.to_vec(),
-            session_id: vec![0x01; 16], // placeholder session ID
-            extensions: vec![],
+            session_id,
+            extensions,
         };
 
         let mut payload = Vec::new();
@@ -367,6 +500,7 @@ mod tests {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         }
     }
 
@@ -377,6 +511,109 @@ mod tests {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node-1".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
+        }
+    }
+
+    /// Drive a full four-flight handshake and return both sides' session keys.
+    fn run_handshake(
+        client: &mut ClientHandshake,
+        server: &mut ServerHandshake,
+    ) -> Result<(SessionKeys, SessionKeys), SessionError> {
+        let ci = client.create_client_init()?;
+        server.process_client_init(&ci)?;
+        let si = server.create_server_init()?;
+        client.process_server_init(&si)?;
+        let cf = client.create_client_finish()?;
+        server.process_client_finish(&cf)?;
+        let (sf, server_keys) = server.create_server_finish()?;
+        let client_keys = client.process_server_finish(&sf)?;
+        Ok((client_keys, server_keys))
+    }
+
+    #[test]
+    fn node_signature_accepted_when_key_matches() {
+        let binding = [0x55u8; 32];
+        let (secret, public) = key_schedule::generate_node_keypair();
+
+        let mut client = ClientHandshake::new(ClientConfig {
+            expected_node_key: Some(public),
+            ..client_config(binding)
+        });
+        let mut server = ServerHandshake::new(ServerConfig {
+            node_signing_key: Some(secret),
+            ..server_config(binding)
+        });
+
+        let (client_keys, server_keys) = run_handshake(&mut client, &mut server).unwrap();
+        assert_eq!(client_keys.control_key, server_keys.control_key);
+    }
+
+    #[test]
+    fn node_signature_rejected_when_key_differs() {
+        let binding = [0x55u8; 32];
+        let (secret, _public) = key_schedule::generate_node_keypair();
+        let (_other_secret, other_public) = key_schedule::generate_node_keypair();
+
+        // Client pins a different key than the one the node signs with: the
+        // stand-in for an impostor node that completed its own DH.
+        let mut client = ClientHandshake::new(ClientConfig {
+            expected_node_key: Some(other_public),
+            ..client_config(binding)
+        });
+        let mut server = ServerHandshake::new(ServerConfig {
+            node_signing_key: Some(secret),
+            ..server_config(binding)
+        });
+
+        let result = run_handshake(&mut client, &mut server);
+        assert!(result.is_err(), "mismatched node key must be rejected");
+    }
+
+    #[test]
+    fn missing_node_signature_rejected_when_client_pins_a_key() {
+        let binding = [0x55u8; 32];
+        let (_secret, public) = key_schedule::generate_node_keypair();
+
+        // Client pins a key, but the node is not configured to sign at all —
+        // a downgrade attempt. The client must refuse rather than fall back.
+        let mut client = ClientHandshake::new(ClientConfig {
+            expected_node_key: Some(public),
+            ..client_config(binding)
+        });
+        let mut server = ServerHandshake::new(server_config(binding));
+
+        let result = run_handshake(&mut client, &mut server);
+        assert!(result.is_err(), "missing signature must be rejected");
+    }
+
+    /// Feed malformed bytes to every server-side handshake entry point and
+    /// assert it returns an error rather than panicking. Covers the
+    /// stage-3 "fuzzing handshake frames without panics" requirement.
+    #[test]
+    fn server_handshake_rejects_malformed_frames_without_panicking() {
+        let binding = [0x11u8; 32];
+        let seeds: &[&[u8]] = &[
+            &[],
+            &[0x00],
+            &[0xff; 3],
+            &[0x01, 0x02, 0x03, 0x04, 0x05],
+            &[0xaa; 64],
+            &[0x10; 200],
+        ];
+        for seed in seeds {
+            let mut server = ServerHandshake::new(server_config(binding));
+            // Must not panic on any of these; an Err is the expected outcome.
+            let _ = server.process_client_init(seed);
+            let _ = server.process_client_finish(seed);
+        }
+
+        // Also exercise a client against garbage server flights.
+        for seed in seeds {
+            let mut client = ClientHandshake::new(client_config(binding));
+            let _ = client.create_client_init();
+            let _ = client.process_server_init(seed);
+            let _ = client.process_server_finish(seed);
         }
     }
 
@@ -403,7 +640,10 @@ mod tests {
         let client_keys = client.process_server_finish(&server_finish_bytes).unwrap();
 
         // Both sides derive the same session master secret
-        assert_eq!(client_keys.session_master_secret, server_keys.session_master_secret);
+        assert_eq!(
+            client_keys.session_master_secret,
+            server_keys.session_master_secret
+        );
         assert_eq!(client_keys.control_key, server_keys.control_key);
         assert_eq!(client_keys.stream_key, server_keys.stream_key);
     }

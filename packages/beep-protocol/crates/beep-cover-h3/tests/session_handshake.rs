@@ -6,7 +6,7 @@ use std::sync::Arc;
 use beep_core::key_schedule::SessionKeys;
 use beep_core::session::{ClientConfig, ClientHandshake, ServerConfig, ServerHandshake};
 use beep_core_types::{CapabilityId, CoreVersion};
-use beep_cover_h3::{accept_h3, connect_h3, server_endpoint, BEEP_ALPN};
+use beep_cover_h3::{accept_h3, connect_h3, server_endpoint, ALPN_H3};
 use beep_transport::CoverConn;
 use bytes::Bytes;
 
@@ -33,7 +33,7 @@ fn server_tls_config(
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .unwrap();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_H3.to_vec()];
     config
 }
 
@@ -42,7 +42,7 @@ fn client_tls_config() -> rustls::ClientConfig {
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(InsecureVerifier))
         .with_no_client_auth();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_H3.to_vec()];
     config
 }
 
@@ -102,6 +102,7 @@ async fn do_beep_handshake<C: CoverConn>(
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         });
         let client_init = hs.create_client_init().unwrap();
         conn.send(Bytes::from(client_init)).await.unwrap();
@@ -118,6 +119,7 @@ async fn do_beep_handshake<C: CoverConn>(
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node-h3".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
         });
         let data = conn.recv().await.unwrap().unwrap();
         hs.process_client_init(&data).unwrap();
@@ -149,14 +151,16 @@ async fn full_handshake_over_quic() {
 
     let server_handle = tokio::spawn(async move {
         let incoming = endpoint.accept().await.expect("accept failed");
-        let mut conn = accept_h3(endpoint, incoming, &cert_for_server).await.expect("accept_h3 failed");
+        let mut conn = accept_h3(endpoint, incoming, &cert_for_server)
+            .await
+            .expect("accept_h3 failed");
         let binding = conn.transport_binding();
 
         assert!(conn.capabilities().supports_datagrams);
         assert!(conn.capabilities().supports_migration);
 
         let keys = do_beep_handshake(&mut conn, false, binding, &cert_for_server).await;
-        
+
         // Wait for the client to close the connection so we don't drop the endpoint
         // and kill the connection before the client reads server_finish.
         let _ = conn.recv().await;
@@ -212,7 +216,9 @@ async fn encrypted_stream_traffic_over_quic() {
 
     let server_handle = tokio::spawn(async move {
         let incoming = endpoint.accept().await.unwrap();
-        let mut conn = accept_h3(endpoint, incoming, &cert_for_server).await.unwrap();
+        let mut conn = accept_h3(endpoint, incoming, &cert_for_server)
+            .await
+            .unwrap();
         let binding = conn.transport_binding();
         let keys = do_beep_handshake(&mut conn, false, binding, &cert_for_server).await;
 
@@ -236,10 +242,9 @@ async fn encrypted_stream_traffic_over_quic() {
 
     let client_handle = tokio::spawn(async move {
         let client_bind: SocketAddr = (Ipv4Addr::LOCALHOST, 0).into();
-        let mut conn =
-            connect_h3(client_bind, server_addr, "localhost", client_tls)
-                .await
-                .unwrap();
+        let mut conn = connect_h3(client_bind, server_addr, "localhost", client_tls)
+            .await
+            .unwrap();
         let binding = conn.transport_binding();
         let keys = do_beep_handshake(&mut conn, true, binding, &[]).await;
 

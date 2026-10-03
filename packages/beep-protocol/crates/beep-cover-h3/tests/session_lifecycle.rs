@@ -9,7 +9,7 @@ use std::sync::Arc;
 use beep_core::session::{ClientConfig, ClientHandshake, ServerConfig, ServerHandshake};
 use beep_core::session_core::{IncomingAction, SessionCore};
 use beep_core_types::{CapabilityId, CoreVersion};
-use beep_cover_h3::{accept_h3, connect_h3, server_endpoint, BEEP_ALPN};
+use beep_cover_h3::{accept_h3, connect_h3, server_endpoint, ALPN_H3};
 use beep_transport::CoverConn;
 use bytes::Bytes;
 
@@ -36,7 +36,7 @@ fn server_tls_config(
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .unwrap();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_H3.to_vec()];
     config
 }
 
@@ -45,7 +45,7 @@ fn client_tls_config() -> rustls::ClientConfig {
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(InsecureVerifier))
         .with_no_client_auth();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_H3.to_vec()];
     config
 }
 
@@ -108,7 +108,9 @@ async fn full_session_lifecycle_over_quic() {
     // ── Server side ─────────────────────────────────────────────────
     let server_handle = tokio::spawn(async move {
         let incoming = endpoint.accept().await.unwrap();
-        let mut conn = accept_h3(endpoint, incoming, &cert_for_server).await.unwrap();
+        let mut conn = accept_h3(endpoint, incoming, &cert_for_server)
+            .await
+            .unwrap();
         let binding = conn.transport_binding();
 
         // Handshake
@@ -118,6 +120,7 @@ async fn full_session_lifecycle_over_quic() {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node-h3".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
         });
 
         let data = conn.recv().await.unwrap().unwrap();
@@ -156,10 +159,9 @@ async fn full_session_lifecycle_over_quic() {
         assert!(matches!(action, IncomingAction::Rekeyed { epoch: 1 }));
 
         // Send resumption ticket after rekey
-        let sealed = session.seal_control_frame(
-            beep_core_types::FrameType::TICKET_ISSUE,
-            b"test-ticket-h3",
-        ).unwrap();
+        let sealed = session
+            .seal_control_frame(beep_core_types::FrameType::TICKET_ISSUE, b"test-ticket-h3")
+            .unwrap();
         conn.send(Bytes::from(sealed.data)).await.unwrap();
 
         // Receive close
@@ -176,10 +178,9 @@ async fn full_session_lifecycle_over_quic() {
     // ── Client side ─────────────────────────────────────────────────
     let client_handle = tokio::spawn(async move {
         let client_bind: SocketAddr = (Ipv4Addr::LOCALHOST, 0).into();
-        let mut conn =
-            connect_h3(client_bind, server_addr, "localhost", client_tls)
-                .await
-                .unwrap();
+        let mut conn = connect_h3(client_bind, server_addr, "localhost", client_tls)
+            .await
+            .unwrap();
         let binding = conn.transport_binding();
 
         // Handshake
@@ -189,6 +190,7 @@ async fn full_session_lifecycle_over_quic() {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         });
 
         let client_init = hs.create_client_init().unwrap();

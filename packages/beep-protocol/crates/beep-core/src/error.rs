@@ -33,9 +33,6 @@ impl SessionError {
 
     /// Create a protocol error with only a code.
     pub fn protocol_code(code: SessionErrorCode) -> Self {
-        Self::Protocol {
-            code,
-            detail: None,
-        }
+        Self::Protocol { code, detail: None }
     }
 }

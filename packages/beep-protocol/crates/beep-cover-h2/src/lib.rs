@@ -7,8 +7,9 @@ use bytes::Bytes;
 use h2::{RecvStream, SendStream};
 use sha2::{Digest, Sha256};
 
-/// The Extended CONNECT :protocol value.
-pub const BEEP_PROTOCOL: &str = "beep-tunnel";
+/// The Extended CONNECT `:protocol` value (RFC 8441): the standard WebSocket
+/// token, the same one a browser sends for WebSocket-over-HTTP/2.
+pub const WEBSOCKET_PROTOCOL: &str = "websocket";
 
 /// HTTP/2 cover transport connection.
 pub struct H2CoverConn {
@@ -25,7 +26,11 @@ impl H2CoverConn {
         let hash = hasher.finalize();
         let mut binding = [0u8; 32];
         binding.copy_from_slice(&hash);
-        Self { send, recv, transport_binding: binding }
+        Self {
+            send,
+            recv,
+            transport_binding: binding,
+        }
     }
 }
 
@@ -72,6 +77,7 @@ impl CoverConn for H2CoverConn {
 pub async fn connect_h2(
     tls_stream: tokio_rustls::client::TlsStream<tokio::net::TcpStream>,
     authority: &str,
+    path: &str,
 ) -> Result<H2CoverConn, TransportError> {
     let binding = client_tls_binding(&tls_stream);
 
@@ -90,12 +96,12 @@ pub async fn connect_h2(
         .await
         .map_err(|e| TransportError::H2(e.to_string()))?;
 
-    let uri = format!("https://{}/beep", authority);
+    let uri = format!("https://{authority}/{}", path.trim_start_matches('/'));
     let req = http::Request::builder()
         .method("CONNECT")
         .uri(uri)
         .version(http::Version::HTTP_2)
-        .extension(h2::ext::Protocol::from(BEEP_PROTOCOL))
+        .extension(h2::ext::Protocol::from(WEBSOCKET_PROTOCOL))
         .body(())
         .map_err(|e| TransportError::H2(e.to_string()))?;
 
@@ -121,9 +127,12 @@ pub async fn connect_h2(
 ///
 /// `server_cert_der` is the DER-encoded server certificate, used to compute
 /// transport binding that matches the client's view of the connection.
+/// `path` is the only path admitted; anything else gets the same bare 404 as
+/// a request with the wrong Extended CONNECT protocol.
 pub async fn accept_h2(
     tls_stream: tokio_rustls::server::TlsStream<tokio::net::TcpStream>,
     server_cert_der: &[u8],
+    path: &str,
 ) -> Result<H2CoverConn, TransportError> {
     let binding = sha256_hash(server_cert_der);
 
@@ -143,12 +152,16 @@ pub async fn accept_h2(
         && request
             .extensions()
             .get::<h2::ext::Protocol>()
-            .is_some_and(|p| p.as_str() == BEEP_PROTOCOL);
+            .is_some_and(|p| p.as_str() == WEBSOCKET_PROTOCOL)
+        && request.uri().path() == path;
 
     if !valid {
-        let r = http::Response::builder().status(400).body(()).unwrap();
+        let r = http::Response::builder()
+            .status(http::StatusCode::NOT_FOUND)
+            .body(())
+            .unwrap();
         let _ = respond.send_response(r, true);
-        return Err(TransportError::H2("invalid CONNECT".into()));
+        return Err(TransportError::H2("not found".into()));
     }
 
     let recv_stream = request.into_body();
@@ -157,18 +170,14 @@ pub async fn accept_h2(
         .send_response(r, false)
         .map_err(|e| TransportError::H2(e.to_string()))?;
 
-    tokio::spawn(async move {
-        while let Some(Ok(_)) = h2_conn.accept().await {}
-    });
+    tokio::spawn(async move { while let Some(Ok(_)) = h2_conn.accept().await {} });
 
     Ok(H2CoverConn::new(send_stream, recv_stream, &binding))
 }
 
 // ── TLS binding ─────────────────────────────────────────────────────────
 
-fn client_tls_binding(
-    s: &tokio_rustls::client::TlsStream<tokio::net::TcpStream>,
-) -> Vec<u8> {
+fn client_tls_binding(s: &tokio_rustls::client::TlsStream<tokio::net::TcpStream>) -> Vec<u8> {
     let (_io, conn) = s.get_ref();
     conn.peer_certificates()
         .and_then(|c| c.first())

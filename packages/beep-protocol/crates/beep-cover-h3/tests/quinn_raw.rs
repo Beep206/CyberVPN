@@ -3,7 +3,7 @@
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
-use beep_cover_h3::BEEP_ALPN;
+use beep_cover_h3::ALPN_H3;
 
 #[derive(Debug)]
 struct InsecureVerifier;
@@ -60,15 +60,15 @@ async fn raw_quinn_bidi_roundtrip() {
         .with_no_client_auth()
         .with_single_cert(vec![cert_der], key_der)
         .unwrap();
-    server_tls.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    server_tls.alpn_protocols = vec![ALPN_H3.to_vec()];
 
     let quic_server_config = quinn::crypto::rustls::QuicServerConfig::try_from(server_tls)
         .expect("QuicServerConfig::try_from failed");
     let server_config = quinn::ServerConfig::with_crypto(Arc::new(quic_server_config));
 
     let bind_addr: SocketAddr = (Ipv4Addr::LOCALHOST, 0).into();
-    let server_endpoint = quinn::Endpoint::server(server_config, bind_addr)
-        .expect("server endpoint failed");
+    let server_endpoint =
+        quinn::Endpoint::server(server_config, bind_addr).expect("server endpoint failed");
     let server_addr = server_endpoint.local_addr().unwrap();
     eprintln!("Server listening on {server_addr}");
 
@@ -77,14 +77,14 @@ async fn raw_quinn_bidi_roundtrip() {
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(InsecureVerifier))
         .with_no_client_auth();
-    client_tls.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    client_tls.alpn_protocols = vec![ALPN_H3.to_vec()];
 
     let quic_client_config = quinn::crypto::rustls::QuicClientConfig::try_from(client_tls)
         .expect("QuicClientConfig::try_from failed");
     let client_config = quinn::ClientConfig::new(Arc::new(quic_client_config));
 
-    let mut client_endpoint = quinn::Endpoint::client((Ipv4Addr::LOCALHOST, 0).into())
-        .expect("client endpoint failed");
+    let mut client_endpoint =
+        quinn::Endpoint::client((Ipv4Addr::LOCALHOST, 0).into()).expect("client endpoint failed");
     client_endpoint.set_default_client_config(client_config);
 
     // Server task

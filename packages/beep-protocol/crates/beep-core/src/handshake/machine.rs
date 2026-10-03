@@ -99,41 +99,28 @@ impl StateMachine {
             // ── Handshake flow ──────────────────────────────────────
 
             // Idle → OuterConnected (both roles)
-            (Handshake(Idle), OuterTransportReady, _) => {
-                Ok(Handshake(OuterConnected))
-            }
+            (Handshake(Idle), OuterTransportReady, _) => Ok(Handshake(OuterConnected)),
 
             // OuterConnected → Flight1 (ClientInit)
             // Initiator sends, Responder receives
-            (Handshake(OuterConnected), ClientInitProcessed, _) => {
-                Ok(Handshake(Flight1))
-            }
+            (Handshake(OuterConnected), ClientInitProcessed, _) => Ok(Handshake(Flight1)),
 
             // Flight1 → Flight2 (ServerInit)
             // Responder sends, Initiator receives
-            (Handshake(Flight1), ServerInitProcessed, _) => {
-                Ok(Handshake(Flight2))
-            }
+            (Handshake(Flight1), ServerInitProcessed, _) => Ok(Handshake(Flight2)),
 
             // Flight2 → Flight3 (ClientFinish)
             // Initiator sends, Responder receives
-            (Handshake(Flight2), ClientFinishProcessed, _) => {
-                Ok(Handshake(Flight3))
-            }
+            (Handshake(Flight2), ClientFinishProcessed, _) => Ok(Handshake(Flight3)),
 
             // Flight3 → Open (ServerFinish)
             // Responder sends, Initiator receives
-            (Handshake(Flight3), ServerFinishProcessed, _) => {
-                Ok(Open)
-            }
+            (Handshake(Flight3), ServerFinishProcessed, _) => Ok(Open),
 
             // Retry: resets initiator back to OuterConnected for re-handshake
-            (Handshake(Flight1), RetryReceived, Role::Initiator) => {
-                Ok(Handshake(OuterConnected))
-            }
+            (Handshake(Flight1), RetryReceived, Role::Initiator) => Ok(Handshake(OuterConnected)),
 
             // ── Session lifecycle ───────────────────────────────────
-
             (Open, RekeyInitiated, _) => Ok(Rekeying),
             (Rekeying, RekeyCompleted, _) => Ok(Open),
 
@@ -165,7 +152,10 @@ mod tests {
 
         assert_eq!(sm.state(), SessionState::Handshake(HandshakePhase::Idle));
         sm.process(OuterTransportReady).unwrap();
-        assert_eq!(sm.state(), SessionState::Handshake(HandshakePhase::OuterConnected));
+        assert_eq!(
+            sm.state(),
+            SessionState::Handshake(HandshakePhase::OuterConnected)
+        );
         sm.process(ClientInitProcessed).unwrap();
         assert_eq!(sm.state(), SessionState::Handshake(HandshakePhase::Flight1));
         sm.process(ServerInitProcessed).unwrap();
@@ -199,7 +189,10 @@ mod tests {
 
         // Server sends retry instead of ServerInit
         sm.process(RetryReceived).unwrap();
-        assert_eq!(sm.state(), SessionState::Handshake(HandshakePhase::OuterConnected));
+        assert_eq!(
+            sm.state(),
+            SessionState::Handshake(HandshakePhase::OuterConnected)
+        );
 
         // Can retry the handshake
         sm.process(ClientInitProcessed).unwrap();

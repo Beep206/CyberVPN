@@ -118,7 +118,7 @@ async fn run_handshake() -> (
         let acceptor = tokio_rustls::TlsAcceptor::from(server_tls);
         let tls = acceptor.accept(tcp).await.unwrap();
 
-        let mut conn = accept_h2(tls, &cert_for_server).await.unwrap();
+        let mut conn = accept_h2(tls, &cert_for_server, "/ws").await.unwrap();
         let binding = conn.transport_binding();
 
         let mut hs = ServerHandshake::new(ServerConfig {
@@ -127,6 +127,7 @@ async fn run_handshake() -> (
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
         });
 
         let data = conn.recv().await.unwrap().unwrap();
@@ -147,7 +148,7 @@ async fn run_handshake() -> (
         let server_name = rustls::pki_types::ServerName::try_from("localhost").unwrap();
         let tls = connector.connect(server_name, tcp).await.unwrap();
 
-        let mut conn = connect_h2(tls, "localhost").await.unwrap();
+        let mut conn = connect_h2(tls, "localhost", "/ws").await.unwrap();
         let binding = conn.transport_binding();
 
         let mut hs = ClientHandshake::new(ClientConfig {
@@ -156,6 +157,7 @@ async fn run_handshake() -> (
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         });
 
         let client_init = hs.create_client_init().unwrap();
@@ -188,7 +190,10 @@ async fn async_driver_full_lifecycle() {
 
     // ── Phase 1: Stream data ────────────────────────────────────────
     let sid = client.open_stream();
-    client.send_stream(sid, b"hello async", false).await.unwrap();
+    client
+        .send_stream(sid, b"hello async", false)
+        .await
+        .unwrap();
 
     let event = server.recv().await.unwrap();
     match event {
@@ -229,7 +234,10 @@ async fn async_driver_full_lifecycle() {
     server.send_route_set(&routes).await.unwrap();
     let event = client.recv().await.unwrap();
     match event {
-        RecvEvent::PolicyReceived { frame_type, payload } => {
+        RecvEvent::PolicyReceived {
+            frame_type,
+            payload,
+        } => {
             assert_eq!(frame_type, FrameType::ROUTE_SET);
             let decoded = RouteSetFrame::decode(&payload).unwrap();
             assert_eq!(decoded, routes);
@@ -246,7 +254,10 @@ async fn async_driver_full_lifecycle() {
     server.send_dns_config(&dns).await.unwrap();
     let event = client.recv().await.unwrap();
     match event {
-        RecvEvent::PolicyReceived { frame_type, payload } => {
+        RecvEvent::PolicyReceived {
+            frame_type,
+            payload,
+        } => {
             assert_eq!(frame_type, FrameType::DNS_CONFIG);
             let decoded = DnsConfigFrame::decode(&payload).unwrap();
             assert_eq!(decoded, dns);
@@ -258,7 +269,10 @@ async fn async_driver_full_lifecycle() {
     client.send_health_summary().await.unwrap();
     let event = server.recv().await.unwrap();
     match event {
-        RecvEvent::Telemetry { frame_type, payload } => {
+        RecvEvent::Telemetry {
+            frame_type,
+            payload,
+        } => {
             assert_eq!(frame_type, FrameType::HEALTH_SUMMARY);
             let hs = HealthSummaryFrame::decode(&payload).unwrap();
             assert_eq!(hs.epoch, 1); // we rekeyed once
@@ -274,7 +288,10 @@ async fn async_driver_full_lifecycle() {
         .unwrap();
     let event = server.recv().await.unwrap();
     match event {
-        RecvEvent::Telemetry { frame_type, payload } => {
+        RecvEvent::Telemetry {
+            frame_type,
+            payload,
+        } => {
             assert_eq!(frame_type, FrameType::ERROR_REPORT);
             let er = beep_core::telemetry::ErrorReportFrame::decode(&payload).unwrap();
             assert_eq!(er.error_code, 42);

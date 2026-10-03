@@ -110,6 +110,12 @@ impl<C: CoverConn> SessionDriver<C> {
         self.core.open_stream()
     }
 
+    /// Whether `len` bytes can be sent on `stream_id` without exceeding the
+    /// current send windows. The runtime paces on this instead of failing.
+    pub fn can_send_stream(&self, stream_id: StreamId, len: usize) -> bool {
+        self.core.can_send_stream(stream_id, len)
+    }
+
     /// Send stream data to the peer.
     pub async fn send_stream(
         &mut self,
@@ -124,11 +130,7 @@ impl<C: CoverConn> SessionDriver<C> {
     }
 
     /// Send a datagram to the peer.
-    pub async fn send_datagram(
-        &mut self,
-        class_id: u16,
-        data: &[u8],
-    ) -> Result<(), DriverError> {
+    pub async fn send_datagram(&mut self, class_id: u16, data: &[u8]) -> Result<(), DriverError> {
         self.check_open()?;
         let sealed = self.core.seal_datagram(class_id, data)?;
         self.conn.send(Bytes::from(sealed.data)).await?;
@@ -146,11 +148,7 @@ impl<C: CoverConn> SessionDriver<C> {
     }
 
     /// Send a session close and mark the session as closed.
-    pub async fn send_close(
-        &mut self,
-        error_code: u32,
-        reason: &str,
-    ) -> Result<(), DriverError> {
+    pub async fn send_close(&mut self, error_code: u32, reason: &str) -> Result<(), DriverError> {
         let sealed = self.core.close(error_code, reason)?;
         self.conn.send(Bytes::from(sealed.data)).await?;
         tracing::info!(error_code, reason, "session closed by us");
@@ -165,10 +163,9 @@ impl<C: CoverConn> SessionDriver<C> {
         };
         let mut payload = Vec::new();
         ticket_frame.encode(&mut payload);
-        let sealed = self.core.seal_control_frame(
-            FrameType::TICKET_ISSUE,
-            &payload,
-        )?;
+        let sealed = self
+            .core
+            .seal_control_frame(FrameType::TICKET_ISSUE, &payload)?;
         self.conn.send(Bytes::from(sealed.data)).await?;
         Ok(())
     }
@@ -189,7 +186,9 @@ impl<C: CoverConn> SessionDriver<C> {
         context: &[u8],
     ) -> Result<(), DriverError> {
         self.check_open()?;
-        let sealed = self.core.seal_error_report(error_code, timestamp_unix, context)?;
+        let sealed = self
+            .core
+            .seal_error_report(error_code, timestamp_unix, context)?;
         self.conn.send(Bytes::from(sealed.data)).await?;
         Ok(())
     }
@@ -217,24 +216,21 @@ impl<C: CoverConn> SessionDriver<C> {
     /// Reads from the transport, decrypts, and dispatches the frame.
     /// Returns `None` at EOF (transport closed).
     pub async fn recv(&mut self) -> Result<RecvEvent, DriverError> {
-        let chunk = self
-            .conn
-            .recv()
-            .await?
-            .ok_or(DriverError::PeerClosed)?;
+        let chunk = self.conn.recv().await?.ok_or(DriverError::PeerClosed)?;
 
         let action = self.core.process_incoming(&chunk)?;
+
+        // Flush any frames the core produced on its own (FLOW_CREDIT grants).
+        for sealed in self.core.take_pending_tx() {
+            self.conn.send(Bytes::from(sealed.data)).await?;
+        }
 
         let event = match action {
             IncomingAction::StreamData { stream_id, frame } => {
                 RecvEvent::StreamData { stream_id, frame }
             }
-            IncomingAction::StreamOpened { stream_id } => {
-                RecvEvent::StreamOpened { stream_id }
-            }
-            IncomingAction::StreamClosed { stream_id } => {
-                RecvEvent::StreamClosed { stream_id }
-            }
+            IncomingAction::StreamOpened { stream_id } => RecvEvent::StreamOpened { stream_id },
+            IncomingAction::StreamClosed { stream_id } => RecvEvent::StreamClosed { stream_id },
             IncomingAction::Datagram(df) => RecvEvent::Datagram(df),
             IncomingAction::CreditUpdate { stream_id, credit } => {
                 RecvEvent::CreditUpdate { stream_id, credit }
@@ -244,16 +240,24 @@ impl<C: CoverConn> SessionDriver<C> {
                 RecvEvent::Rekeyed { epoch }
             }
             IncomingAction::TicketReceived(data) => RecvEvent::TicketReceived(data),
-            IncomingAction::PolicyReceived { frame_type, payload } => {
-                RecvEvent::PolicyReceived { frame_type, payload }
-            }
+            IncomingAction::PolicyReceived {
+                frame_type,
+                payload,
+            } => RecvEvent::PolicyReceived {
+                frame_type,
+                payload,
+            },
             IncomingAction::Closed { code, reason } => {
                 tracing::info!(code, %reason, "session closed by peer");
                 RecvEvent::Closed { code, reason }
             }
-            IncomingAction::Telemetry { frame_type, payload } => {
-                RecvEvent::Telemetry { frame_type, payload }
-            }
+            IncomingAction::Telemetry {
+                frame_type,
+                payload,
+            } => RecvEvent::Telemetry {
+                frame_type,
+                payload,
+            },
             IncomingAction::Ignored => {
                 // Ignorable frame — recurse to get next meaningful event.
                 // In production you'd use a loop; here recursion is bounded

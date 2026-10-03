@@ -14,9 +14,9 @@
 //!     → HKDF-Expand  → control_key, stream_key, datagram_key + IVs
 //! ```
 
-use hmac::{Hmac, Mac};
 use hkdf::Hkdf;
-use sha2::{Sha256, Digest};
+use hmac::{Hmac, Mac};
+use sha2::{Digest, Sha256};
 use x25519_dalek::{EphemeralSecret, PublicKey, SharedSecret};
 
 // ── HKDF labels (stable, protocol-defining) ────────────────────────────
@@ -108,10 +108,7 @@ pub fn derive_handshake_keys(
 }
 
 /// Derive session-level keys from the handshake secret and transcript hash.
-pub fn derive_session_keys(
-    handshake_secret: &[u8; 32],
-    transcript_hash: &[u8; 32],
-) -> SessionKeys {
+pub fn derive_session_keys(handshake_secret: &[u8; 32], transcript_hash: &[u8; 32]) -> SessionKeys {
     let hk = Hkdf::<Sha256>::new(Some(transcript_hash), handshake_secret);
 
     let expand = |label: &[u8], out: &mut [u8]| {
@@ -180,6 +177,67 @@ pub fn verify_authenticator(
     let mut mac = HmacSha256::new_from_slice(key).expect("HMAC accepts any key length");
     mac.update(transcript_hash);
     mac.verify_slice(authenticator).is_ok()
+}
+
+// ── Node identity signatures (Ed25519) ──────────────────────────────────
+//
+// The handshake authenticators above only prove knowledge of the X25519
+// shared secret, which an active middlebox that completes its own DH with the
+// client could also do. A long-term Ed25519 signature over the handshake
+// transcript binds the node's pinned identity to this exchange: the client
+// rejects anyone who cannot produce it. The signed message is a
+// domain-separated transcript hash so the signature cannot be lifted into
+// another context.
+
+/// Domain-separation prefix for the node-identity signature.
+const NODE_IDENTITY_CONTEXT: &[u8] = b"beep v1 node identity";
+
+/// Derive the Ed25519 public key (32 bytes) from a 32-byte secret seed.
+pub fn node_public_key(secret_seed: &[u8; 32]) -> [u8; 32] {
+    ed25519_dalek::SigningKey::from_bytes(secret_seed)
+        .verifying_key()
+        .to_bytes()
+}
+
+/// Sign the handshake transcript hash with the node's long-term key.
+pub fn sign_node_identity(secret_seed: &[u8; 32], transcript_hash: &[u8; 32]) -> [u8; 64] {
+    use ed25519_dalek::Signer;
+    let key = ed25519_dalek::SigningKey::from_bytes(secret_seed);
+    let mut msg = Vec::with_capacity(NODE_IDENTITY_CONTEXT.len() + 32);
+    msg.extend_from_slice(NODE_IDENTITY_CONTEXT);
+    msg.extend_from_slice(transcript_hash);
+    key.sign(&msg).to_bytes()
+}
+
+/// Verify a node-identity signature against a pinned public key.
+///
+/// Returns false on any malformed input (wrong length public key or
+/// signature), so a caller can treat false as "reject" without separate
+/// error handling.
+pub fn verify_node_identity(
+    public_key: &[u8; 32],
+    transcript_hash: &[u8; 32],
+    signature: &[u8],
+) -> bool {
+    use ed25519_dalek::Verifier;
+    let Ok(verifying_key) = ed25519_dalek::VerifyingKey::from_bytes(public_key) else {
+        return false;
+    };
+    let Ok(sig_bytes) = <[u8; 64]>::try_from(signature) else {
+        return false;
+    };
+    let signature = ed25519_dalek::Signature::from_bytes(&sig_bytes);
+    let mut msg = Vec::with_capacity(NODE_IDENTITY_CONTEXT.len() + 32);
+    msg.extend_from_slice(NODE_IDENTITY_CONTEXT);
+    msg.extend_from_slice(transcript_hash);
+    verifying_key.verify(&msg, &signature).is_ok()
+}
+
+/// Generate a fresh Ed25519 node keypair as `(secret_seed, public_key)`,
+/// both 32 bytes. Used to provision a node identity.
+pub fn generate_node_keypair() -> ([u8; 32], [u8; 32]) {
+    let signing = ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng);
+    (signing.to_bytes(), signing.verifying_key().to_bytes())
 }
 
 #[cfg(test)]
@@ -259,5 +317,40 @@ mod tests {
         let th2 = transcript_hash(b"different data");
         let auth = compute_authenticator(&key, &th1);
         assert!(!verify_authenticator(&key, &th2, &auth));
+    }
+
+    #[test]
+    fn node_signature_roundtrips_and_pins_the_key() {
+        let (secret, public) = generate_node_keypair();
+        assert_eq!(node_public_key(&secret), public);
+
+        let th = transcript_hash(b"handshake transcript");
+        let sig = sign_node_identity(&secret, &th);
+        assert!(verify_node_identity(&public, &th, &sig));
+
+        // A different node's key must not verify this signature.
+        let (_, other_public) = generate_node_keypair();
+        assert!(!verify_node_identity(&other_public, &th, &sig));
+    }
+
+    #[test]
+    fn node_signature_rejects_wrong_transcript() {
+        let (secret, public) = generate_node_keypair();
+        let sig = sign_node_identity(&secret, &transcript_hash(b"one"));
+        assert!(!verify_node_identity(
+            &public,
+            &transcript_hash(b"two"),
+            &sig
+        ));
+    }
+
+    #[test]
+    fn node_signature_rejects_malformed_input() {
+        let (_, public) = generate_node_keypair();
+        let th = transcript_hash(b"x");
+        // Too-short signature, and a public key that is not a valid point
+        // length — both must be rejected without panicking.
+        assert!(!verify_node_identity(&public, &th, &[0u8; 10]));
+        assert!(!verify_node_identity(&public, &th, &[0u8; 64]));
     }
 }

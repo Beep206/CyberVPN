@@ -23,12 +23,8 @@ use crate::codec::{self, RawFrame};
 use crate::frame_router::{self, FrameAction, FrameRouteError};
 use crate::key_schedule::SessionKeys;
 use crate::metrics::SessionMetrics;
-use crate::mux::{
-    DatagramFrame, FlowCreditFrame, MuxError, MuxState, StreamFrame, StreamId,
-};
-use crate::rekey::{
-    EpochKeys, KeyUpdateFrame, RekeyError, RekeyState, SessionCloseFrame,
-};
+use crate::mux::{DatagramFrame, FlowCreditFrame, MuxError, MuxState, StreamFrame, StreamId};
+use crate::rekey::{EpochKeys, KeyUpdateFrame, RekeyError, RekeyState, SessionCloseFrame};
 
 /// Errors from the session orchestrator.
 #[derive(Debug, thiserror::Error)]
@@ -67,6 +63,9 @@ pub struct SessionCore {
     metrics: SessionMetrics,
     /// Whether this session has been closed
     closed: bool,
+    /// Frames the core produced on its own (e.g. FLOW_CREDIT grants while
+    /// processing incoming data) that the driver must send to the peer.
+    pending_tx: Vec<SealedFrame>,
 }
 
 /// Outgoing encrypted frame ready for transport.
@@ -79,7 +78,10 @@ pub struct SealedFrame {
 #[derive(Debug)]
 pub enum IncomingAction {
     /// Stream data received.
-    StreamData { stream_id: StreamId, frame: StreamFrame },
+    StreamData {
+        stream_id: StreamId,
+        frame: StreamFrame,
+    },
     /// A new remote stream was opened.
     StreamOpened { stream_id: StreamId },
     /// A remote stream was closed.
@@ -95,9 +97,15 @@ pub enum IncomingAction {
     /// Session was closed by peer.
     Closed { code: u32, reason: String },
     /// Policy frame received (route set or DNS config).
-    PolicyReceived { frame_type: FrameType, payload: Vec<u8> },
+    PolicyReceived {
+        frame_type: FrameType,
+        payload: Vec<u8>,
+    },
     /// Telemetry data (informational).
-    Telemetry { frame_type: FrameType, payload: Vec<u8> },
+    Telemetry {
+        frame_type: FrameType,
+        payload: Vec<u8>,
+    },
     /// Frame was silently ignored.
     Ignored,
 }
@@ -106,14 +114,52 @@ impl SessionCore {
     /// Create a new session from handshake-derived keys.
     pub fn new(keys: &SessionKeys, is_initiator: bool) -> Self {
         Self {
-            control: TrafficKeyPair::new(keys.control_key, keys.control_iv, TrafficClass::Control),
-            stream: TrafficKeyPair::new(keys.stream_key, keys.stream_iv, TrafficClass::Stream),
-            datagram: TrafficKeyPair::new(keys.datagram_key, keys.datagram_iv, TrafficClass::Datagram),
+            control: TrafficKeyPair::new(
+                keys.control_key,
+                keys.control_iv,
+                TrafficClass::Control,
+                is_initiator,
+            ),
+            stream: TrafficKeyPair::new(
+                keys.stream_key,
+                keys.stream_iv,
+                TrafficClass::Stream,
+                is_initiator,
+            ),
+            datagram: TrafficKeyPair::new(
+                keys.datagram_key,
+                keys.datagram_iv,
+                TrafficClass::Datagram,
+                is_initiator,
+            ),
             mux: MuxState::new(is_initiator),
             rekey: RekeyState::new(keys),
             metrics: SessionMetrics::new(),
             closed: false,
+            pending_tx: Vec::new(),
         }
+    }
+
+    /// Take frames the core queued for the peer while processing input
+    /// (currently FLOW_CREDIT grants). The driver sends these after each
+    /// [`process_incoming`](Self::process_incoming).
+    pub fn take_pending_tx(&mut self) -> Vec<SealedFrame> {
+        std::mem::take(&mut self.pending_tx)
+    }
+
+    /// Seal any queued FLOW_CREDIT grants into `pending_tx`.
+    fn enqueue_credit_grants(&mut self) -> Result<(), SessionError> {
+        let grants = self.mux.take_credit_grants();
+        for grant in grants {
+            let mut payload = Vec::new();
+            grant
+                .encode(&mut payload)
+                .map_err(|e| SessionError::InvalidPayload(e.to_string()))?;
+            let sealed =
+                self.seal_frame(FrameType::FLOW_CREDIT, &payload, TrafficClass::Control)?;
+            self.pending_tx.push(sealed);
+        }
+        Ok(())
     }
 
     /// Current key epoch.
@@ -129,6 +175,20 @@ impl SessionCore {
     /// Number of active streams.
     pub fn active_streams(&self) -> usize {
         self.mux.active_stream_count()
+    }
+
+    /// Whether `len` bytes can be sealed on `stream_id` right now without
+    /// exceeding the stream or connection send windows. The runtime uses this
+    /// to pace sending: it holds a packet until credit is available rather than
+    /// failing, so a stream never dies at the window boundary.
+    pub fn can_send_stream(&self, stream_id: StreamId, len: usize) -> bool {
+        let len = len as u64;
+        self.mux.conn_send_credit >= len
+            && self
+                .mux
+                .stream(stream_id)
+                .map(|s| s.send_credit >= len)
+                .unwrap_or(false)
     }
 
     /// Access session metrics.
@@ -150,7 +210,9 @@ impl SessionCore {
         data: &[u8],
         fin: bool,
     ) -> Result<SealedFrame, SessionError> {
-        let offset = self.mux.stream(stream_id)
+        let offset = self
+            .mux
+            .stream(stream_id)
             .map(|s| s.bytes_sent)
             .unwrap_or(0);
 
@@ -163,7 +225,8 @@ impl SessionCore {
             data: data.to_vec(),
         };
         let mut payload = Vec::new();
-        sf.encode(&mut payload).map_err(|e| SessionError::InvalidPayload(e.to_string()))?;
+        sf.encode(&mut payload)
+            .map_err(|e| SessionError::InvalidPayload(e.to_string()))?;
 
         self.seal_frame(FrameType::STREAM_DATA, &payload, TrafficClass::Stream)
     }
@@ -179,7 +242,8 @@ impl SessionCore {
             data: data.to_vec(),
         };
         let mut payload = Vec::new();
-        df.encode(&mut payload).map_err(|e| SessionError::InvalidPayload(e.to_string()))?;
+        df.encode(&mut payload)
+            .map_err(|e| SessionError::InvalidPayload(e.to_string()))?;
 
         self.seal_frame(FrameType::DATAGRAM_CLASS, &payload, TrafficClass::Datagram)
     }
@@ -216,8 +280,8 @@ impl SessionCore {
     /// and before sending any more frames.
     pub fn complete_initiated_rekey(&mut self) -> Result<u64, SessionError> {
         let epoch_keys = self.rekey.complete()?;
-        self.apply_new_epoch_keys(&epoch_keys);
-        let epoch = self.rekey.epoch();
+        self.apply_send_epoch_keys(&epoch_keys);
+        let epoch = self.rekey.send_epoch();
         self.metrics.record_rekey(epoch);
         Ok(epoch)
     }
@@ -274,11 +338,7 @@ impl SessionCore {
     // ── Close ───────────────────────────────────────────────────────────
 
     /// Close the session. Returns the encrypted SESSION_CLOSE frame.
-    pub fn close(
-        &mut self,
-        error_code: u32,
-        reason: &str,
-    ) -> Result<SealedFrame, SessionError> {
+    pub fn close(&mut self, error_code: u32, reason: &str) -> Result<SealedFrame, SessionError> {
         let scf = SessionCloseFrame {
             error_code,
             reason: reason.as_bytes().to_vec(),
@@ -315,14 +375,17 @@ impl SessionCore {
                 let sid = StreamId(sf.stream_id);
                 // Accept remote stream if new
                 if self.mux.stream(sid).is_none() {
-                    self.mux.accept_stream(sid)
-                        .map_err(SessionError::Mux)?;
+                    self.mux.accept_stream(sid).map_err(SessionError::Mux)?;
                 }
                 self.mux.record_recv(sid, sf.data.len() as u64)?;
                 if sf.fin {
                     self.mux.close_remote(sid)?;
                 }
-                Ok(IncomingAction::StreamData { stream_id: sid, frame: sf })
+                self.enqueue_credit_grants()?;
+                Ok(IncomingAction::StreamData {
+                    stream_id: sid,
+                    frame: sf,
+                })
             }
 
             FrameAction::StreamOpen(payload) => {
@@ -347,7 +410,8 @@ impl SessionCore {
                 if fc.stream_id == 0 {
                     self.mux.add_conn_send_credit(fc.credit);
                 } else {
-                    self.mux.add_send_credit(StreamId(fc.stream_id), fc.credit)?;
+                    self.mux
+                        .add_send_credit(StreamId(fc.stream_id), fc.credit)?;
                 }
                 Ok(IncomingAction::CreditUpdate {
                     stream_id: fc.stream_id,
@@ -364,10 +428,9 @@ impl SessionCore {
             FrameAction::KeyUpdate(payload) => {
                 let kuf = KeyUpdateFrame::decode(&payload)
                     .map_err(|e| SessionError::InvalidPayload(e.to_string()))?;
-                self.rekey.process_peer_update(kuf.new_epoch)?;
-                let epoch_keys = self.rekey.complete()?;
-                self.apply_new_epoch_keys(&epoch_keys);
-                let epoch = self.rekey.epoch();
+                let epoch_keys = self.rekey.process_peer_update(kuf.new_epoch)?;
+                self.apply_recv_epoch_keys(&epoch_keys);
+                let epoch = self.rekey.recv_epoch();
                 self.metrics.record_rekey(epoch);
                 Ok(IncomingAction::Rekeyed { epoch })
             }
@@ -382,21 +445,25 @@ impl SessionCore {
                 })
             }
 
-            FrameAction::TicketIssue(payload) => {
-                Ok(IncomingAction::TicketReceived(payload))
-            }
+            FrameAction::TicketIssue(payload) => Ok(IncomingAction::TicketReceived(payload)),
 
-            FrameAction::Policy { frame_type, payload } => {
-                Ok(IncomingAction::PolicyReceived { frame_type, payload })
-            }
+            FrameAction::Policy {
+                frame_type,
+                payload,
+            } => Ok(IncomingAction::PolicyReceived {
+                frame_type,
+                payload,
+            }),
 
-            FrameAction::Telemetry { frame_type, payload } => {
-                Ok(IncomingAction::Telemetry { frame_type, payload })
-            }
+            FrameAction::Telemetry {
+                frame_type,
+                payload,
+            } => Ok(IncomingAction::Telemetry {
+                frame_type,
+                payload,
+            }),
 
-            FrameAction::Ignored(_) => {
-                Ok(IncomingAction::Ignored)
-            }
+            FrameAction::Ignored(_) => Ok(IncomingAction::Ignored),
         }
     }
 
@@ -452,13 +519,22 @@ impl SessionCore {
         Ok(receiver.open(ciphertext)?)
     }
 
-    fn apply_new_epoch_keys(&mut self, keys: &EpochKeys) {
+    /// Rotate only the send-direction ciphers to a new epoch.
+    fn apply_send_epoch_keys(&mut self, keys: &EpochKeys) {
         self.control.send.rekey(keys.control_key, keys.control_iv);
-        self.control.recv.rekey(keys.control_key, keys.control_iv);
         self.stream.send.rekey(keys.stream_key, keys.stream_iv);
+        self.datagram
+            .send
+            .rekey(keys.datagram_key, keys.datagram_iv);
+    }
+
+    /// Rotate only the receive-direction ciphers to a new epoch.
+    fn apply_recv_epoch_keys(&mut self, keys: &EpochKeys) {
+        self.control.recv.rekey(keys.control_key, keys.control_iv);
         self.stream.recv.rekey(keys.stream_key, keys.stream_iv);
-        self.datagram.send.rekey(keys.datagram_key, keys.datagram_iv);
-        self.datagram.recv.rekey(keys.datagram_key, keys.datagram_iv);
+        self.datagram
+            .recv
+            .rekey(keys.datagram_key, keys.datagram_iv);
     }
 }
 
@@ -468,9 +544,7 @@ fn classify_frame_type(ft: FrameType) -> TrafficClass {
         FrameType::STREAM_DATA | FrameType::STREAM_OPEN | FrameType::STREAM_CLOSE => {
             TrafficClass::Stream
         }
-        FrameType::DATAGRAM_CLASS | FrameType::DATAGRAM_DROP_NOTICE => {
-            TrafficClass::Datagram
-        }
+        FrameType::DATAGRAM_CLASS | FrameType::DATAGRAM_DROP_NOTICE => TrafficClass::Datagram,
         // Everything else (session management, flow control, telemetry) uses control
         _ => TrafficClass::Control,
     }
@@ -501,7 +575,9 @@ mod tests {
         let mut server = SessionCore::new(&keys, false);
 
         let sid = client.open_stream();
-        let sealed = client.seal_stream(sid, b"hello from client", false).unwrap();
+        let sealed = client
+            .seal_stream(sid, b"hello from client", false)
+            .unwrap();
 
         let action = server.process_incoming(&sealed.data).unwrap();
         match action {
@@ -621,7 +697,10 @@ mod tests {
         let a2 = server.process_incoming(&f2.data).unwrap();
 
         match (a1, a2) {
-            (IncomingAction::StreamData { frame: f1, .. }, IncomingAction::StreamData { frame: f2, .. }) => {
+            (
+                IncomingAction::StreamData { frame: f1, .. },
+                IncomingAction::StreamData { frame: f2, .. },
+            ) => {
                 assert_eq!(f1.data, b"stream1");
                 assert_eq!(f2.data, b"stream2");
             }

@@ -69,6 +69,10 @@ pub struct MuxState {
     default_stream_credit: u64,
     /// Whether this side is the initiator (client).
     is_initiator: bool,
+    /// FLOW_CREDIT grants queued for the peer, produced as we consume our
+    /// receive windows. Drained by the session core via
+    /// [`take_credit_grants`](Self::take_credit_grants).
+    pending_credit_grants: Vec<FlowCreditFrame>,
 }
 
 /// Default connection-level credit (256 KiB).
@@ -87,6 +91,7 @@ impl MuxState {
             conn_recv_credit: DEFAULT_CONN_CREDIT,
             default_stream_credit: DEFAULT_STREAM_CREDIT,
             is_initiator,
+            pending_credit_grants: Vec::new(),
         }
     }
 
@@ -102,14 +107,17 @@ impl MuxState {
             id
         };
 
-        self.streams.insert(id, StreamInfo {
+        self.streams.insert(
             id,
-            state: StreamState::Open,
-            send_credit: self.default_stream_credit,
-            recv_credit: self.default_stream_credit,
-            bytes_sent: 0,
-            bytes_received: 0,
-        });
+            StreamInfo {
+                id,
+                state: StreamState::Open,
+                send_credit: self.default_stream_credit,
+                recv_credit: self.default_stream_credit,
+                bytes_sent: 0,
+                bytes_received: 0,
+            },
+        );
 
         id
     }
@@ -119,14 +127,17 @@ impl MuxState {
         if self.streams.contains_key(&id) {
             return Err(MuxError::StreamAlreadyExists(id));
         }
-        self.streams.insert(id, StreamInfo {
+        self.streams.insert(
             id,
-            state: StreamState::Open,
-            send_credit: self.default_stream_credit,
-            recv_credit: self.default_stream_credit,
-            bytes_sent: 0,
-            bytes_received: 0,
-        });
+            StreamInfo {
+                id,
+                state: StreamState::Open,
+                send_credit: self.default_stream_credit,
+                recv_credit: self.default_stream_credit,
+                bytes_sent: 0,
+                bytes_received: 0,
+            },
+        );
         Ok(())
     }
 
@@ -137,7 +148,9 @@ impl MuxState {
 
     /// Close the local half of a stream.
     pub fn close_local(&mut self, id: StreamId) -> Result<(), MuxError> {
-        let info = self.streams.get_mut(&id)
+        let info = self
+            .streams
+            .get_mut(&id)
             .ok_or(MuxError::UnknownStream(id))?;
         info.state = match info.state {
             StreamState::Open => StreamState::HalfClosedLocal,
@@ -149,7 +162,9 @@ impl MuxState {
 
     /// Close the remote half of a stream.
     pub fn close_remote(&mut self, id: StreamId) -> Result<(), MuxError> {
-        let info = self.streams.get_mut(&id)
+        let info = self
+            .streams
+            .get_mut(&id)
             .ok_or(MuxError::UnknownStream(id))?;
         info.state = match info.state {
             StreamState::Open => StreamState::HalfClosedRemote,
@@ -164,7 +179,9 @@ impl MuxState {
         if len > self.conn_send_credit {
             return Err(MuxError::ConnectionCreditExhausted);
         }
-        let info = self.streams.get_mut(&id)
+        let info = self
+            .streams
+            .get_mut(&id)
             .ok_or(MuxError::UnknownStream(id))?;
         if len > info.send_credit {
             return Err(MuxError::StreamCreditExhausted(id));
@@ -175,25 +192,63 @@ impl MuxState {
         Ok(())
     }
 
-    /// Record bytes received on a stream. Decrements recv credit.
+    /// Record bytes received on a stream. Decrements the receive windows and,
+    /// once half a window has been consumed, queues a `FLOW_CREDIT` grant that
+    /// restores the window to full. Without these grants a stream stalls after
+    /// one window (64 KiB) because the peer's send credit is never replenished.
     pub fn record_recv(&mut self, id: StreamId, len: u64) -> Result<(), MuxError> {
         if len > self.conn_recv_credit {
             return Err(MuxError::ConnectionCreditExhausted);
         }
-        let info = self.streams.get_mut(&id)
-            .ok_or(MuxError::UnknownStream(id))?;
-        if len > info.recv_credit {
-            return Err(MuxError::StreamCreditExhausted(id));
-        }
-        info.recv_credit -= len;
-        info.bytes_received += len;
+        let window = self.default_stream_credit;
+        let stream_grant = {
+            let info = self
+                .streams
+                .get_mut(&id)
+                .ok_or(MuxError::UnknownStream(id))?;
+            if len > info.recv_credit {
+                return Err(MuxError::StreamCreditExhausted(id));
+            }
+            info.recv_credit -= len;
+            info.bytes_received += len;
+            if info.recv_credit.saturating_mul(2) <= window {
+                let delta = window - info.recv_credit;
+                info.recv_credit += delta;
+                Some(delta)
+            } else {
+                None
+            }
+        };
         self.conn_recv_credit -= len;
+
+        if let Some(delta) = stream_grant {
+            self.pending_credit_grants.push(FlowCreditFrame {
+                stream_id: id.0,
+                credit: delta,
+            });
+        }
+        if self.conn_recv_credit.saturating_mul(2) <= DEFAULT_CONN_CREDIT {
+            let delta = DEFAULT_CONN_CREDIT - self.conn_recv_credit;
+            self.conn_recv_credit += delta;
+            self.pending_credit_grants.push(FlowCreditFrame {
+                stream_id: 0,
+                credit: delta,
+            });
+        }
         Ok(())
+    }
+
+    /// Take the FLOW_CREDIT grants queued since the last call. The session
+    /// core seals each one and the driver sends it to the peer.
+    pub fn take_credit_grants(&mut self) -> Vec<FlowCreditFrame> {
+        std::mem::take(&mut self.pending_credit_grants)
     }
 
     /// Issue additional send credit to a stream (from a received FLOW_CREDIT).
     pub fn add_send_credit(&mut self, id: StreamId, amount: u64) -> Result<(), MuxError> {
-        let info = self.streams.get_mut(&id)
+        let info = self
+            .streams
+            .get_mut(&id)
             .ok_or(MuxError::UnknownStream(id))?;
         info.send_credit = info.send_credit.saturating_add(amount);
         Ok(())
@@ -206,7 +261,10 @@ impl MuxState {
 
     /// Count of active (non-closed) streams.
     pub fn active_stream_count(&self) -> usize {
-        self.streams.values().filter(|s| s.state != StreamState::Closed).count()
+        self.streams
+            .values()
+            .filter(|s| s.state != StreamState::Closed)
+            .count()
     }
 
     /// Remove closed streams from tracking.
@@ -275,12 +333,15 @@ impl StreamFrame {
         let data = input[offset..offset + data_len].to_vec();
         offset += data_len;
 
-        Ok((StreamFrame {
-            stream_id: stream_id as u32,
-            offset: file_offset,
-            fin,
-            data,
-        }, offset))
+        Ok((
+            StreamFrame {
+                stream_id: stream_id as u32,
+                offset: file_offset,
+                fin,
+                data,
+            },
+            offset,
+        ))
     }
 }
 
@@ -335,10 +396,13 @@ impl FlowCreditFrame {
     pub fn decode(input: &[u8]) -> Result<(Self, usize), StreamFrameDecodeError> {
         let (stream_id, n) = varint::decode(input)?;
         let (credit, n2) = varint::decode(&input[n..])?;
-        Ok((FlowCreditFrame {
-            stream_id: stream_id as u32,
-            credit,
-        }, n + n2))
+        Ok((
+            FlowCreditFrame {
+                stream_id: stream_id as u32,
+                credit,
+            },
+            n + n2,
+        ))
     }
 }
 
@@ -400,7 +464,10 @@ mod tests {
 
     #[test]
     fn flow_credit_roundtrip() {
-        let frame = FlowCreditFrame { stream_id: 3, credit: 65536 };
+        let frame = FlowCreditFrame {
+            stream_id: 3,
+            credit: 65536,
+        };
         let mut buf = Vec::new();
         frame.encode(&mut buf).unwrap();
         let (decoded, consumed) = FlowCreditFrame::decode(&buf).unwrap();

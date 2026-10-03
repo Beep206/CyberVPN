@@ -14,10 +14,16 @@ rustls = { workspace = true }
 tokio-rustls = { workspace = true }
 tracing = { workspace = true }
 futures-util = "0.3"
-sha2 = "0.10"
+beep-core-types = { path = "../beep-core-types" }
+http = "1"
+rustls-native-certs = "0.8"
+# Browser TLS-fingerprint backend. Pre-1.0 and pinned exactly, same as the
+# h2 pin from stage 1: an rc bump has broken this API before.
+wreq = { version = "=6.0.0-rc.31", features = ["ws"] }
+wreq-util = "=3.0.0-rc.14"
 
 [dev-dependencies]
 beep-core = { path = "../beep-core" }
-beep-core-types = { path = "../beep-core-types" }
+beep-lab = { path = "../beep-lab" }
 rcgen = { workspace = true }
 rustls-pemfile = { workspace = true }

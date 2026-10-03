@@ -212,7 +212,7 @@ mod tests {
         varint::encode(0x00, &mut buf).unwrap(); // frame_type
         buf.push(0x00); // flags
         varint::encode(10, &mut buf).unwrap(); // length = 10 bytes
-        // No payload bytes
+                                               // No payload bytes
 
         assert!(matches!(decode_frame(&buf), Err(CodecError::Incomplete)));
     }

@@ -12,7 +12,7 @@ pub trait OsRouter: Send + Sync {
 }
 
 /// A BGP Client Skeleton for dynamic split tunneling.
-/// 
+///
 /// This client would typically connect to a BGP Daemon (like bird/frr)
 /// or implement basic BGP peer polling to receive dynamic route announcements.
 pub struct BgpRouteManager<R: OsRouter> {

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tokio::net::TcpListener;
 
 use beep_core::key_schedule::SessionKeys;
-use beep_core::resumption::{seal_ticket, open_ticket, validate_ticket, ResumptionTicket};
+use beep_core::resumption::{open_ticket, seal_ticket, validate_ticket, ResumptionTicket};
 use beep_core::session::{ClientConfig, ClientHandshake, ServerConfig, ServerHandshake};
 use beep_core::session_core::{IncomingAction, SessionCore};
 use beep_core_types::{CapabilityId, CoreVersion};
@@ -106,7 +106,7 @@ async fn handshake() -> (SessionKeys, SessionKeys) {
         let acceptor = tokio_rustls::TlsAcceptor::from(server_tls);
         let tls = acceptor.accept(tcp).await.unwrap();
 
-        let mut conn = accept_h2(tls, &cert_for_server).await.unwrap();
+        let mut conn = accept_h2(tls, &cert_for_server, "/ws").await.unwrap();
         let binding = conn.transport_binding();
 
         let mut hs = ServerHandshake::new(ServerConfig {
@@ -115,6 +115,7 @@ async fn handshake() -> (SessionKeys, SessionKeys) {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
         });
 
         let data = conn.recv().await.unwrap().unwrap();
@@ -135,7 +136,7 @@ async fn handshake() -> (SessionKeys, SessionKeys) {
         let server_name = rustls::pki_types::ServerName::try_from("localhost").unwrap();
         let tls = connector.connect(server_name, tcp).await.unwrap();
 
-        let mut conn = connect_h2(tls, "localhost").await.unwrap();
+        let mut conn = connect_h2(tls, "localhost", "/ws").await.unwrap();
         let binding = conn.transport_binding();
 
         let mut hs = ClientHandshake::new(ClientConfig {
@@ -144,6 +145,7 @@ async fn handshake() -> (SessionKeys, SessionKeys) {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         });
 
         let client_init = hs.create_client_init().unwrap();
@@ -183,7 +185,9 @@ async fn full_session_lifecycle() {
     for i in 0..3u8 {
         let data = format!("chunk {i}");
         let fin = i == 2;
-        let sealed = client_session.seal_stream(sid, data.as_bytes(), fin).unwrap();
+        let sealed = client_session
+            .seal_stream(sid, data.as_bytes(), fin)
+            .unwrap();
         let action = server_session.process_incoming(&sealed.data).unwrap();
         match action {
             IncomingAction::StreamData { frame, .. } => {

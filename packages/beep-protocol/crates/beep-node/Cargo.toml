@@ -12,7 +12,7 @@ beep-cover-wss = { path = "../beep-cover-wss" }
 beep-session = { path = "../beep-session" }
 beep-runtime = { path = "../beep-runtime" }
 
-tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["sync", "macros", "rt-multi-thread", "time"] }
 bytes = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -22,4 +22,5 @@ thiserror = { workspace = true }
 tokio-tun = "0.11"
 tokio-rustls = { workspace = true }
 rustls = { workspace = true }
+rustls-pemfile = { workspace = true } # Reads the front proxy's leaf cert for --behind-proxy
 rcgen = { workspace = true } # For test verification bypassing

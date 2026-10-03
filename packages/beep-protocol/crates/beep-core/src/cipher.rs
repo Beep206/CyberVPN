@@ -27,6 +27,33 @@ pub enum TrafficClass {
     Datagram,
 }
 
+/// Direction of a frame on the wire, i.e. which endpoint sealed it.
+///
+/// The direction is folded into the AEAD nonce so that the two directions
+/// never derive the same `(key, iv, sequence)` nonce. Without this, the
+/// client's `send` and the server's `send` both start at sequence 0 with the
+/// same key and IV, producing an identical keystream — XOR-ing the two
+/// ciphertexts would then reveal the XOR of the plaintexts. The sibling
+/// Helix runtime applies the same per-direction nonce tag.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Direction {
+    /// Client-to-server traffic.
+    ClientToServer,
+    /// Server-to-client traffic.
+    ServerToClient,
+}
+
+impl Direction {
+    /// Byte folded into the first octet of the nonce. The two values must be
+    /// distinct; their exact value only has to be stable across endpoints.
+    const fn nonce_tag(self) -> u8 {
+        match self {
+            Direction::ClientToServer => 0xC2,
+            Direction::ServerToClient => 0x52,
+        }
+    }
+}
+
 /// AEAD keying material for one traffic direction and class.
 ///
 /// Owns a ChaCha20-Poly1305 key, base IV, and sequence counter.
@@ -36,6 +63,7 @@ pub struct TrafficKey {
     base_iv: [u8; 12],
     sequence: u64,
     class: TrafficClass,
+    direction: Direction,
 }
 
 /// Error from cipher operations.
@@ -50,15 +78,16 @@ pub enum CipherError {
 }
 
 impl TrafficKey {
-    /// Create a new traffic key.
-    pub fn new(key: [u8; 32], iv: [u8; 12], class: TrafficClass) -> Self {
-        let cipher = ChaCha20Poly1305::new_from_slice(&key)
-            .expect("ChaCha20Poly1305 accepts 32-byte keys");
+    /// Create a new traffic key for a given class and wire direction.
+    pub fn new(key: [u8; 32], iv: [u8; 12], class: TrafficClass, direction: Direction) -> Self {
+        let cipher =
+            ChaCha20Poly1305::new_from_slice(&key).expect("ChaCha20Poly1305 accepts 32-byte keys");
         Self {
             cipher,
             base_iv: iv,
             sequence: 0,
             class,
+            direction,
         }
     }
 
@@ -72,11 +101,16 @@ impl TrafficKey {
         self.class
     }
 
-    /// Construct the 96-bit nonce: `base_iv ⊕ (0..0 || big_endian_u64(seq))`
+    /// Construct the 96-bit nonce:
+    /// `base_iv ⊕ (direction_tag || 0 0 0 || big_endian_u64(seq))`.
+    ///
+    /// The direction tag in the first octet keeps the two directions on
+    /// disjoint nonce streams even though they may share a key and IV.
     fn build_nonce(&self, seq: u64) -> Nonce {
         let mut nonce = self.base_iv;
+        nonce[0] ^= self.direction.nonce_tag();
         let seq_bytes = seq.to_be_bytes(); // 8 bytes
-        // XOR into the last 8 bytes of the 12-byte nonce
+                                           // XOR into the last 8 bytes of the 12-byte nonce
         for i in 0..8 {
             nonce[4 + i] ^= seq_bytes[i];
         }
@@ -126,8 +160,7 @@ impl TrafficKey {
         // Zeroize old IV
         self.base_iv.zeroize();
         self.sequence = 0;
-        self.cipher = ChaCha20Poly1305::new_from_slice(&new_key)
-            .expect("valid key length");
+        self.cipher = ChaCha20Poly1305::new_from_slice(&new_key).expect("valid key length");
         self.base_iv = new_iv;
     }
 }
@@ -139,13 +172,22 @@ pub struct TrafficKeyPair {
 }
 
 impl TrafficKeyPair {
-    /// Create a key pair. Both directions share the same key/IV
-    /// (acceptable because sequence counters are independent and
-    /// one side seals while the other opens).
-    pub fn new(key: [u8; 32], iv: [u8; 12], class: TrafficClass) -> Self {
+    /// Create a key pair for one traffic class.
+    ///
+    /// `send` carries this endpoint's outbound direction and `recv` the
+    /// inbound one, so each frame is sealed and opened under the same
+    /// direction tag on both endpoints while the two directions stay on
+    /// separate nonce streams. The key and IV may be shared between
+    /// directions; the nonce tag is what keeps them disjoint.
+    pub fn new(key: [u8; 32], iv: [u8; 12], class: TrafficClass, is_initiator: bool) -> Self {
+        let (send_dir, recv_dir) = if is_initiator {
+            (Direction::ClientToServer, Direction::ServerToClient)
+        } else {
+            (Direction::ServerToClient, Direction::ClientToServer)
+        };
         Self {
-            send: TrafficKey::new(key, iv, class),
-            recv: TrafficKey::new(key, iv, class),
+            send: TrafficKey::new(key, iv, class, send_dir),
+            recv: TrafficKey::new(key, iv, class, recv_dir),
         }
     }
 }
@@ -158,8 +200,9 @@ mod tests {
     fn seal_open_roundtrip() {
         let key = [0x42u8; 32];
         let iv = [0x01u8; 12];
-        let mut sender = TrafficKey::new(key, iv, TrafficClass::Control);
-        let mut receiver = TrafficKey::new(key, iv, TrafficClass::Control);
+        let mut sender = TrafficKey::new(key, iv, TrafficClass::Control, Direction::ClientToServer);
+        let mut receiver =
+            TrafficKey::new(key, iv, TrafficClass::Control, Direction::ClientToServer);
 
         let plaintext = b"hello beep protocol";
         let ciphertext = sender.seal(plaintext).unwrap();
@@ -175,8 +218,9 @@ mod tests {
     fn multiple_messages_different_nonces() {
         let key = [0x42u8; 32];
         let iv = [0x01u8; 12];
-        let mut sender = TrafficKey::new(key, iv, TrafficClass::Stream);
-        let mut receiver = TrafficKey::new(key, iv, TrafficClass::Stream);
+        let mut sender = TrafficKey::new(key, iv, TrafficClass::Stream, Direction::ClientToServer);
+        let mut receiver =
+            TrafficKey::new(key, iv, TrafficClass::Stream, Direction::ClientToServer);
 
         let ct1 = sender.seal(b"message one").unwrap();
         let ct2 = sender.seal(b"message two").unwrap();
@@ -194,8 +238,9 @@ mod tests {
     fn tampered_ciphertext_rejected() {
         let key = [0x42u8; 32];
         let iv = [0x01u8; 12];
-        let mut sender = TrafficKey::new(key, iv, TrafficClass::Control);
-        let mut receiver = TrafficKey::new(key, iv, TrafficClass::Control);
+        let mut sender = TrafficKey::new(key, iv, TrafficClass::Control, Direction::ClientToServer);
+        let mut receiver =
+            TrafficKey::new(key, iv, TrafficClass::Control, Direction::ClientToServer);
 
         let mut ciphertext = sender.seal(b"secret data").unwrap();
 
@@ -208,8 +253,18 @@ mod tests {
 
     #[test]
     fn wrong_key_rejected() {
-        let mut sender = TrafficKey::new([0x42u8; 32], [0x01u8; 12], TrafficClass::Control);
-        let mut receiver = TrafficKey::new([0x43u8; 32], [0x01u8; 12], TrafficClass::Control);
+        let mut sender = TrafficKey::new(
+            [0x42u8; 32],
+            [0x01u8; 12],
+            TrafficClass::Control,
+            Direction::ClientToServer,
+        );
+        let mut receiver = TrafficKey::new(
+            [0x43u8; 32],
+            [0x01u8; 12],
+            TrafficClass::Control,
+            Direction::ClientToServer,
+        );
 
         let ciphertext = sender.seal(b"data").unwrap();
         let result = receiver.open(&ciphertext);
@@ -220,8 +275,9 @@ mod tests {
     fn out_of_order_sequence_rejected() {
         let key = [0x42u8; 32];
         let iv = [0x01u8; 12];
-        let mut sender = TrafficKey::new(key, iv, TrafficClass::Control);
-        let mut receiver = TrafficKey::new(key, iv, TrafficClass::Control);
+        let mut sender = TrafficKey::new(key, iv, TrafficClass::Control, Direction::ClientToServer);
+        let mut receiver =
+            TrafficKey::new(key, iv, TrafficClass::Control, Direction::ClientToServer);
 
         let ct1 = sender.seal(b"first").unwrap();
         let ct2 = sender.seal(b"second").unwrap();
@@ -237,7 +293,12 @@ mod tests {
 
     #[test]
     fn ciphertext_too_short() {
-        let mut receiver = TrafficKey::new([0u8; 32], [0u8; 12], TrafficClass::Control);
+        let mut receiver = TrafficKey::new(
+            [0u8; 32],
+            [0u8; 12],
+            TrafficClass::Control,
+            Direction::ClientToServer,
+        );
         let result = receiver.open(&[0u8; 5]);
         assert_eq!(result, Err(CipherError::CiphertextTooShort));
     }
@@ -246,8 +307,10 @@ mod tests {
     fn empty_plaintext_roundtrip() {
         let key = [0x42u8; 32];
         let iv = [0x01u8; 12];
-        let mut sender = TrafficKey::new(key, iv, TrafficClass::Datagram);
-        let mut receiver = TrafficKey::new(key, iv, TrafficClass::Datagram);
+        let mut sender =
+            TrafficKey::new(key, iv, TrafficClass::Datagram, Direction::ClientToServer);
+        let mut receiver =
+            TrafficKey::new(key, iv, TrafficClass::Datagram, Direction::ClientToServer);
 
         let ct = sender.seal(b"").unwrap();
         assert_eq!(ct.len(), TAG_LEN); // just the tag
@@ -257,7 +320,12 @@ mod tests {
 
     #[test]
     fn rekey_resets_sequence() {
-        let mut tk = TrafficKey::new([0x42u8; 32], [0x01u8; 12], TrafficClass::Control);
+        let mut tk = TrafficKey::new(
+            [0x42u8; 32],
+            [0x01u8; 12],
+            TrafficClass::Control,
+            Direction::ClientToServer,
+        );
         tk.seal(b"a").unwrap();
         tk.seal(b"b").unwrap();
         assert_eq!(tk.sequence(), 2);
@@ -268,7 +336,12 @@ mod tests {
 
     #[test]
     fn nonce_construction_is_deterministic() {
-        let tk = TrafficKey::new([0u8; 32], [0xAA; 12], TrafficClass::Control);
+        let tk = TrafficKey::new(
+            [0u8; 32],
+            [0xAA; 12],
+            TrafficClass::Control,
+            Direction::ClientToServer,
+        );
         let n0 = tk.build_nonce(0);
         let n1 = tk.build_nonce(1);
 

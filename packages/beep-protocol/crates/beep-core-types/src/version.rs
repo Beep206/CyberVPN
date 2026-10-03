@@ -4,8 +4,9 @@
 ///
 /// Versions are monotonically increasing. Each version defines a complete
 /// set of mandatory frame types, error codes, and negotiation rules.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct CoreVersion(pub u32);
 
 impl CoreVersion {

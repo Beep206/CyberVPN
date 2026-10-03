@@ -203,8 +203,8 @@ impl DnsConfigFrame {
         pos += 1;
         let mut search_domains = Vec::with_capacity(sd_count);
         for _ in 0..sd_count {
-            let (len, n) = varint::decode(&input[pos..])
-                .map_err(|_| PolicyDecodeError::Truncated)?;
+            let (len, n) =
+                varint::decode(&input[pos..]).map_err(|_| PolicyDecodeError::Truncated)?;
             pos += n;
             let len = len as usize;
             if pos + len > input.len() {
@@ -345,6 +345,9 @@ mod tests {
         // Corrupt the action byte
         buf[5] = 0xFF;
         let result = RouteSetFrame::decode(&buf);
-        assert!(matches!(result, Err(PolicyDecodeError::InvalidRouteAction(0xFF))));
+        assert!(matches!(
+            result,
+            Err(PolicyDecodeError::InvalidRouteAction(0xFF))
+        ));
     }
 }

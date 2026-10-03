@@ -128,6 +128,10 @@ pub mod ext {
     pub const TELEMETRY_BUDGET: u64 = 0x09;
     /// Resumption ticket material in ServerFinish.
     pub const TICKET_MATERIAL: u64 = 0x0A;
+    /// Ed25519 node-identity signature over the handshake transcript, in
+    /// ServerFinish. Even type → a client that pins a node key treats its
+    /// absence as a failure rather than ignoring it.
+    pub const NODE_SIGNATURE: u64 = 0x0C;
 }
 
 // ── Encoding helpers ────────────────────────────────────────────────────
@@ -461,12 +465,10 @@ mod tests {
             auth_method: 0x01,
             auth_data: vec![0xDD; 16],
             capabilities: vec![0x01, 0x02, 0x03],
-            extensions: vec![
-                Extension {
-                    ext_type: ext::RESUMPTION_TICKET,
-                    data: vec![0xEE; 8],
-                },
-            ],
+            extensions: vec![Extension {
+                ext_type: ext::RESUMPTION_TICKET,
+                data: vec![0xEE; 8],
+            }],
         }
     }
 

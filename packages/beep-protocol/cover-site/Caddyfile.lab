@@ -1,0 +1,46 @@
+# Lab configuration for the stage-2 cover-site checkpoint.
+#
+# Two site blocks on plain HTTP, both serving the same static placeholder
+# content: one ("tunnel") reverse-proxies admitted requests to beep-node,
+# the other ("reference") has no node behind it at all. The probe-set test
+# (crates/beep-cover-wss/tests/cover_site_probes.rs) runs both and checks
+# that every probe except the real tunnel request gets the same response
+# from each — i.e. the node's presence is invisible to anything that does
+# not know the exact path, header and WebSocket upgrade shape.
+#
+# Plain HTTP and `tls internal` are lab-only simplifications: the gating
+# logic a matcher expresses does not depend on what terminates TLS above
+# it. See Caddyfile.production.template for the real-deployment version.
+#
+# Run directly (uses the defaults below) with:
+#   caddy run --config cover-site/Caddyfile.lab --adapter caddyfile
+# The probe-set test overrides every variable with ephemeral values instead.
+
+{
+	admin off
+	auto_https off
+}
+
+http://:{$BEEP_LAB_PORT_TUNNEL:18443} {
+	@tunnel {
+		path {$BEEP_COVER_PATH:/static/chunk-7f3a91c2.js}
+		header {$BEEP_COVER_HEADER_NAME:x-edge-token} {$BEEP_COVER_HEADER_VALUE:change-me-set-a-real-secret}
+		# Require the WebSocket upgrade shape too, not just the path and
+		# header: a request that only has those two right (and is not
+		# itself an upgrade) still gets the ordinary 404 below rather than
+		# ever reaching the node. See the README's "Why gate on the
+		# upgrade shape too" section — the node's own WS layer closes a
+		# non-upgrade request without a clean response, which would
+		# otherwise be a (very narrow) tell.
+		header_regexp ws_upgrade Upgrade (?i)^websocket$
+	}
+	reverse_proxy @tunnel 127.0.0.1:{$BEEP_NODE_PORT:4443}
+
+	root * {$BEEP_COVER_SITE_ROOT:./cover-site/public}
+	file_server
+}
+
+http://:{$BEEP_LAB_PORT_REFERENCE:18444} {
+	root * {$BEEP_COVER_SITE_ROOT:./cover-site/public}
+	file_server
+}

@@ -79,19 +79,131 @@ pub struct TransportProfile {
 
 // ── Presentation profile artifact ──────────────────────────────────────────
 
+/// How the outer HTTP layer carries the tunnel.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum HttpMode {
+    /// WebSocket over an HTTP/1.1 Upgrade (RFC 6455); ALPN `http/1.1`.
+    #[default]
+    WsH1,
+    /// WebSocket over HTTP/2 Extended CONNECT (RFC 8441); ALPN starts with `h2`.
+    WsH2,
+}
+
+/// What the TLS ClientHello says about the server name.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SniMode {
+    /// Send `server_name` as the SNI (what a browser does for a host name).
+    #[default]
+    ServerName,
+    /// Send no SNI extension at all.
+    Omit,
+}
+
 /// Controls TLS/ALPN/HTTP settings for the outer presentation layer.
+///
+/// The fields up to `retry_mode` are the original schema; the rest were added
+/// in stage 2 so a client or node can start from one file and a change to that
+/// file changes behaviour on the wire without a rebuild. Every added field has
+/// a serde default, so older files keep parsing.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PresentationProfile {
     /// Unique profile identifier.
     pub id: String,
-    /// ALPN protocol list (e.g., ["h2"], ["h3"]).
+    /// ALPN protocol list (e.g., ["h2"], ["h3"]). Only standard tokens are allowed.
     pub alpn: Vec<String>,
-    /// TLS provider family (e.g., "default", "boringssl").
+    /// TLS provider family: "rustls" (alias "default") or "boringssl".
     pub tls_provider: String,
-    /// ECH mode: "disabled", "opportunistic", or "required".
+    /// ECH mode: "disabled" or "opportunistic" ("required" is rejected for now).
     pub ech_mode: String,
-    /// Retry mode: "standard", "aggressive", "conservative".
+    /// Retry mode: "standard", "aggressive", "conservative". Picks the default
+    /// handshake pacing when `handshake_gap_ms` is zero.
     pub retry_mode: String,
+
+    /// Host name used for the SNI and the HTTP authority.
+    #[serde(default)]
+    pub server_name: String,
+    /// Whether to send the SNI extension.
+    #[serde(default)]
+    pub sni_mode: SniMode,
+    /// Browser preset for `tls_provider = "boringssl"` (for example
+    /// `chrome_141`); empty for the rustls provider.
+    #[serde(default)]
+    pub fingerprint: String,
+    /// How the outer HTTP layer carries the tunnel.
+    #[serde(default)]
+    pub http_mode: HttpMode,
+    /// Request path, starting with `/`. On the node this is the path a request
+    /// must carry to reach the tunnel.
+    #[serde(default)]
+    pub path: String,
+    /// Minimum gap between connection attempts, in milliseconds. Zero means
+    /// "take it from `retry_mode`".
+    #[serde(default)]
+    pub handshake_gap_ms: u64,
+    /// Upper bound of the random addition to the gap, in milliseconds.
+    #[serde(default)]
+    pub handshake_gap_jitter_ms: u64,
+    /// Pinned Ed25519 node public key, hex-encoded (64 hex chars = 32 bytes).
+    /// When set, the client requires the node to sign the handshake transcript
+    /// with the matching key and rejects it otherwise. Empty disables node
+    /// authentication (lab only). A scalar, so it is kept before `headers`:
+    /// TOML would otherwise fold a key after the `[...headers]` table into it.
+    #[serde(default)]
+    pub node_public_key: String,
+    /// Extra request headers (for example the secret header the front proxy
+    /// checks). Kept last so the TOML serializer can emit it as a table.
+    #[serde(default)]
+    pub headers: std::collections::BTreeMap<String, String>,
+}
+
+impl PresentationProfile {
+    /// The pause between connection attempts as `(base, max_extra)`.
+    ///
+    /// Explicit `handshake_gap_ms` wins; otherwise `retry_mode` supplies the
+    /// default. A random value in `[0, max_extra]` is added to `base` by the
+    /// caller, so two clients do not retry in lockstep.
+    pub fn handshake_pacing(&self) -> (std::time::Duration, std::time::Duration) {
+        use std::time::Duration;
+        if self.handshake_gap_ms > 0 {
+            return (
+                Duration::from_millis(self.handshake_gap_ms),
+                Duration::from_millis(self.handshake_gap_jitter_ms),
+            );
+        }
+        match self.retry_mode.as_str() {
+            "aggressive" => (Duration::from_millis(500), Duration::from_millis(500)),
+            "conservative" => (Duration::from_millis(5000), Duration::from_millis(3000)),
+            _ => (Duration::from_millis(2000), Duration::from_millis(1000)),
+        }
+    }
+
+    /// The pinned node public key as 32 raw bytes.
+    ///
+    /// Returns `None` when `node_public_key` is empty (node authentication
+    /// off) or malformed (not 64 hex characters). Validation rejects the
+    /// malformed case up front, so after `ProfileFile::load_validated` a
+    /// non-empty field always decodes.
+    pub fn node_public_key_bytes(&self) -> Option<[u8; 32]> {
+        decode_hex32(&self.node_public_key)
+    }
+}
+
+/// Decode a 64-character hex string into 32 bytes, or `None` if the length is
+/// wrong or a character is not a hex digit.
+pub fn decode_hex32(s: &str) -> Option<[u8; 32]> {
+    if s.len() != 64 {
+        return None;
+    }
+    let mut out = [0u8; 32];
+    let bytes = s.as_bytes();
+    for (i, slot) in out.iter_mut().enumerate() {
+        let hi = (bytes[2 * i] as char).to_digit(16)?;
+        let lo = (bytes[2 * i + 1] as char).to_digit(16)?;
+        *slot = ((hi << 4) | lo) as u8;
+    }
+    Some(out)
 }
 
 // ── Policy bundle artifact ─────────────────────────────────────────────────
@@ -188,6 +300,56 @@ mod tests {
         assert_eq!(profile.id, "h3-standard-1");
         assert_eq!(profile.alpn, vec!["h3"]);
         assert_eq!(profile.ech_mode, "opportunistic");
+    }
+
+    #[test]
+    fn presentation_profile_extended_roundtrip_toml() {
+        let mut headers = std::collections::BTreeMap::new();
+        headers.insert("x-edge-token".to_string(), "abc123".to_string());
+        let profile = PresentationProfile {
+            id: "chrome141-ws".into(),
+            alpn: vec!["http/1.1".into()],
+            tls_provider: "boringssl".into(),
+            ech_mode: "disabled".into(),
+            retry_mode: "conservative".into(),
+            server_name: "site.example".into(),
+            sni_mode: SniMode::ServerName,
+            fingerprint: "chrome_141".into(),
+            http_mode: HttpMode::WsH1,
+            path: "/assets/app.js".into(),
+            handshake_gap_ms: 4000,
+            handshake_gap_jitter_ms: 2500,
+            node_public_key: String::new(),
+            headers,
+        };
+        let serialized = toml::to_string(&profile).unwrap();
+        let deserialized: PresentationProfile = toml::from_str(&serialized).unwrap();
+        assert_eq!(profile, deserialized);
+    }
+
+    #[test]
+    fn handshake_pacing_prefers_explicit_gap_then_retry_mode() {
+        use std::time::Duration;
+        let mut p: PresentationProfile = toml::from_str(
+            r#"
+            id = "x"
+            alpn = ["http/1.1"]
+            tls_provider = "rustls"
+            ech_mode = "disabled"
+            retry_mode = "conservative"
+        "#,
+        )
+        .unwrap();
+        assert_eq!(
+            p.handshake_pacing(),
+            (Duration::from_millis(5000), Duration::from_millis(3000))
+        );
+        p.handshake_gap_ms = 700;
+        p.handshake_gap_jitter_ms = 300;
+        assert_eq!(
+            p.handshake_pacing(),
+            (Duration::from_millis(700), Duration::from_millis(300))
+        );
     }
 
     #[test]

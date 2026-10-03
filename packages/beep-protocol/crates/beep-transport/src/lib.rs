@@ -4,6 +4,10 @@
 //! must satisfy. The session core communicates through this trait without knowing
 //! whether the underlying transport is HTTP/2, HTTP/3, or native-fast.
 
+pub mod dial;
+
+pub use dial::{binding_from_leaf, CoverDialer, DialTarget, WS_BINDING_LABEL};
+
 use bytes::Bytes;
 
 /// Capabilities of a transport connection.

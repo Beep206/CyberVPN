@@ -4,10 +4,10 @@
 //! an intermediate TLS cover layer. This reduces latency and MTU overhead on
 //! friendly, high-quality networks.
 
+use beep_transport::{CoverConn, TransportCapabilities, TransportError};
+use bytes::Bytes;
 use std::sync::Arc;
 use tokio::net::UdpSocket;
-use bytes::Bytes;
-use beep_transport::{CoverConn, TransportCapabilities, TransportError};
 
 /// A naive UDP-based CoverConn instance.
 pub struct NativeUdpConn {
@@ -29,7 +29,11 @@ impl NativeUdpConn {
 
 impl CoverConn for NativeUdpConn {
     async fn send(&mut self, data: Bytes) -> Result<(), TransportError> {
-        let n = self.socket.send(&data).await.map_err(|e| TransportError::Io(e.to_string()))?;
+        let n = self
+            .socket
+            .send(&data)
+            .await
+            .map_err(|e| TransportError::Io(e.to_string()))?;
         if n < data.len() {
             return Err(TransportError::Io("Partial send over UDP".to_string()));
         }
@@ -37,7 +41,11 @@ impl CoverConn for NativeUdpConn {
     }
 
     async fn recv(&mut self) -> Result<Option<Bytes>, TransportError> {
-        let n = self.socket.recv(&mut self.recv_buf).await.map_err(|e| TransportError::Io(e.to_string()))?;
+        let n = self
+            .socket
+            .recv(&mut self.recv_buf)
+            .await
+            .map_err(|e| TransportError::Io(e.to_string()))?;
         if n == 0 {
             // Technically UDP datagram size 0 is possible, but practically not expected with Beep frames.
             // On some platforms receiving 0 bytes might indicate connection closure (e.g. ICMP port unreachable received on connected socket).
@@ -75,12 +83,12 @@ mod tests {
         client.connect(addr).await.unwrap();
 
         let mut t1 = NativeUdpConn::new(client);
-        
+
         t1.send(Bytes::from("hello")).await.unwrap();
-        
+
         let mut buf = [0u8; 100];
-        let (n, peer) = listener.recv_from(&mut buf).await.unwrap();
-        
+        let (n, _peer) = listener.recv_from(&mut buf).await.unwrap();
+
         assert_eq!(&buf[..n], b"hello");
     }
 }

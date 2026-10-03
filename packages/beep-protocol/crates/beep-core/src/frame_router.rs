@@ -25,9 +25,15 @@ pub enum FrameAction {
     /// Resumption ticket issued by peer.
     TicketIssue(Vec<u8>),
     /// Policy frame (route set, DNS config).
-    Policy { frame_type: FrameType, payload: Vec<u8> },
+    Policy {
+        frame_type: FrameType,
+        payload: Vec<u8>,
+    },
     /// Telemetry frame (informational, not required to process).
-    Telemetry { frame_type: FrameType, payload: Vec<u8> },
+    Telemetry {
+        frame_type: FrameType,
+        payload: Vec<u8>,
+    },
     /// Unknown ignorable frame — skip silently.
     Ignored(FrameType),
 }
@@ -51,9 +57,7 @@ pub fn route_frame(
 ) -> Result<FrameAction, FrameRouteError> {
     match frame_type {
         // Handshake frames should not appear after session is open
-        ft if ft.is_handshake() => {
-            Err(FrameRouteError::UnexpectedHandshake(ft))
-        }
+        ft if ft.is_handshake() => Err(FrameRouteError::UnexpectedHandshake(ft)),
 
         // Session management
         FrameType::KEY_UPDATE => Ok(FrameAction::KeyUpdate(payload)),
@@ -69,13 +73,17 @@ pub fn route_frame(
         FrameType::DATAGRAM_CLASS => Ok(FrameAction::Datagram(payload)),
 
         // Policy
-        FrameType::ROUTE_SET | FrameType::DNS_CONFIG => {
-            Ok(FrameAction::Policy { frame_type, payload })
-        }
+        FrameType::ROUTE_SET | FrameType::DNS_CONFIG => Ok(FrameAction::Policy {
+            frame_type,
+            payload,
+        }),
 
         // Telemetry (all ignorable by convention)
         FrameType::HEALTH_SUMMARY | FrameType::ERROR_REPORT | FrameType::TRACE_TOKEN => {
-            Ok(FrameAction::Telemetry { frame_type, payload })
+            Ok(FrameAction::Telemetry {
+                frame_type,
+                payload,
+            })
         }
 
         // Unknown frames
@@ -127,7 +135,10 @@ mod tests {
     #[test]
     fn handshake_frame_post_open_rejected() {
         let result = route_frame(FrameType::CLIENT_INIT, vec![]);
-        assert!(matches!(result, Err(FrameRouteError::UnexpectedHandshake(_))));
+        assert!(matches!(
+            result,
+            Err(FrameRouteError::UnexpectedHandshake(_))
+        ));
     }
 
     #[test]

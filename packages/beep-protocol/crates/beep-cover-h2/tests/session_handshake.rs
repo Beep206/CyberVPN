@@ -6,7 +6,7 @@
 use std::sync::Arc;
 use tokio::net::TcpListener;
 
-use beep_core::cipher::{TrafficClass, TrafficKey};
+use beep_core::cipher::{Direction, TrafficClass, TrafficKey};
 use beep_core::key_schedule::SessionKeys;
 use beep_core::mux::{DatagramFrame, StreamFrame};
 use beep_core::rekey::{KeyUpdateFrame, RekeyState};
@@ -113,7 +113,7 @@ async fn full_handshake_over_h2() -> TestEndpoints {
         let acceptor = tokio_rustls::TlsAcceptor::from(server_tls);
         let tls = acceptor.accept(tcp).await.unwrap();
 
-        let mut conn = accept_h2(tls, &cert_for_server).await.unwrap();
+        let mut conn = accept_h2(tls, &cert_for_server, "/ws").await.unwrap();
         let binding = conn.transport_binding();
 
         let mut hs = ServerHandshake::new(ServerConfig {
@@ -122,6 +122,7 @@ async fn full_handshake_over_h2() -> TestEndpoints {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
         });
 
         let data = conn.recv().await.unwrap().unwrap();
@@ -145,7 +146,7 @@ async fn full_handshake_over_h2() -> TestEndpoints {
         let server_name = rustls::pki_types::ServerName::try_from("localhost").unwrap();
         let tls = connector.connect(server_name, tcp).await.unwrap();
 
-        let mut conn = connect_h2(tls, "localhost").await.unwrap();
+        let mut conn = connect_h2(tls, "localhost", "/ws").await.unwrap();
         let binding = conn.transport_binding();
 
         let mut hs = ClientHandshake::new(ClientConfig {
@@ -154,6 +155,7 @@ async fn full_handshake_over_h2() -> TestEndpoints {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         });
 
         let client_init = hs.create_client_init().unwrap();
@@ -186,11 +188,17 @@ async fn full_session_handshake_over_h2() {
 
     let ep = full_handshake_over_h2().await;
 
-    assert_eq!(ep.client_keys.session_master_secret, ep.server_keys.session_master_secret);
+    assert_eq!(
+        ep.client_keys.session_master_secret,
+        ep.server_keys.session_master_secret
+    );
     assert_eq!(ep.client_keys.control_key, ep.server_keys.control_key);
     assert_eq!(ep.client_keys.stream_key, ep.server_keys.stream_key);
     assert_eq!(ep.client_keys.datagram_key, ep.server_keys.datagram_key);
-    assert_eq!(ep.client_keys.resumption_secret, ep.server_keys.resumption_secret);
+    assert_eq!(
+        ep.client_keys.resumption_secret,
+        ep.server_keys.resumption_secret
+    );
 }
 
 // ── Test 2: Encrypted stream data + rekey ───────────────────────────────
@@ -202,10 +210,18 @@ async fn encrypted_stream_traffic_and_rekey() {
     let ep = full_handshake_over_h2().await;
 
     // Create traffic keys from session keys
-    let mut client_stream_send =
-        TrafficKey::new(ep.client_keys.stream_key, ep.client_keys.stream_iv, TrafficClass::Stream);
-    let mut server_stream_recv =
-        TrafficKey::new(ep.server_keys.stream_key, ep.server_keys.stream_iv, TrafficClass::Stream);
+    let mut client_stream_send = TrafficKey::new(
+        ep.client_keys.stream_key,
+        ep.client_keys.stream_iv,
+        TrafficClass::Stream,
+        Direction::ClientToServer,
+    );
+    let mut server_stream_recv = TrafficKey::new(
+        ep.server_keys.stream_key,
+        ep.server_keys.stream_iv,
+        TrafficClass::Stream,
+        Direction::ClientToServer,
+    );
 
     // Encrypt a stream frame
     let frame = StreamFrame {
@@ -228,11 +244,13 @@ async fn encrypted_stream_traffic_and_rekey() {
         ep.client_keys.datagram_key,
         ep.client_keys.datagram_iv,
         TrafficClass::Datagram,
+        Direction::ClientToServer,
     );
     let mut server_dg_recv = TrafficKey::new(
         ep.server_keys.datagram_key,
         ep.server_keys.datagram_iv,
         TrafficClass::Datagram,
+        Direction::ClientToServer,
     );
 
     let dg = DatagramFrame {
@@ -259,28 +277,32 @@ async fn encrypted_stream_traffic_and_rekey() {
     let mut ku_buf = Vec::new();
     ku_frame.encode(&mut ku_buf);
 
-    // Server processes KEY_UPDATE
+    // Server applies the KEY_UPDATE on its receive direction.
     let decoded_ku = KeyUpdateFrame::decode(&ku_buf).unwrap();
-    server_rekey.process_peer_update(decoded_ku.new_epoch).unwrap();
+    let server_epoch_keys = server_rekey
+        .process_peer_update(decoded_ku.new_epoch)
+        .unwrap();
 
-    // Both complete rekey
+    // Client commits its send direction.
     let client_epoch_keys = client_rekey.complete().unwrap();
-    let server_epoch_keys = server_rekey.complete().unwrap();
 
-    // New keys must match
+    // The client's send-epoch keys must match the server's recv-epoch keys.
     assert_eq!(client_epoch_keys, server_epoch_keys);
-    assert_eq!(client_rekey.epoch(), 1);
+    assert_eq!(client_rekey.send_epoch(), 1);
+    assert_eq!(server_rekey.recv_epoch(), 1);
 
     // Use new keys for traffic
     let mut new_send = TrafficKey::new(
         client_epoch_keys.stream_key,
         client_epoch_keys.stream_iv,
         TrafficClass::Stream,
+        Direction::ClientToServer,
     );
     let mut new_recv = TrafficKey::new(
         server_epoch_keys.stream_key,
         server_epoch_keys.stream_iv,
         TrafficClass::Stream,
+        Direction::ClientToServer,
     );
 
     let post_rekey_frame = StreamFrame {
@@ -305,7 +327,11 @@ async fn encrypted_stream_traffic_and_rekey() {
         ep.server_keys.stream_key,
         ep.server_keys.stream_iv,
         TrafficClass::Stream,
+        Direction::ClientToServer,
     );
     let result = old_recv.open(&ct2);
-    assert!(result.is_err(), "old epoch key must not decrypt new epoch data");
+    assert!(
+        result.is_err(),
+        "old epoch key must not decrypt new epoch data"
+    );
 }

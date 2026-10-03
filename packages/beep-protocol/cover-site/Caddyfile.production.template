@@ -1,0 +1,41 @@
+# Stage-2 cover-site deployment template.
+#
+# Fill in a real domain and point it at this server before using this file;
+# Caddy's automatic HTTPS then issues and renews a real certificate for it,
+# with no further configuration. Set the environment variables below (an
+# env file works with `caddy run --envfile`), then:
+#
+#   caddy run --config Caddyfile.production.template --adapter caddyfile
+#
+# Required:
+#   BEEP_COVER_DOMAIN        the real domain, e.g. updates.example-cdn.com
+#   BEEP_COVER_HEADER_VALUE  a long random secret (this file's default
+#                            below is a placeholder, not a real secret)
+# Worth changing from the defaults:
+#   BEEP_COVER_PATH          the secret path (looks like real site content)
+#   BEEP_COVER_HEADER_NAME   the secret header name
+#   BEEP_COVER_SITE_ROOT     real site content — not a placeholder page.
+#                            What a passive observer sees when they load
+#                            this domain normally; it should look like
+#                            whatever this domain is supposed to be.
+# Optional:
+#   BEEP_NODE_PORT           defaults to 4443, must match beep-node's --port
+#
+# beep-node runs alongside this with `--behind-proxy <path to the leaf
+# certificate below>`, bound to 127.0.0.1 only — see cover-site/README.md.
+
+{$BEEP_COVER_DOMAIN} {
+	@tunnel {
+		path {$BEEP_COVER_PATH:/static/chunk-7f3a91c2.js}
+		header {$BEEP_COVER_HEADER_NAME:x-edge-token} {$BEEP_COVER_HEADER_VALUE:change-me-set-a-real-secret}
+		# See Caddyfile.lab's comment on this matcher: requiring the
+		# upgrade shape, not just the path and header, keeps a probe that
+		# has the right path and header but isn't a real WS handshake
+		# indistinguishable from one with neither.
+		header_regexp ws_upgrade Upgrade (?i)^websocket$
+	}
+	reverse_proxy @tunnel 127.0.0.1:{$BEEP_NODE_PORT:4443}
+
+	root * {$BEEP_COVER_SITE_ROOT}
+	file_server
+}

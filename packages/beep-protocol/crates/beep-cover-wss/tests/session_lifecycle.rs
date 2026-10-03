@@ -4,11 +4,11 @@ use std::sync::Arc;
 use beep_core::session::{ClientConfig, ClientHandshake, ServerConfig, ServerHandshake};
 use beep_core::session_core::{IncomingAction, SessionCore};
 use beep_core_types::{CapabilityId, CoreVersion};
-use beep_cover_wss::{accept_wss, connect_wss, BEEP_ALPN};
+use beep_cover_wss::{accept_wss, connect_wss, ALPN_HTTP11};
+use beep_transport::CoverConn;
 use bytes::Bytes;
 use tokio::net::TcpListener;
 use tokio_rustls::TlsAcceptor;
-use beep_transport::CoverConn;
 
 fn generate_test_certs() -> (
     Vec<rustls::pki_types::CertificateDer<'static>>,
@@ -31,7 +31,7 @@ fn server_tls_config(
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .unwrap();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_HTTP11.to_vec()];
     config
 }
 
@@ -40,7 +40,7 @@ fn client_tls_config() -> rustls::ClientConfig {
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(InsecureVerifier))
         .with_no_client_auth();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_HTTP11.to_vec()];
     config
 }
 
@@ -110,6 +110,7 @@ async fn full_session_lifecycle_over_wss() {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node-wss".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
         });
 
         let data = conn.recv().await.unwrap().unwrap();
@@ -159,7 +160,7 @@ async fn full_session_lifecycle_over_wss() {
     });
 
     let client_handle = tokio::spawn(async move {
-        let mut conn = connect_wss(server_addr, "localhost", "vpn", client_tls)
+        let mut conn = connect_wss(server_addr, "localhost", "/ws", client_tls)
             .await
             .unwrap();
         let binding = conn.transport_binding();
@@ -170,6 +171,7 @@ async fn full_session_lifecycle_over_wss() {
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         });
 
         let client_init = hs.create_client_init().unwrap();

@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use rcgen::generate_simple_self_signed;
 
 pub fn generate_test_certs() -> (
@@ -9,7 +8,8 @@ pub fn generate_test_certs() -> (
     let cert = generate_simple_self_signed(vec!["localhost".to_string()]).unwrap();
     let raw_der = cert.cert.der().to_vec();
     let cert_der = rustls::pki_types::CertificateDer::from(raw_der.clone());
-    let key_der = rustls::pki_types::PrivateKeyDer::try_from(cert.key_pair.serialize_der()).unwrap();
+    let key_der =
+        rustls::pki_types::PrivateKeyDer::try_from(cert.key_pair.serialize_der()).unwrap();
     (vec![cert_der], key_der, raw_der)
 }
 
@@ -47,6 +47,8 @@ impl rustls::client::danger::ServerCertVerifier for InsecureVerifier {
     }
 
     fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
-        rustls::crypto::ring::default_provider().signature_verification_algorithms.supported_schemes()
+        rustls::crypto::ring::default_provider()
+            .signature_verification_algorithms
+            .supported_schemes()
     }
 }

@@ -21,8 +21,10 @@ use beep_transport::{CoverConn, TransportCapabilities, TransportError};
 use bytes::Bytes;
 use sha2::{Digest, Sha256};
 
-/// ALPN for Beep over QUIC.
-pub const BEEP_ALPN: &[u8] = b"beep-quic";
+/// The HTTP/3 ALPN: a client offering this over QUIC is indistinguishable
+/// at the handshake level from a real HTTP/3 connection; what rides the
+/// stream afterwards is Beep framing, not HTTP/3 semantics.
+pub const ALPN_H3: &[u8] = b"h3";
 
 /// QUIC cover transport connection.
 pub struct H3CoverConn {
@@ -112,8 +114,8 @@ pub async fn connect_h3(
     ));
     client_config.transport_config(Arc::new(transport_config));
 
-    let mut endpoint = quinn::Endpoint::client(bind_addr)
-        .map_err(|e| TransportError::Io(e.to_string()))?;
+    let mut endpoint =
+        quinn::Endpoint::client(bind_addr).map_err(|e| TransportError::Io(e.to_string()))?;
     endpoint.set_default_client_config(client_config);
 
     let conn = endpoint
@@ -155,8 +157,7 @@ pub fn server_endpoint(
     let mut server_config = quinn::ServerConfig::with_crypto(Arc::new(quic_server_config));
     server_config.transport_config(Arc::new(transport_config));
 
-    quinn::Endpoint::server(server_config, bind_addr)
-        .map_err(|e| TransportError::Io(e.to_string()))
+    quinn::Endpoint::server(server_config, bind_addr).map_err(|e| TransportError::Io(e.to_string()))
 }
 
 /// Accept one incoming QUIC connection and return an `H3CoverConn`.
@@ -195,12 +196,10 @@ pub async fn accept_h3(
 
 fn compute_binding_from_conn(conn: &quinn::Connection) -> [u8; 32] {
     // Extract peer certificates from the QUIC connection
-    let peer_certs = conn
-        .peer_identity()
-        .and_then(|id| {
-            id.downcast::<Vec<rustls::pki_types::CertificateDer<'static>>>()
-                .ok()
-        });
+    let peer_certs = conn.peer_identity().and_then(|id| {
+        id.downcast::<Vec<rustls::pki_types::CertificateDer<'static>>>()
+            .ok()
+    });
 
     let cert_der = peer_certs
         .as_ref()

@@ -9,6 +9,7 @@ license.workspace = true
 beep-core-types = { path = "../beep-core-types" }
 thiserror = { workspace = true }
 x25519-dalek = { workspace = true }
+ed25519-dalek = { workspace = true }
 hkdf = { workspace = true }
 sha2 = { workspace = true }
 hmac = { workspace = true }

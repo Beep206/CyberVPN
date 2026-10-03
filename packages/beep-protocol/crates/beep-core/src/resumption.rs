@@ -193,7 +193,10 @@ pub enum TicketError {
     #[error("ticket has expired")]
     Expired,
     #[error("policy epoch mismatch: ticket={ticket_epoch}, current={current_epoch}")]
-    PolicyEpochMismatch { ticket_epoch: u64, current_epoch: u64 },
+    PolicyEpochMismatch {
+        ticket_epoch: u64,
+        current_epoch: u64,
+    },
     #[error("ticket decryption failed (tampered or wrong key)")]
     DecryptionFailed,
     #[error("cryptographic error")]
@@ -261,10 +264,13 @@ mod tests {
     fn policy_epoch_mismatch_rejected() {
         let ticket = test_ticket();
         let result = validate_ticket(&ticket, 99, 1_600_000_000);
-        assert_eq!(result, Err(TicketError::PolicyEpochMismatch {
-            ticket_epoch: 42,
-            current_epoch: 99,
-        }));
+        assert_eq!(
+            result,
+            Err(TicketError::PolicyEpochMismatch {
+                ticket_epoch: 42,
+                current_epoch: 99,
+            })
+        );
     }
 
     #[test]

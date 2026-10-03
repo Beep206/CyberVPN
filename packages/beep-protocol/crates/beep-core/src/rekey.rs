@@ -16,89 +16,92 @@ use sha2::Sha256;
 use crate::cipher::{TrafficClass, TrafficKeyPair};
 use crate::key_schedule::SessionKeys;
 
-/// Current rekey state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RekeyPhase {
-    /// Normal operation, no rekey in progress.
-    Stable,
-    /// We sent KEY_UPDATE, waiting for peer's acknowledgment.
-    Initiated,
-    /// We received KEY_UPDATE, will send ack.
-    PeerInitiated,
-}
-
-/// Rekey manager.
+/// Rekey manager with independent send and receive directions.
+///
+/// Each direction has its own epoch counter and HKDF ratchet chain. Rotating
+/// one direction never touches the other, so a `KEY_UPDATE` we send (which
+/// advances only our send keys) cannot strand frames the peer already sent
+/// under the previous epoch — those still decrypt under our unchanged receive
+/// keys. Both chains start from the same session master secret and advance by
+/// the same function, so our send-epoch-N keys match the peer's receive-epoch-N
+/// keys. The per-direction nonce tag in the cipher keeps the two directions on
+/// disjoint nonce streams even when they hold the same epoch.
 pub struct RekeyState {
-    /// Current key epoch (starts at 0 after handshake).
-    epoch: u64,
-    /// Current session master secret (used as input for next epoch derivation).
-    current_secret: [u8; 32],
-    /// Rekey phase.
-    phase: RekeyPhase,
+    send_epoch: u64,
+    recv_epoch: u64,
+    send_secret: [u8; 32],
+    recv_secret: [u8; 32],
+    /// Send-direction keys derived by `initiate` and installed by `complete`.
+    pending_send: Option<EpochKeys>,
 }
 
 impl RekeyState {
-    /// Create from initial session keys.
+    /// Create from initial session keys. Both directions start at epoch 0.
     pub fn new(session_keys: &SessionKeys) -> Self {
         Self {
-            epoch: 0,
-            current_secret: session_keys.session_master_secret,
-            phase: RekeyPhase::Stable,
+            send_epoch: 0,
+            recv_epoch: 0,
+            send_secret: session_keys.session_master_secret,
+            recv_secret: session_keys.session_master_secret,
+            pending_send: None,
         }
     }
 
-    /// Current epoch number.
+    /// Current send-direction epoch.
+    pub fn send_epoch(&self) -> u64 {
+        self.send_epoch
+    }
+
+    /// Current receive-direction epoch.
+    pub fn recv_epoch(&self) -> u64 {
+        self.recv_epoch
+    }
+
+    /// Highest epoch seen in either direction (for metrics/diagnostics).
     pub fn epoch(&self) -> u64 {
-        self.epoch
+        self.send_epoch.max(self.recv_epoch)
     }
 
-    /// Current phase.
-    pub fn phase(&self) -> RekeyPhase {
-        self.phase
-    }
-
-    /// Initiate a rekey. Returns the new epoch number for the KEY_UPDATE frame.
+    /// Begin a send-direction rekey. Returns the new send epoch to advertise in
+    /// the `KEY_UPDATE` frame. The caller seals `KEY_UPDATE` under the *current*
+    /// send keys and then calls [`complete`](Self::complete) to install the new
+    /// send keys.
     pub fn initiate(&mut self) -> Result<u64, RekeyError> {
-        if self.phase != RekeyPhase::Stable {
+        if self.pending_send.is_some() {
             return Err(RekeyError::RekeyAlreadyInProgress);
         }
-        self.phase = RekeyPhase::Initiated;
-        Ok(self.epoch + 1)
+        let new_epoch = self.send_epoch + 1;
+        self.pending_send = Some(derive_epoch_keys(&self.send_secret, new_epoch));
+        Ok(new_epoch)
     }
 
-    /// Process a received KEY_UPDATE from the peer.
-    pub fn process_peer_update(&mut self, new_epoch: u64) -> Result<(), RekeyError> {
-        if new_epoch != self.epoch + 1 {
+    /// Commit the send-direction rekey: advance the send ratchet and return the
+    /// keys to install on the send ciphers.
+    pub fn complete(&mut self) -> Result<EpochKeys, RekeyError> {
+        let keys = self
+            .pending_send
+            .take()
+            .ok_or(RekeyError::NoRekeyInProgress)?;
+        self.send_secret = keys.epoch_secret;
+        self.send_epoch += 1;
+        Ok(keys)
+    }
+
+    /// Process a peer `KEY_UPDATE`: advance the receive ratchet and return the
+    /// keys to install on the receive ciphers. Leaves the send direction
+    /// untouched.
+    pub fn process_peer_update(&mut self, new_epoch: u64) -> Result<EpochKeys, RekeyError> {
+        let expected = self.recv_epoch + 1;
+        if new_epoch != expected {
             return Err(RekeyError::EpochMismatch {
-                expected: self.epoch + 1,
+                expected,
                 received: new_epoch,
             });
         }
-        if self.phase == RekeyPhase::Initiated {
-            // Both sides initiated simultaneously — our initiate wins
-            // (just complete the transition)
-        }
-        self.phase = RekeyPhase::PeerInitiated;
-        Ok(())
-    }
-
-    /// Complete the rekey: derive new epoch keys and return them.
-    ///
-    /// Both `initiate()` and `process_peer_update()` lead here.
-    pub fn complete(&mut self) -> Result<EpochKeys, RekeyError> {
-        if self.phase == RekeyPhase::Stable {
-            return Err(RekeyError::NoRekeyInProgress);
-        }
-
-        let new_epoch = self.epoch + 1;
-        let epoch_keys = derive_epoch_keys(&self.current_secret, new_epoch);
-
-        // Update state
-        self.current_secret = epoch_keys.epoch_secret;
-        self.epoch = new_epoch;
-        self.phase = RekeyPhase::Stable;
-
-        Ok(epoch_keys)
+        let keys = derive_epoch_keys(&self.recv_secret, new_epoch);
+        self.recv_secret = keys.epoch_secret;
+        self.recv_epoch += 1;
+        Ok(keys)
     }
 }
 
@@ -119,12 +122,30 @@ pub struct EpochKeys {
 }
 
 impl EpochKeys {
-    /// Create `TrafficKeyPair`s from these epoch keys.
-    pub fn to_traffic_keys(&self) -> (TrafficKeyPair, TrafficKeyPair, TrafficKeyPair) {
+    /// Create `TrafficKeyPair`s from these epoch keys for the given role.
+    pub fn to_traffic_keys(
+        &self,
+        is_initiator: bool,
+    ) -> (TrafficKeyPair, TrafficKeyPair, TrafficKeyPair) {
         (
-            TrafficKeyPair::new(self.control_key, self.control_iv, TrafficClass::Control),
-            TrafficKeyPair::new(self.stream_key, self.stream_iv, TrafficClass::Stream),
-            TrafficKeyPair::new(self.datagram_key, self.datagram_iv, TrafficClass::Datagram),
+            TrafficKeyPair::new(
+                self.control_key,
+                self.control_iv,
+                TrafficClass::Control,
+                is_initiator,
+            ),
+            TrafficKeyPair::new(
+                self.stream_key,
+                self.stream_iv,
+                TrafficClass::Stream,
+                is_initiator,
+            ),
+            TrafficKeyPair::new(
+                self.datagram_key,
+                self.datagram_iv,
+                TrafficClass::Datagram,
+                is_initiator,
+            ),
         )
     }
 }
@@ -255,43 +276,47 @@ mod tests {
     }
 
     #[test]
-    fn rekey_epoch_advances() {
+    fn send_rekey_advances_only_send_epoch() {
         let sk = test_session_keys();
         let mut rs = RekeyState::new(&sk);
-        assert_eq!(rs.epoch(), 0);
+        assert_eq!(rs.send_epoch(), 0);
+        assert_eq!(rs.recv_epoch(), 0);
 
         let new_epoch = rs.initiate().unwrap();
         assert_eq!(new_epoch, 1);
 
         let keys = rs.complete().unwrap();
-        assert_eq!(rs.epoch(), 1);
-        assert_eq!(rs.phase(), RekeyPhase::Stable);
+        assert_eq!(rs.send_epoch(), 1);
+        assert_eq!(rs.recv_epoch(), 0, "recv direction must not move");
 
-        // Keys should differ from original
         assert_ne!(keys.control_key, sk.control_key);
         assert_ne!(keys.stream_key, sk.stream_key);
     }
 
     #[test]
-    fn peer_initiated_rekey() {
+    fn recv_rekey_advances_only_recv_epoch() {
         let sk = test_session_keys();
         let mut rs = RekeyState::new(&sk);
 
-        rs.process_peer_update(1).unwrap();
-        assert_eq!(rs.phase(), RekeyPhase::PeerInitiated);
-
-        let keys = rs.complete().unwrap();
-        assert_eq!(rs.epoch(), 1);
+        let keys = rs.process_peer_update(1).unwrap();
+        assert_eq!(rs.recv_epoch(), 1);
+        assert_eq!(rs.send_epoch(), 0, "send direction must not move");
         assert_ne!(keys.epoch_secret, sk.session_master_secret);
     }
 
     #[test]
-    fn wrong_epoch_rejected() {
+    fn wrong_recv_epoch_rejected() {
         let sk = test_session_keys();
         let mut rs = RekeyState::new(&sk);
 
         let result = rs.process_peer_update(5);
-        assert_eq!(result, Err(RekeyError::EpochMismatch { expected: 1, received: 5 }));
+        assert_eq!(
+            result.err(),
+            Some(RekeyError::EpochMismatch {
+                expected: 1,
+                received: 5
+            })
+        );
     }
 
     #[test]
@@ -314,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn sequential_rekeys_produce_different_keys() {
+    fn sequential_send_rekeys_produce_different_keys() {
         let sk = test_session_keys();
         let mut rs = RekeyState::new(&sk);
 
@@ -326,26 +351,25 @@ mod tests {
 
         assert_ne!(keys1.control_key, keys2.control_key);
         assert_ne!(keys1.epoch_secret, keys2.epoch_secret);
-        assert_eq!(rs.epoch(), 2);
+        assert_eq!(rs.send_epoch(), 2);
     }
 
     #[test]
-    fn both_sides_derive_same_epoch_keys() {
+    fn send_and_recv_chains_agree_across_peers() {
+        // One peer's send chain must match the other peer's recv chain so a
+        // frame sealed under send-epoch N opens under recv-epoch N.
         let sk = test_session_keys();
-        let mut rs_a = RekeyState::new(&sk);
-        let mut rs_b = RekeyState::new(&sk);
+        let mut initiator = RekeyState::new(&sk);
+        let mut responder = RekeyState::new(&sk);
 
-        // A initiates, B accepts
-        let epoch = rs_a.initiate().unwrap();
-        rs_b.process_peer_update(epoch).unwrap();
+        let epoch = initiator.initiate().unwrap();
+        let responder_recv = responder.process_peer_update(epoch).unwrap();
+        let initiator_send = initiator.complete().unwrap();
 
-        let keys_a = rs_a.complete().unwrap();
-        let keys_b = rs_b.complete().unwrap();
-
-        assert_eq!(keys_a.control_key, keys_b.control_key);
-        assert_eq!(keys_a.stream_key, keys_b.stream_key);
-        assert_eq!(keys_a.datagram_key, keys_b.datagram_key);
-        assert_eq!(keys_a.epoch_secret, keys_b.epoch_secret);
+        assert_eq!(initiator_send.control_key, responder_recv.control_key);
+        assert_eq!(initiator_send.stream_key, responder_recv.stream_key);
+        assert_eq!(initiator_send.datagram_key, responder_recv.datagram_key);
+        assert_eq!(initiator_send.epoch_secret, responder_recv.epoch_secret);
     }
 
     #[test]

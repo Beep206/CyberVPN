@@ -2,7 +2,7 @@ use bytes::Bytes;
 use std::io;
 
 /// An abstraction over the OS's TUN networking device.
-/// 
+///
 /// `beep-runtime` uses this trait instead of reading directly from the platform TUN.
 /// This allows it to decouple from OS-specific crates (like `tokio-tun` on Linux
 /// or `wintun` on Windows). It also enables seamless cross-platform unit testing

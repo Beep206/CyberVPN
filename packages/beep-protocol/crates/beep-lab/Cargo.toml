@@ -1,0 +1,14 @@
+[package]
+name = "beep-lab"
+description = "Lab instruments for Beep: ClientHello parser, JA4, recording proxy and reference browser fixtures"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+sha2 = { workspace = true }
+serde = { workspace = true }
+serde_json = "1"
+tokio = { workspace = true }
+thiserror = { workspace = true }

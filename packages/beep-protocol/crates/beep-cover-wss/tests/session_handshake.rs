@@ -1,7 +1,7 @@
 use beep_core::key_schedule::SessionKeys;
 use beep_core::session::{ClientConfig, ClientHandshake, ServerConfig, ServerHandshake};
 use beep_core_types::{CapabilityId, CoreVersion};
-use beep_cover_wss::{accept_wss, connect_wss, BEEP_ALPN};
+use beep_cover_wss::{accept_wss, connect_wss, ALPN_HTTP11};
 use beep_transport::CoverConn;
 use bytes::Bytes;
 use std::net::Ipv4Addr;
@@ -32,7 +32,7 @@ fn server_tls_config(
         .with_no_client_auth()
         .with_single_cert(certs, key)
         .unwrap();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_HTTP11.to_vec()];
     config
 }
 
@@ -41,7 +41,7 @@ fn client_tls_config() -> rustls::ClientConfig {
         .dangerous()
         .with_custom_certificate_verifier(Arc::new(InsecureVerifier))
         .with_no_client_auth();
-    config.alpn_protocols = vec![BEEP_ALPN.to_vec()];
+    config.alpn_protocols = vec![ALPN_HTTP11.to_vec()];
     config
 }
 
@@ -96,6 +96,7 @@ async fn do_beep_handshake<C: CoverConn>(
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             auth_method: 0x01,
             auth_data: vec![0xAA; 16],
+            ..Default::default()
         });
         let client_init = hs.create_client_init().unwrap();
         conn.send(Bytes::from(client_init)).await.unwrap();
@@ -112,6 +113,7 @@ async fn do_beep_handshake<C: CoverConn>(
             capabilities: vec![CapabilityId::Streams, CapabilityId::Rekey],
             node_identity: b"test-node-wss".to_vec(),
             policy_epoch: 1,
+            ..Default::default()
         });
         let data = conn.recv().await.unwrap().unwrap();
         hs.process_client_init(&data).unwrap();
@@ -146,30 +148,30 @@ async fn full_handshake_over_wss() {
         let tls_stream = acceptor.accept(tcp_stream).await.unwrap();
 
         let mut conn = accept_wss(tls_stream, &cert_for_server).await.unwrap();
-        
+
         assert!(conn.capabilities().supports_streams);
         assert!(!conn.capabilities().supports_datagrams);
         assert!(!conn.capabilities().supports_migration);
 
         let binding = conn.transport_binding();
         let keys = do_beep_handshake(&mut conn, false, binding).await;
-        
+
         let _ = conn.recv().await;
 
         keys
     });
 
     let client_handle = tokio::spawn(async move {
-        let mut conn = connect_wss(server_addr, "localhost", "vpn", client_tls)
+        let mut conn = connect_wss(server_addr, "localhost", "/ws", client_tls)
             .await
             .unwrap();
-        
+
         assert!(conn.capabilities().supports_streams);
         assert!(!conn.capabilities().supports_datagrams);
 
         let binding = conn.transport_binding();
         let keys = do_beep_handshake(&mut conn, true, binding).await;
-        
+
         // Give server time to read
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
@@ -221,7 +223,7 @@ async fn encrypted_stream_traffic_over_wss() {
     });
 
     let client_handle = tokio::spawn(async move {
-        let mut conn = connect_wss(server_addr, "localhost", "vpn", client_tls)
+        let mut conn = connect_wss(server_addr, "localhost", "/ws", client_tls)
             .await
             .unwrap();
         let binding = conn.transport_binding();
