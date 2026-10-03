@@ -40,7 +40,7 @@ Do not stop after analysis or a plan. Do not ask for routine permission to edit
 files, install development dependencies, start local services, generate code,
 create local migrations, or execute validation. Production deployment,
 production data mutation, credential rotation, destructive infrastructure
-actions, and direct pushes to `main` require explicit task scope.
+actions require explicit task scope.
 
 ## Production and VPN node map
 
@@ -298,7 +298,6 @@ workspace, role, object ownership, allowed state transition, and audit need.
 ## Git and diff hygiene
 
 - Use one coherent task per branch. Prefer `codex/<task-id>-<slug>`.
-- Never push directly to `main`.
 - Do not use `git commit --no-verify`.
 - Do not force-push over user-owned commits.
 - Before handoff inspect `git status --short`, `git diff --check`,
